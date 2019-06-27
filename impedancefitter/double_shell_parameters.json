@@ -1,0 +1,172 @@
+{
+    "params": [
+        [
+            "k",
+            1.7619999982307023e-07,
+            false,
+            null,
+            -Infinity,
+            Infinity,
+            null,
+            null,
+            null,
+            1.7619999982307023e-07,
+            null
+        ],
+        [
+            "alpha",
+            0.8999999999972882,
+            false,
+            null,
+            -Infinity,
+            Infinity,
+            null,
+            null,
+            null,
+            0.8999999999972882,
+            null
+        ],
+        [
+            "km",
+            0.0003,
+            true,
+            null,
+            4e-10,
+            0.005,
+            null,
+            null,
+            null,
+            0.0003,
+            null
+        ],
+        [
+            "em",
+            11,
+            true,
+            null,
+            2,
+            50,
+            null,
+            null,
+            null,
+            11,
+            null
+        ],
+        [
+            "kcp",
+            0.4,
+            true,
+            null,
+            0.1,
+            1,
+            null,
+            null,
+            null,
+            0.4,
+            null
+        ],
+        [
+            "ene",
+            50,
+            true,
+            null,
+            5,
+            200,
+            null,
+            null,
+            null,
+            50,
+            null
+        ],
+        [
+            "kne",
+            0.002,
+            true,
+            null,
+            1e-05,
+            0.1,
+            null,
+            null,
+            null,
+            0.002,
+            null
+        ],
+        [
+            "knp",
+            0.8,
+            true,
+            null,
+            0.1,
+            4,
+            null,
+            null,
+            null,
+            0.8,
+            null
+        ],
+        [
+            "kmed",
+            0.05,
+            true,
+            null,
+            0.04,
+            0.3,
+            null,
+            null,
+            null,
+            0.05,
+            null
+        ]
+    ],
+    "unique_symbols": {
+        "False": 0.0,
+        "Inf": Infinity,
+        "NAN": NaN,
+        "None": null,
+        "True": 1.0,
+        "alpha": 0.8999999999972882,
+        "e": 2.718281828459045,
+        "em": 11.0,
+        "ene": 50.0,
+        "erf": {
+            "__class__": "Callable",
+            "__name__": "erf",
+            "importer": "lmfit.confidence",
+            "pyversion": "3.6",
+            "value": null
+        },
+        "erfc": {
+            "__class__": "Callable",
+            "__name__": "erfc",
+            "importer": "scipy.special",
+            "pyversion": "3.6",
+            "value": null
+        },
+        "gamfcn": {
+            "__class__": "Callable",
+            "__name__": "gamma",
+            "importer": "scipy.special",
+            "pyversion": "3.6",
+            "value": null
+        },
+        "inf": Infinity,
+        "infty": Infinity,
+        "k": 1.7619999982307023e-07,
+        "kcp": 0.4,
+        "km": 0.0003,
+        "kmed": 0.05,
+        "kne": 0.002,
+        "knp": 0.8,
+        "little_endian": 1.0,
+        "nan": NaN,
+        "newaxis": null,
+        "pi": 3.141592653589793,
+        "wofz": {
+            "__class__": "Callable",
+            "__name__": "wofz",
+            "importer": "scipy.special",
+            "pyversion": "3.6",
+            "value": null
+        }
+    }
+}

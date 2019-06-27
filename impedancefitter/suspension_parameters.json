@@ -1,0 +1,116 @@
+{
+    "params": [
+        [
+            "epsi_l",
+            1000,
+            true,
+            null,
+            0,
+            Infinity,
+            null,
+            null,
+            null,
+            1000,
+            null
+        ],
+        [
+            "tau",
+            5e-07,
+            true,
+            null,
+            0,
+            Infinity,
+            null,
+            null,
+            null,
+            5e-07,
+            null
+        ],
+        [
+            "a",
+            0.2,
+            true,
+            null,
+            0.0,
+            1.0,
+            null,
+            null,
+            null,
+            0.2,
+            null
+        ],
+        [
+            "conductivity",
+            0.05,
+            true,
+            null,
+            0.0,
+            Infinity,
+            null,
+            null,
+            null,
+            0.05,
+            null
+        ],
+        [
+            "eh",
+            78.0,
+            true,
+            null,
+            0.0,
+            Infinity,
+            null,
+            null,
+            null,
+            78.0,
+            null
+        ]
+    ],
+    "unique_symbols": {
+        "False": 0.0,
+        "Inf": Infinity,
+        "NAN": NaN,
+        "None": null,
+        "True": 1.0,
+        "a": 0.2,
+        "conductivity": 0.05,
+        "e": 2.718281828459045,
+        "eh": 78.0,
+        "epsi_l": 1000.0,
+        "erf": {
+            "__class__": "Callable",
+            "__name__": "erf",
+            "importer": "lmfit.confidence",
+            "pyversion": "3.6",
+            "value": null
+        },
+        "erfc": {
+            "__class__": "Callable",
+            "__name__": "erfc",
+            "importer": "scipy.special",
+            "pyversion": "3.6",
+            "value": null
+        },
+        "gamfcn": {
+            "__class__": "Callable",
+            "__name__": "gamma",
+            "importer": "scipy.special",
+            "pyversion": "3.6",
+            "value": null
+        },
+        "inf": Infinity,
+        "infty": Infinity,
+        "little_endian": 1.0,
+        "nan": NaN,
+        "newaxis": null,
+        "pi": 3.141592653589793,
+        "tau": 5e-07,
+        "wofz": {
+            "__class__": "Callable",
+            "__name__": "wofz",
+            "importer": "scipy.special",
+            "pyversion": "3.6",
+            "value": null
+        }
+    }
+}

@@ -1,0 +1,4 @@
+pyyaml
+lmfit>=0.9.13
+numpy>=1.16
+xlrd>=1.2.0
