@@ -15,8 +15,9 @@ numpy==1.16
 
 lmfit==0.9.13
 * pip3 install lmfit --upgrade --user 
+
 xlrd==1.2.0(xlxs filesupport)
-  pip3 install xlrd --upgrade --user
+*  pip3 install xlrd --upgrade --user
 
 Documentation
 -------------
