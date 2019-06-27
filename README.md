@@ -1,6 +1,11 @@
-How to use these files
-======================
+How to use this package
+=======================
 
+Run
+```
+pip3 install .
+```
+in this directory.
 
 Requirements
 ------------
