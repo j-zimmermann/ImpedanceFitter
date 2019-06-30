@@ -16,7 +16,6 @@
 \item pyhton/main.py: this is the main file, which holds algorithms for the fitting procedure
 \item python/constants.py: this file holds all constants needed for the calculation. These include geometric and other Parameters(check parametertable.tex to see which parameters are fixed)
 \item python/cole$\_$cole$\_$input.yaml: holds the starting parameters and boundaries for the corresponding fitting procedure. With the vary bool you can choose if the fit should be able to change this value. 
-\item python/cole$\_$cole$\_$parameters.json: holds default values for the starting parameters and boundaries. These get read in before the ".yaml" files, so that the values in the ".yaml" files will overwrite changes in here. 
 \end{itemize}
 }
 \subsection{How it works}{
@@ -126,7 +125,7 @@ E_\mathrm{3} = \frac{\varepsilon_\mathrm{np}^\ast}{\varepsilon_\mathrm{ne}^\ast}
 \begin{itemize}
 \item the calculation for the residual is the same as in the cole-cole-fit
 \item the data only gets fitted once
-\item Equations for the single-shell-model($\nu1$ is calculated like in the double-shell-model: 
+\item Equations for the single-shell-model($\nu1$ is calculated like in the double-shell-model): 
 \begin{equation}
 \varepsilon_\mathrm{cell}^* = \varepsilon_\mathrm{m}^* * \frac{(2 * (1 - \nu1) + (1 + 2 * \nu1) * E1}{((2 + \nu1) + (1 - -\nu1) * E1}
 \end{equation}

@@ -60,6 +60,8 @@ class Fitter(object):
         self.LogLevel = kwargs['LogLevel']  # log level: choose info for less verbose output
         self.solvername = kwargs['solvername']
         self.inputformat = kwargs['inputformat']
+        self.minimumFrequency = kwargs['minimumFrequency']
+        self.maximumFrequency = kwargs['maximumFrequency']
         self.directory = os.getcwd() + '/'
         logger.setLevel(self.LogLevel)
 
@@ -132,9 +134,6 @@ class Fitter(object):
             sampledict['ene'] = ot.Sample(np.array(enelist))
             sampledict['kne'] = ot.Sample(np.array(knelist))
             sampledict['knp'] = ot.Sample(np.array(knplist))
-        # kernel = ot.KernelSmoothing()
-        # graph = ot.HistogramFactory().build(sample).drawPDF()
-        # graph.setXTitle('ene')  # TODO: edit title
         if(self.model == 'SingleShell'):
             fig, ax = plt.subplots(nrows=2, ncols=3)
         else:
@@ -142,22 +141,18 @@ class Fitter(object):
         r = 0
         c = 0
         for key in sampledict:
-            # if(key !='km'):#try catch block, um weiter auszuführen
-            try:  # still throws out of memory
-                graph = ot.HistogramFactory().build(sampledict[key]).drawPDF()  # drawpdf doesnt work for km, values are too equal
-                graph.setTitle(self.directory)  # TODO: crashes here with out of memory exception(single-shell)
-                graph.setXTitle(key)
-                View(graph, axes=[ax[r, c]], plot_kwargs={'label': key, 'c': 'black'})
-                # graph = ot.HistogramFactory().build(sampledict[key])#crashed here
-                kernel = ot.KernelSmoothing()
-                graph_k = kernel.build(sampledict[key])
-                # graph = ot.KernelSmoothing().computeSilvermanBandwidth(sampledict[key])
-                graph_k = graph_k.drawPDF()
-                graph_k.setTitle(self.directory + 'kernel')
-                graph_k.setXTitle(key)
-                View(graph_k, axes=[ax[r, c]], plot_kwargs={'label': key})
-            except MemoryError as error:
-                print(error)
+            graph = ot.HistogramFactory().build(sampledict[key]).drawPDF()  # drawpdf doesnt work for km, values are too equal
+            graph.setTitle(self.directory)  # TODO: crashes here with out of memory exception(single-shell)
+            graph.setXTitle(key)
+            View(graph, axes=[ax[r, c]], plot_kwargs={'label': key, 'c': 'black'})
+            # graph = ot.HistogramFactory().build(sampledict[key])#crashed here
+            kernel = ot.KernelSmoothing()
+            graph_k = kernel.build(sampledict[key])
+            # graph = ot.KernelSmoothing().computeSilvermanBandwidth(sampledict[key])
+            graph_k = graph_k.drawPDF()
+            graph_k.setTitle(self.directory + 'kernel')
+            graph_k.setXTitle(key)
+            View(graph_k, axes=[ax[r, c]], plot_kwargs={'label': key})
             # jump to next ax object or next row
             c += 1
             if(c == 3):
@@ -170,6 +165,15 @@ class Fitter(object):
     def readin_Data_from_xlxs(self, filename):
         EIS = pd.read_excel(self.directory + filename)
         values = EIS.values
+        #filter values,  so that only  the ones in a certain range get taken. 
+        filteredvalues = np.empty(0, values.shape[1])
+        for i in range(values.shape[0]):
+            if(values[i, 0]  > self.minimumFrequency and values[i, 0] <  self.maximumFrequency):
+                bufdict =values[i]
+                bufdict.shape = (1,bufdict.shape[0])# change shape so it can be appended
+                filteredvalues = np.append(filteredvalues, bufdict, axis = 0)
+        values = filteredvalues
+        
         f = values[:, 0]
         omega = 2. * np.pi * f
         zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
@@ -212,6 +216,15 @@ class Fitter(object):
             fileDataArray = np.loadtxt(txt_file, delimiter='\t', skiprows=self.skiprows_txt, max_rows=max_rows)
         except ValueError as v:
             logger.error('Error in file ' + filename, v.arg)
+        fileDataArray = np.array(fileDataArray)#convert into numpy array
+        filteredvalues = np.empty((0,fileDataArray.shape[1]))
+        for i in range(fileDataArray.shape[0]):
+            if(fileDataArray[i, 0] > self.minimumFrequency and fileDataArray[i, 0] < self.maximumFrequency):
+                bufdict =fileDataArray[i]
+                bufdict.shape = (1,bufdict.shape[0])# change shape so it can be appended
+                filteredvalues = np.append(filteredvalues, bufdict, axis = 0)
+        fileDataArray = filteredvalues
+        
         f = fileDataArray[:, 0].astype(np.float)
         omega = 2. * np.pi * f
         Z_real = fileDataArray[:, 1]
