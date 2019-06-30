@@ -61,7 +61,6 @@ class Fitter(object):
         self.solvername = kwargs['solvername']
         self.inputformat = kwargs['inputformat']
         self.directory = os.getcwd() + '/'
-
         logger.setLevel(self.LogLevel)
 
         # create console handler and set level to debug
@@ -183,8 +182,6 @@ class Fitter(object):
             if(self.mode == 'Matlab'):
                 yarray[i] = 1. / zarray[i]
                 epsilon[i] = (yarray[i] - 1j * omega * constants.cf) / (1j * omega * constants.c0)
-                # abs, because it cant be negative(was a bug in xlxs)
-                # abs is bad, because it deletes the imaginary part
                 k[i] = -epsilon[i].imag * omega * constants.e0
         if(self.mode == 'Matlab'):
             return(omega, zarray, yarray, epsilon, k)
@@ -344,8 +341,11 @@ class Fitter(object):
         if(modelName == 'cole_cole'):
             cole_cole_input = open('cole_cole_input.yaml', 'r')
             bufdict = yaml.safe_load(cole_cole_input)
+        if(modelName == 'suspension'):
+            suspension_input = open('suspension_input.yaml', 'r')
+            bufdict = yaml.safe_load(suspension_input)
         for key in bufdict:
-            params[key].set(value=float(bufdict[key]['value']), min=float(bufdict[key]['min']), max=float(bufdict[key]['max']), vary=bool(bufdict[key]['vary']))
+            params.add(key, value=float(bufdict[key]['value']), min=float(bufdict[key]['min']), max=float(bufdict[key]['max']), vary=bool(bufdict[key]['vary']))
         return params
 
     def Z_CPE(self, omega, k, alpha):
@@ -370,9 +370,8 @@ class Fitter(object):
         '''
         logger.debug('fit data to pure suspension model')
         params = Parameters()
-        f = open('suspension_parameters.json', 'r')
-        params.load(f)
-
+        params = self.set_parameters_from_yaml(params, 'SuspensionModel')
+        
         result = None
         if k is None:
             result = self.select_and_solve(self.solvername, self.suspension_residual, params, (omega, input1))
@@ -418,8 +417,6 @@ class Fitter(object):
         '''
         logger.debug('fit data to cole-cole model to account for electrode polarisation')
         params = Parameters()
-        f = open('cole_cole_parameters.json', 'r')
-        params.load(f)
         params = self.set_parameters_from_yaml(params, 'cole_cole')
         result = None
         for i in range(2):  # we have two iterations
@@ -515,11 +512,9 @@ class Fitter(object):
         Mode=='Matlab' uses k and e.real
         '''
         params = Parameters()
-        f = open('single_shell_parameters.json', 'r')
-        params.load(f)
         params = self.set_parameters_from_yaml(params, 'single_shell')
-        params['k'].set(vary=False, value=k_fit)
-        params['alpha'].set(vary=False, value=alpha_fit)
+        params.add('k', vary=False, value=k_fit)
+        params.add('alpha', vary=False, value=alpha_fit)
         result = None
         if k is None:
             result = self.select_and_solve(self.solvername, self.single_shell_residual, params, args=(omega, input1))
@@ -624,11 +619,9 @@ class Fitter(object):
         '''
         logger.debug('fit data to double shell model')
         params = Parameters()
-        f = open('double_shell_parameters.json', 'r')
-        params.load(f)
         params = self.set_parameters_from_yaml(params, 'double_shell')
-        params['k'].set(vary=False, value=k_fit)
-        params['alpha'].set(vary=False, value=alpha_fit)
+        params.add('k', vary=False, value=k_fit)
+        params.add('alpha', vary=False, value=alpha_fit)
 
         result = None
         for i in range(4):
