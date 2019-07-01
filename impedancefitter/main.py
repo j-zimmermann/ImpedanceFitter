@@ -36,7 +36,7 @@ if os.path.isfile('./constants.py'):
     spec.loader.exec_module(constants)
 
 else:
-    import constants
+    import impedancefitter.constants as constants
 """
 For the documentation, check ../latex/documentation_python.tex
 """
@@ -89,6 +89,7 @@ class Fitter(object):
         for filename in os.listdir(self.directory):
             filename = os.fsdecode(filename)
             if filename.endswith(".TXT"):
+                self.prepare_txt()
                 if max_rows_tag is False:  # all files have the same number of datarows, this only has to be determined once
                     max_rows = self.get_max_rows(filename)
                     max_rows_tag = True
@@ -165,15 +166,15 @@ class Fitter(object):
     def readin_Data_from_xlxs(self, filename):
         EIS = pd.read_excel(self.directory + filename)
         values = EIS.values
-        #filter values,  so that only  the ones in a certain range get taken. 
+        # filter values,  so that only  the ones in a certain range get taken.
         filteredvalues = np.empty(0, values.shape[1])
         for i in range(values.shape[0]):
-            if(values[i, 0]  > self.minimumFrequency and values[i, 0] <  self.maximumFrequency):
-                bufdict =values[i]
-                bufdict.shape = (1,bufdict.shape[0])# change shape so it can be appended
-                filteredvalues = np.append(filteredvalues, bufdict, axis = 0)
+            if(values[i, 0] > self.minimumFrequency and values[i, 0] < self.maximumFrequency):
+                bufdict = values[i]
+                bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
+                filteredvalues = np.append(filteredvalues, bufdict, axis=0)
         values = filteredvalues
-        
+
         f = values[:, 0]
         omega = 2. * np.pi * f
         zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
@@ -203,28 +204,30 @@ class Fitter(object):
         yaml.dump(data, outfile)
         print(yaml.dump(data))
 
+    def prepare_txt(self):
+        self.trace_b = 'TRACE: B'
+        self.skiprows_txt = 21  # header rows inside the *.txt files
+        self.skiprows_trace = 2  # line between traces blocks
+
     def readin_Data_from_file(self, filename, max_rows):
         """
         data from txt files get read in, basic calculations for complex Z, Y, epsilon and k are done
         """
-        self.trace_b = 'TRACE: B'
-        self.skiprows_txt = 21  # header rows inside the *.txt files
-        self.skiprows_trace = 2  # line between traces blocks
         logger.debug('going to process file: ' + self.directory + filename)
         txt_file = open(self.directory + filename, 'r')
         try:
             fileDataArray = np.loadtxt(txt_file, delimiter='\t', skiprows=self.skiprows_txt, max_rows=max_rows)
         except ValueError as v:
             logger.error('Error in file ' + filename, v.arg)
-        fileDataArray = np.array(fileDataArray)#convert into numpy array
-        filteredvalues = np.empty((0,fileDataArray.shape[1]))
+        fileDataArray = np.array(fileDataArray)  # convert into numpy array
+        filteredvalues = np.empty((0, fileDataArray.shape[1]))
         for i in range(fileDataArray.shape[0]):
             if(fileDataArray[i, 0] > self.minimumFrequency and fileDataArray[i, 0] < self.maximumFrequency):
-                bufdict =fileDataArray[i]
-                bufdict.shape = (1,bufdict.shape[0])# change shape so it can be appended
-                filteredvalues = np.append(filteredvalues, bufdict, axis = 0)
+                bufdict = fileDataArray[i]
+                bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
+                filteredvalues = np.append(filteredvalues, bufdict, axis=0)
         fileDataArray = filteredvalues
-        
+
         f = fileDataArray[:, 0].astype(np.float)
         omega = 2. * np.pi * f
         Z_real = fileDataArray[:, 1]
@@ -383,8 +386,7 @@ class Fitter(object):
         '''
         logger.debug('fit data to pure suspension model')
         params = Parameters()
-        params = self.set_parameters_from_yaml(params, 'SuspensionModel')
-        
+        params = self.set_parameters_from_yaml(params, 'suspension')
         result = None
         if k is None:
             result = self.select_and_solve(self.solvername, self.suspension_residual, params, (omega, input1))
