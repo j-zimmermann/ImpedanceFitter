@@ -60,8 +60,22 @@ class Fitter(object):
         self.LogLevel = kwargs['LogLevel']  # log level: choose info for less verbose output
         self.solvername = kwargs['solvername']
         self.inputformat = kwargs['inputformat']
-        self.minimumFrequency = kwargs['minimumFrequency']
-        self.maximumFrequency = kwargs['maximumFrequency']
+        # defaults
+        self.excludeEnding = "impossibleEndingLoL"
+        self.minimumFrequency = None
+        self.maximumFrequency = None
+        try:
+            self.minimumFrequency = kwargs['minimumFrequency']
+        except KeyError:
+            pass  # does not matter if minimumFrequency or maximumFrequency are not specified
+        try:
+            self.maximumFrequency = kwargs['maximumFrequency']
+        except KeyError:
+            pass  # does not matter if minimumFrequency or maximumFrequency are not specified
+        try:
+            self.excludeEnding = kwargs['excludeEnding']
+        except KeyError:
+            pass
         self.directory = os.getcwd() + '/'
         logger.setLevel(self.LogLevel)
 
@@ -88,7 +102,10 @@ class Fitter(object):
         open(self.directory + 'outfile.yaml', 'w')  # create output file
         for filename in os.listdir(self.directory):
             filename = os.fsdecode(filename)
-            if filename.endswith(".TXT"):
+            if filename.endswith(self.excludeEnding):
+                logger.info("Skipped file {} due to excluded ending.".format(filename))
+                break
+            if self.inputformat == 'TXT' and filename.endswith(".TXT"):
                 self.prepare_txt()
                 if max_rows_tag is False:  # all files have the same number of datarows, this only has to be determined once
                     max_rows = self.get_max_rows(filename)
@@ -97,8 +114,8 @@ class Fitter(object):
                 fittedValues = self.process_data_from_file(dataArray, filename)
                 # dataArray in the form [omega, Z, Y, epsilon, k]
                 self.process_fitting_results(fittedValues, filename)
-            if filename.endswith(".xlsx"):
-                dataArray = self.readin_Data_from_xlxs(filename)
+            elif self.inputformat == 'XLSX' and filename.endswith(".xlsx"):
+                dataArray = self.readin_Data_from_xlsx(filename)
                 for i in range(dataArray[1].shape[0]):
                     fittedValues = self.process_data_from_file([dataArray[0], dataArray[1][i]], filename)
                     # dataArray in the form [omega, Z, Y, epsilon, k]
@@ -159,15 +176,22 @@ class Fitter(object):
             if(c == 3):
                 c = 0
                 r += 1
-    #    view = View(graph)
-    #    view.save('test.png')
         plt.show()
 
-    def readin_Data_from_xlxs(self, filename):
+    def readin_Data_from_xlsx(self, filename):
+        logger.info('going to process file: ' + self.directory + filename)
         EIS = pd.read_excel(self.directory + filename)
         values = EIS.values
+        logger.debug("Found values with shape {}".format(values.shape))
         # filter values,  so that only  the ones in a certain range get taken.
-        filteredvalues = np.empty(0, values.shape[1])
+        filteredvalues = np.empty((0, values.shape[1]))
+        if self.minimumFrequency is None:
+            self.minimumFrequency = values[0, 0]
+            logger.debug("minimumFrequency is {}".format(self.minimumFrequency))
+        if self.maximumFrequency is None:
+            self.maximumFrequency = values[-1, 0]
+            logger.debug("maximumFrequency is {}".format(self.maximumFrequency))
+
         for i in range(values.shape[0]):
             if(values[i, 0] > self.minimumFrequency and values[i, 0] < self.maximumFrequency):
                 bufdict = values[i]
@@ -178,18 +202,9 @@ class Fitter(object):
         f = values[:, 0]
         omega = 2. * np.pi * f
         zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
-        yarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
-        epsilon = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
-        k = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.float64)
 
         for i in range(np.int((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
             zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
-            if(self.mode == 'Matlab'):
-                yarray[i] = 1. / zarray[i]
-                epsilon[i] = (yarray[i] - 1j * omega * constants.cf) / (1j * omega * constants.c0)
-                k[i] = -epsilon[i].imag * omega * constants.e0
-        if(self.mode == 'Matlab'):
-            return(omega, zarray, yarray, epsilon, k)
         return(omega, zarray)
 
     def process_fitting_results(self, fittedValues, filename):
@@ -202,7 +217,6 @@ class Fitter(object):
         data = {str(filename): values}
         outfile = open(self.directory + 'outfile.yaml', 'a')  # append to the already existing file, or create it, if ther is no file
         yaml.dump(data, outfile)
-        print(yaml.dump(data))
 
     def prepare_txt(self):
         self.trace_b = 'TRACE: B'
@@ -473,7 +487,7 @@ class Fitter(object):
             efit_i = -efit.imag
             kfit = efit_i * omega * constants.e0
             residual = np.concatenate((1. - (np.log10(np.abs(data)) / np.log10(efit_r)), 1. - (data_i / kfit)))
-            # data was negative for one of the xlxs files, so the abs is drawn
+            # data was negative for one of the xlsx files, so the abs is drawn
             return residual
 
     def cole_cole_model(self, omega, k, el, tau, a, alpha, kdc, eh):
