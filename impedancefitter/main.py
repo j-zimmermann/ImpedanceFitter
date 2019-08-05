@@ -54,6 +54,10 @@ class Fitter(object):
             LogLevel='DEBUG' OR 'INFO'
             solvername='solver', choose among globalSolvers: basinhopping, differential_evolution; local Solvers: levenberg-marquardt, nelder-mead, least-squares
             inputformat='TXT' OR 'XLSX'
+        possible extra values:
+            excludeEnding=string for ending that should be ignored (if there are files with the same ending as the chosen inputformat)
+            minimumFrequency=float
+            maximumFrequency=float
         """
         self.mode = kwargs['mode']
         self.model = kwargs['model']
@@ -120,7 +124,6 @@ class Fitter(object):
                     fittedValues = self.process_data_from_file([dataArray[0], dataArray[1][i]], filename)
                     # dataArray in the form [omega, Z, Y, epsilon, k]
                     self.process_fitting_results(fittedValues, filename + ' Row' + str(i))
-        self.post_process_fitted_values()
 
     def post_process_fitted_values(self):
         '''
@@ -179,10 +182,13 @@ class Fitter(object):
         plt.show()
 
     def readin_Data_from_xlsx(self, filename):
-        logger.info('going to process file: ' + self.directory + filename)
+        """
+        read in data that is structured like: frequency, real part of impedance, imaginary part of impedance
+        there may be many different sets of impedance data
+        """
+        logger.info('going to process excel file: ' + self.directory + filename)
         EIS = pd.read_excel(self.directory + filename)
         values = EIS.values
-        logger.debug("Found values with shape {}".format(values.shape))
         # filter values,  so that only  the ones in a certain range get taken.
         filteredvalues = np.empty((0, values.shape[1]))
         if self.minimumFrequency is None:
@@ -201,6 +207,7 @@ class Fitter(object):
 
         f = values[:, 0]
         omega = 2. * np.pi * f
+        # construct complex-valued array from float data
         zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
 
         for i in range(np.int((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
@@ -225,9 +232,9 @@ class Fitter(object):
 
     def readin_Data_from_file(self, filename, max_rows):
         """
-        data from txt files get read in, basic calculations for complex Z, Y, epsilon and k are done
+        data from txt files get read in, returns array with omega and complex-valued Z
         """
-        logger.debug('going to process file: ' + self.directory + filename)
+        logger.debug('going to process  text file: ' + self.directory + filename)
         txt_file = open(self.directory + filename, 'r')
         try:
             fileDataArray = np.loadtxt(txt_file, delimiter='\t', skiprows=self.skiprows_txt, max_rows=max_rows)
@@ -235,6 +242,12 @@ class Fitter(object):
             logger.error('Error in file ' + filename, v.arg)
         fileDataArray = np.array(fileDataArray)  # convert into numpy array
         filteredvalues = np.empty((0, fileDataArray.shape[1]))
+        if self.minimumFrequency is None:
+            self.minimumFrequency = fileDataArray[0, 0].astype(np.float)
+            logger.debug("minimumFrequency is {}".format(self.minimumFrequency))
+        if self.maximumFrequency is None:
+            self.maximumFrequency = fileDataArray[-1, 0].astype(np.float)
+            logger.debug("maximumFrequency is {}".format(self.maximumFrequency))
         for i in range(fileDataArray.shape[0]):
             if(fileDataArray[i, 0] > self.minimumFrequency and fileDataArray[i, 0] < self.maximumFrequency):
                 bufdict = fileDataArray[i]
@@ -247,26 +260,15 @@ class Fitter(object):
         Z_real = fileDataArray[:, 1]
         Z_im = fileDataArray[:, 2]
         Z = Z_real + 1j * Z_im
-        """
-        epsilon = (Y - 1j * omega * constants.cf) / (1j * omega * constants.c0)
-        k = -epsilon.imag * omega * constants.e0
-        txt_file.close()
-        return([omega, Z, Y, epsilon, k])
-        """
         return([omega, Z])
 
     def process_data_from_file(self, dataArray, filename):
         """
         fitting the data to the cole_cole_model first(compensation of the electrode polarization)
         """
-        if self.mode == 'Matlab':
-            cole_cole_output = self.fit_to_cole_cole(dataArray[0], dataArray[3].real, dataArray[4])
-            if self.LogLevel == 'DEBUG':
-                suspension_output = self.fit_to_suspension_model(dataArray[0], dataArray[3].real, dataArray[4])
-        else:
-            cole_cole_output = self.fit_to_cole_cole(dataArray[0], dataArray[1])
-            if self.LogLevel == 'DEBUG':
-                suspension_output = self.fit_to_suspension_model(dataArray[0], dataArray[1])
+        cole_cole_output = self.fit_to_cole_cole(dataArray[0], dataArray[1])
+        if self.LogLevel == 'DEBUG':
+            suspension_output = self.fit_to_suspension_model(dataArray[0], dataArray[1])
         if self.LogLevel == 'DEBUG':
             self.write_suspension_output(dataArray[0], cole_cole_output.params.valuesdict(), filename)
             self.plot_cole_cole(dataArray[0], dataArray[1], cole_cole_output, filename)
@@ -306,19 +308,21 @@ class Fitter(object):
         eps_fit_corrected = self.e_sus(omega, eh, el, tau, a)
         eps_r_fit_corr, cond_fit_corr = self.return_diel_properties(omega, eps_fit_corrected)
         plt.figure()
+        plt.suptitle('dielectric properties compared')
+        plt.subplot(211)
+        plt.title("permittivity")
         plt.xscale('log')
         plt.yscale('log')
-        plt.title('dielectric properties compared')
-        plt.plot(omega, eps_r_fit, label="eps_r_fit")
-        plt.plot(omega, eps_r_fit_corr, label="eps_r_fit_corr")
+        plt.plot(omega, eps_r_fit, label="fit")
+        plt.plot(omega, eps_r_fit_corr, label="fit_corr")
         plt.legend()
 
-        plt.figure()
+        plt.subplot(212)
+        plt.title("conductivity")
         plt.xscale('log')
         plt.yscale('log')
-        plt.title('dielectric properties compared')
-        plt.plot(omega, cond_fit, label="cond_fit")
-        plt.plot(omega, cond_fit_corr, label="cond_fit_corr")
+        plt.plot(omega, cond_fit, label="fit")
+        plt.plot(omega, cond_fit_corr, label="corr")
         plt.legend()
 
     def write_suspension_output(self, omega, values, filename):
@@ -349,13 +353,19 @@ class Fitter(object):
         if(solvername == 'differential_evolution'):
             return minimize(residual, params, args=args, method='differential_evolution')
 
-    def compare_to_data(self, omega, Z, Z_fit, filename):
+    def compare_to_data(self, omega, Z, Z_fit, filename, subplot=None):
         '''
         plots the relative difference of the fitted function to the data
         '''
-        plt.figure()
+        if subplot is None:
+            plt.figure()
+        else:
+            plt.subplot(subplot)
         plt.xscale('log')
-        plt.title(str(filename) + "relative difference to data")
+        if subplot is None:
+            plt.title(str(filename) + "relative difference to data")
+        else:
+            plt.title("relative difference to data")
         plt.ylabel('rel. difference [%] to data')
         plt.plot(omega, 100. * np.abs((Z.real - Z_fit.real) / Z.real), 'g', label='rel .difference real part')
         plt.plot(omega, 100. * np.abs((Z.imag - Z_fit.imag) / Z.imag), 'r', label='rel. difference imag part')
@@ -394,20 +404,17 @@ class Fitter(object):
 
     #######################################################################
     # suspension model section
-    def fit_to_suspension_model(self, omega, input1, k=None):
+    def fit_to_suspension_model(self, omega, input1):
         '''
-        input 1 is either  Z in case of mode =='Matlab' or the real part of epsilon
+        input 1 is the real part of epsilon
         '''
+        logger.debug('#################################')
         logger.debug('fit data to pure suspension model')
+        logger.debug('#################################')
         params = Parameters()
         params = self.set_parameters_from_yaml(params, 'suspension')
         result = None
-        if k is None:
-            result = self.select_and_solve(self.solvername, self.suspension_residual, params, (omega, input1))
-            # ValueError: differential_evolution requires finite bound for all varying parameters
-            # for differential_evolution, but all bounds are set => no. Some bounds are set to Infinity. See the parameters file
-        else:
-            result = self.select_and_solve(self.solvername, self.suspension_residual, params, (omega, input1, k))
+        result = self.select_and_solve(self.solvername, self.suspension_residual, params, (omega, input1))
         logger.info(lmfit.fit_report(result))
         logger.info(result.params.pretty_print())
         return result
@@ -444,7 +451,9 @@ class Fitter(object):
         '''
         input 1 is either  Z in case of mode =='Matlab' or the real part of epsilon
         '''
+        logger.debug('#################################################################')
         logger.debug('fit data to cole-cole model to account for electrode polarisation')
+        logger.debug('#################################################################')
         params = Parameters()
         params = self.set_parameters_from_yaml(params, 'cole_cole')
         result = None
@@ -511,26 +520,29 @@ class Fitter(object):
             matlabfitData = list(csv.reader(csvfile, delimiter=','))  # create a list, otherwise, its just  the iterator over the file
             matlabfitData = np.array(matlabfitData, dtype=np.float)  # convert into numpy array
 
+        plt.figure()
+        plt.suptitle("Cole-Cole fit plot\n" + str(filename))
         # plot real  Impedance part
+        plt.subplot(221)
         plt.xscale('log')
-        plt.title(str(filename) + " Z_real_part")
+        plt.title("Z_real_part")
         plt.plot(omega, Z_fit.real, '+', label='fitted by Python')
         plt.plot(omega, Z.real, 'r', label='data')
         plt.legend()
         # plot imaginaray Impedance part
-        plt.figure()
-        plt.title(str(filename) + " Z_imaginary_part")
+        plt.subplot(222)
+        plt.title(" Z_imaginary_part")
         plt.xscale('log')
         plt.plot(omega, Z_fit.imag, '+', label='fitted by Python')
         plt.plot(omega, Z.imag, 'r', label='data')
         plt.legend()
         # plot real vs  imaginary Partr
-        plt.figure()
-        plt.title(str(filename) + " real vs imag")
+        plt.subplot(223)
+        plt.title("real vs imag")
         plt.plot(Z_fit.real, Z_fit.imag, '+', label="Z_fit")
         plt.plot(Z.real, Z.imag, 'o', label="Z")
         plt.legend()
-        self.compare_to_data(omega, Z, Z_fit, filename)
+        self.compare_to_data(omega, Z, Z_fit, filename, subplot=224)
         plt.show()
 
     #################################################################
@@ -617,26 +629,27 @@ class Fitter(object):
 
         # plot real  Impedance part
         plt.figure()
+        plt.suptitle("single shell " + str(filename))
+        plt.subplot(221)
         plt.xscale('log')
-        plt.title(str(filename) + " Z_real_part_single_shell")
+        plt.title("Z_real_part")
         plt.plot(omega, Z_fit.real, '+', label='fitted by Python')
         plt.plot(omega, Z.real, 'r', label='data')
         plt.legend()
         # plot imaginaray Impedance part
-        plt.figure()
-        plt.title(str(filename) + " Z_imaginary_part_single_shell")
+        plt.subplot(222)
+        plt.title(" Z_imag_part")
         plt.xscale('log')
         plt.plot(omega, Z_fit.imag, '+', label='fitted by Python')
         plt.plot(omega, Z.imag, 'r', label='data')
         plt.legend()
         # plot real vs  imaginary Partr
-        plt.figure()
-        plt.title(str(filename) + " real vs imag single_shell")
+        plt.subplot(223)
+        plt.title("real vs imag")
         plt.plot(Z_fit.real, Z_fit.imag, '+', label="Z_fit")
         plt.plot(Z.real, Z.imag, 'o', label="Z")
         plt.legend()
-
-        self.compare_to_data(omega, Z, Z_fit, filename)
+        self.compare_to_data(omega, Z, Z_fit, filename, subplot=224)
         plt.show()
 
     ################################################################
@@ -646,7 +659,9 @@ class Fitter(object):
         input 1 can either be Z, if  k is None, or  the real Part of epsilon, k_fit and alpha_fit
         are the determined values in the cole-cole-fit
         '''
+        logger.debug('##############################')
         logger.debug('fit data to double shell model')
+        logger.debug('##############################')
         params = Parameters()
         params = self.set_parameters_from_yaml(params, 'double_shell')
         params.add('k', vary=False, value=k_fit)
@@ -737,23 +752,25 @@ class Fitter(object):
 
         # plot real  Impedance part
         plt.figure()
+        plt.suptitle("double shell " + str(filename))
         plt.xscale('log')
-        plt.title(str(filename) + " Z_real_part double_shell")
+        plt.subplot(221)
+        plt.title("Z_real_part")
         plt.plot(omega, Z_fit.real, '+', label='fitted by Python')
         plt.plot(omega, Z.real, 'r', label='data')
         plt.legend()
         # plot imaginaray Impedance part
-        plt.figure()
-        plt.title(str(filename) + " Z_imaginary_part double shell")
+        plt.subplot(222)
+        plt.title("Z_imag_part")
         plt.xscale('log')
         plt.plot(omega, Z_fit.imag, '+', label='fitted by Python')
         plt.plot(omega, Z.imag, 'r', label='data')
         plt.legend()
         # plot real vs  imaginary Partr
-        plt.figure()
-        plt.title(str(filename) + " real vs imag double shell")
+        plt.subplot(223)
+        plt.title("real vs imag")
         plt.plot(Z_fit.real, Z_fit.imag, '+', label="Z_fit")
         plt.plot(Z.real, Z.imag, 'o', label="Z")
         plt.legend()
-        self.compare_to_data(omega, Z, Z_fit, filename)
+        self.compare_to_data(omega, Z, Z_fit, filename, subplot=224)
         plt.show()
