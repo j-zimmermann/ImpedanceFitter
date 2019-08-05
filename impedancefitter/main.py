@@ -190,6 +190,7 @@ class Fitter(object):
         # Draw QQ plot to check fitted distribution
         QQ_plot = ot.VisualTest.DrawQQplot(sample, distribution)
         View(QQ_plot).show()
+        return distribution
 
     def fit_to_histogram_distribution(self, parameter):
         sample = self.sampledict[parameter]
@@ -198,6 +199,23 @@ class Fitter(object):
         # Draw QQ plot to check fitted distribution
         QQ_plot = ot.VisualTest.DrawQQplot(sample, distribution)
         View(QQ_plot).show()
+        return distribution
+
+    def best_model_kolmogorov(self, parameter):
+        sample = self.sampledict[parameter]
+        tested_distributions = [ot.ExponentialFactory(), ot.NormalFactory(), ot.HistogramFactory(), ot.BetaFactory()]
+        best_model, best_result = ot.FittingTest.BestModelKolmogorov(sample, tested_distributions)
+        logger.info("Best model:")
+        logger.info(best_model)
+        return best_model
+
+    def best_model_chisquared(self, parameter):
+        sample = self.sampledict[parameter]
+        tested_distributions = [ot.ExponentialFactory(), ot.NormalFactory(), ot.BetaFactory()]
+        best_model, best_result = ot.FittingTest.BestModelChiSquared(sample, tested_distributions)
+        logger.info("Best model:")
+        logger.info(best_model)
+        return best_model
 
     def readin_Data_from_xlsx(self, filename):
         """
