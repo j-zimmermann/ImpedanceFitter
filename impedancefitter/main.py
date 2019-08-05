@@ -127,7 +127,7 @@ class Fitter(object):
                     # dataArray in the form [omega, Z, Y, epsilon, k]
                     self.process_fitting_results(fittedValues, filename + ' Row' + str(i))
 
-    def post_process_fitted_values(self):
+    def prepare_post_processing(self):
         '''
         draws pdf of all calculated parameters
         '''
@@ -146,32 +146,32 @@ class Fitter(object):
                 knelist.append([data[key]['kne']])
                 knplist.append([data[key]['knp']])
         # write data into dict
-        sampledict = {}
-        sampledict['alpha'] = ot.Sample(np.array(alphalist))
-        sampledict['em'] = ot.Sample(np.array(emlist))
-        sampledict['k'] = ot.Sample(np.array(klist))
-        sampledict['km'] = ot.Sample(np.array(kmlist))
-        sampledict['kcp'] = ot.Sample(np.array(kcplist))
-        sampledict['kmed'] = ot.Sample(np.array(kmedlist))
+        self.sampledict = {}
+        self.sampledict['alpha'] = ot.Sample(np.array(alphalist))
+        self.sampledict['em'] = ot.Sample(np.array(emlist))
+        self.sampledict['k'] = ot.Sample(np.array(klist))
+        self.sampledict['km'] = ot.Sample(np.array(kmlist))
+        self.sampledict['kcp'] = ot.Sample(np.array(kcplist))
+        self.sampledict['kmed'] = ot.Sample(np.array(kmedlist))
         if(self.model == 'DoubleShell'):
-            sampledict['ene'] = ot.Sample(np.array(enelist))
-            sampledict['kne'] = ot.Sample(np.array(knelist))
-            sampledict['knp'] = ot.Sample(np.array(knplist))
+            self.sampledict['ene'] = ot.Sample(np.array(enelist))
+            self.sampledict['kne'] = ot.Sample(np.array(knelist))
+            self.sampledict['knp'] = ot.Sample(np.array(knplist))
+
+    def plot_histograms(self):
         if(self.model == 'SingleShell'):
             fig, ax = plt.subplots(nrows=2, ncols=3)
         else:
             fig, ax = plt.subplots(nrows=3, ncols=3)
         r = 0
         c = 0
-        for key in sampledict:
-            graph = ot.HistogramFactory().build(sampledict[key]).drawPDF()  # drawpdf doesnt work for km, values are too equal
+        for key in self.sampledict:
+            graph = ot.HistogramFactory().build(self.sampledict[key]).drawPDF()  # drawpdf doesnt work for km, values are too equal
             graph.setTitle(self.directory)  # TODO: crashes here with out of memory exception(single-shell)
             graph.setXTitle(key)
             View(graph, axes=[ax[r, c]], plot_kwargs={'label': key, 'c': 'black'})
-            # graph = ot.HistogramFactory().build(sampledict[key])#crashed here
             kernel = ot.KernelSmoothing()
-            graph_k = kernel.build(sampledict[key])
-            # graph = ot.KernelSmoothing().computeSilvermanBandwidth(sampledict[key])
+            graph_k = kernel.build(self.sampledict[key])
             graph_k = graph_k.drawPDF()
             graph_k.setTitle(self.directory + 'kernel')
             graph_k.setXTitle(key)
@@ -182,6 +182,22 @@ class Fitter(object):
                 c = 0
                 r += 1
         plt.show()
+
+    def fit_to_normal_distribution(self, parameter):
+        sample = self.sampledict[parameter]
+        distribution = ot.NormalFactory().build(sample)
+        print(distribution)
+        # Draw QQ plot to check fitted distribution
+        QQ_plot = ot.VisualTest.DrawQQplot(sample, distribution)
+        View(QQ_plot).show()
+
+    def fit_to_histogram_distribution(self, parameter):
+        sample = self.sampledict[parameter]
+        distribution = ot.HistogramFactory().build(sample)
+        print(distribution)
+        # Draw QQ plot to check fitted distribution
+        QQ_plot = ot.VisualTest.DrawQQplot(sample, distribution)
+        View(QQ_plot).show()
 
     def readin_Data_from_xlsx(self, filename):
         """
@@ -194,17 +210,20 @@ class Fitter(object):
         # filter values,  so that only  the ones in a certain range get taken.
         filteredvalues = np.empty((0, values.shape[1]))
         if self.minimumFrequency is None:
-            self.minimumFrequency = values[0, 0]
-            logger.debug("minimumFrequency is {}".format(self.minimumFrequency))
+            self.minimumFrequency = values[0, 0] - 10.  # to make checks work
         if self.maximumFrequency is None:
-            self.maximumFrequency = values[-1, 0]
-            logger.debug("maximumFrequency is {}".format(self.maximumFrequency))
+            self.maximumFrequency = values[-1, 0] + 10.  # to make checks work
+        logger.debug("minimumFrequency is {}".format(self.minimumFrequency))
+        logger.debug("maximumFrequency is {}".format(self.maximumFrequency))
 
         for i in range(values.shape[0]):
-            if(values[i, 0] > self.minimumFrequency and values[i, 0] < self.maximumFrequency):
-                bufdict = values[i]
-                bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
-                filteredvalues = np.append(filteredvalues, bufdict, axis=0)
+            if(values[i, 0] > self.minimumFrequency):
+                if(values[i, 0] < self.maximumFrequency):
+                    bufdict = values[i]
+                    bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
+                    filteredvalues = np.append(filteredvalues, bufdict, axis=0)
+                else:
+                    break
         values = filteredvalues
 
         f = values[:, 0]
@@ -222,7 +241,7 @@ class Fitter(object):
         '''
         values = dict(fittedValues.params.valuesdict())
         for key in values:
-            values[key] = values.get(key).item()  # converdion into python native type
+            values[key] = values.get(key).item()  # conversion into python native type
         data = {str(filename): values}
         outfile = open(self.directory + 'outfile.yaml', 'a')  # append to the already existing file, or create it, if ther is no file
         yaml.dump(data, outfile)
@@ -665,9 +684,9 @@ class Fitter(object):
         logger.debug('fit data to double shell model')
         logger.debug('##############################')
         params = Parameters()
-        params = self.set_parameters_from_yaml(params, 'double_shell')
         params.add('k', vary=False, value=k_fit)
         params.add('alpha', vary=False, value=alpha_fit)
+        params = self.set_parameters_from_yaml(params, 'double_shell')
 
         result = None
         for i in range(4):
