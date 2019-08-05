@@ -28,21 +28,23 @@ from lmfit import minimize, Parameters
 import lmfit
 import yaml
 import pandas as pd
+# TODO: throw error when data from file is calculated to be wrong(negative epsilon)?
+# create logger
+logger = logging.getLogger('logger')
 
 if os.path.isfile('./constants.py'):
+    print("Using constants specified in directory.")
     import importlib.util
     spec = importlib.util.spec_from_file_location("module.name", os.getcwd() + "/constants.py")
     constants = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(constants)
 
 else:
+    print("Using default constants.")
     import impedancefitter.constants as constants
 """
 For the documentation, check ../latex/documentation_python.tex
 """
-# TODO: throw error when data from file is calculated to be wrong(negative epsilon)?
-# create logger
-logger = logging.getLogger('logger')
 
 
 class Fitter(object):
