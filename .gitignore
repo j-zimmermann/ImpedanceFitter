@@ -1,0 +1,9 @@
+*.aux
+*.log
+*.toc
+*.out
+build/
+dist/
+outfile.yaml
+impedancefitter.egg-info/
+__pycache__/
