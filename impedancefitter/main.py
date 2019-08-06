@@ -23,11 +23,14 @@ import matplotlib.pyplot as plt
 import openturns as ot
 from openturns.viewer import View
 
-import csv
 from lmfit import minimize, Parameters
 import lmfit
 import yaml
 import pandas as pd
+from .single_shell import plot_single_shell, single_shell_residual
+from .double_shell import plot_double_shell, double_shell_residual
+from .cole_cole import plot_cole_cole, cole_cole_residual, suspension_residual
+from .utils import set_parameters_from_yaml, plot_dielectric_properties
 # TODO: throw error when data from file is calculated to be wrong(negative epsilon)?
 # create logger
 logger = logging.getLogger('logger')
@@ -51,7 +54,6 @@ class Fitter(object):
     def __init__(self, **kwargs):
         """
         provide kwargs as:
-            mode=None
             model='SingleShell' OR 'DoubleShell'
             LogLevel='DEBUG' OR 'INFO'
             solvername='solver', choose among globalSolvers: basinhopping, differential_evolution; local Solvers: levenberg-marquardt, nelder-mead, least-squares
@@ -61,27 +63,31 @@ class Fitter(object):
             minimumFrequency=float
             maximumFrequency=float
         """
-        self.mode = kwargs['mode']
         self.model = kwargs['model']
         self.LogLevel = kwargs['LogLevel']  # log level: choose info for less verbose output
         self.solvername = kwargs['solvername']
         self.inputformat = kwargs['inputformat']
-        # defaults
-        self.excludeEnding = "impossibleEndingLoL"
-        self.minimumFrequency = None
-        self.maximumFrequency = None
         try:
             self.minimumFrequency = kwargs['minimumFrequency']
         except KeyError:
+            self.minimumFrequency = None
             pass  # does not matter if minimumFrequency or maximumFrequency are not specified
         try:
             self.maximumFrequency = kwargs['maximumFrequency']
         except KeyError:
+            self.maximumFrequency = None
             pass  # does not matter if minimumFrequency or maximumFrequency are not specified
         try:
             self.excludeEnding = kwargs['excludeEnding']
         except KeyError:
+            self.excludeEnding = "impossibleEndingLoL"
             pass
+        try:
+            self.solver_kwargs = kwargs['solver_kwargs']
+        except KeyError:
+            self.solver_kwargs = {}
+            pass
+
         self.directory = os.getcwd() + '/'
         logger.setLevel(self.LogLevel)
 
@@ -89,19 +95,6 @@ class Fitter(object):
         ch = logging.StreamHandler()
         ch.setLevel(logging.DEBUG)
         logger.addHandler(ch)
-
-    def get_max_rows(self, filename):
-        '''
-        determins the number of actual data rows
-        '''
-        txt_file = open(self.directory + filename)
-        for num, line in enumerate(txt_file, 1):
-            if self.trace_b in line:
-                max_rows = num - self.skiprows_txt - self.skiprows_trace
-                break
-        txt_file.close()
-        logger.debug('number of rows per trace is: ' + str(max_rows))
-        return max_rows
 
     def main(self):
         max_rows_tag = False
@@ -127,12 +120,25 @@ class Fitter(object):
                     # dataArray in the form [omega, Z, Y, epsilon, k]
                     self.process_fitting_results(fittedValues, filename + ' Row' + str(i))
 
+    def get_max_rows(self, filename):
+        '''
+        determins the number of actual data rows
+        '''
+        txt_file = open(self.directory + filename)
+        for num, line in enumerate(txt_file, 1):
+            if self.trace_b in line:
+                max_rows = num - self.skiprows_txt - self.skiprows_trace
+                break
+        txt_file.close()
+        logger.debug('number of rows per trace is: ' + str(max_rows))
+        return max_rows
+
     def prepare_post_processing(self):
         '''
         draws pdf of all calculated parameters
         '''
         file = open(self.directory + 'outfile.yaml', 'r')
-        data = yaml.load(file)
+        data = yaml.safe_load(file)
         alphalist, emlist, klist, kmlist, kcplist, kmedlist, enelist, knelist, knplist = ([] for i in range(9))
         for key in data:
             alphalist.append([data[key]['alpha']])
@@ -204,7 +210,7 @@ class Fitter(object):
 
     def best_model_kolmogorov(self, parameter):
         sample = self.sampledict[parameter]
-        tested_distributions = [ot.ExponentialFactory(), ot.NormalFactory(), ot.HistogramFactory(), ot.BetaFactory()]
+        tested_distributions = [ot.ExponentialFactory(), ot.NormalFactory(), ot.BetaFactory(), ot.UniformFactory(), ot.TruncatedNormalFactory()]
         best_model, best_result = ot.FittingTest.BestModelKolmogorov(sample, tested_distributions)
         logger.info("Best model:")
         logger.info(best_model)
@@ -212,7 +218,7 @@ class Fitter(object):
 
     def best_model_chisquared(self, parameter):
         sample = self.sampledict[parameter]
-        tested_distributions = [ot.ExponentialFactory(), ot.NormalFactory(), ot.BetaFactory()]
+        tested_distributions = [ot.ExponentialFactory(), ot.NormalFactory(), ot.BetaFactory(), ot.UniformFactory(), ot.TruncatedNormalFactory()]
         best_model, best_result = ot.FittingTest.BestModelChiSquared(sample, tested_distributions)
         logger.info("Best model:")
         logger.info(best_model)
@@ -306,130 +312,37 @@ class Fitter(object):
         """
         fitting the data to the cole_cole_model first(compensation of the electrode polarization)
         """
-        cole_cole_output = self.fit_to_cole_cole(dataArray[0], dataArray[1])
+        self.cole_cole_output = self.fit_to_cole_cole(dataArray[0], dataArray[1])
         if self.LogLevel == 'DEBUG':
             suspension_output = self.fit_to_suspension_model(dataArray[0], dataArray[1])
         if self.LogLevel == 'DEBUG':
-            self.plot_cole_cole(dataArray[0], dataArray[1], cole_cole_output, filename)
-            self.plot_dielectric_properties(dataArray[0], cole_cole_output, suspension_output)
-        k_fit = cole_cole_output.params.valuesdict()['k']
-        alpha_fit = cole_cole_output.params.valuesdict()['alpha']
+            plot_cole_cole(dataArray[0], dataArray[1], self.cole_cole_output, filename)
+            plot_dielectric_properties(dataArray[0], self.cole_cole_output, suspension_output)
+        k_fit = self.cole_cole_output.params.valuesdict()['k']
+        alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
+        emed = self.cole_cole_output.params.valuesdict()['eh']
         # now we need to know k and alpha only
         # fit data to cell model
         if self.model == 'SingleShell':
-            single_shell_output = self.fit_to_single_shell(dataArray[0], dataArray[1], k_fit, alpha_fit)
+            single_shell_output = self.fit_to_single_shell(dataArray[0], dataArray[1], k_fit, alpha_fit, emed)
             fit_output = single_shell_output
         else:
-            double_shell_output = self.fit_to_double_shell(dataArray[0], dataArray[1], k_fit, alpha_fit)
+            double_shell_output = self.fit_to_double_shell(dataArray[0], dataArray[1], k_fit, alpha_fit, emed)
             fit_output = double_shell_output
         if self.LogLevel == 'DEBUG':
             if self.model == 'SingleShell':
-                self.plot_single_shell(dataArray[0], dataArray[1], single_shell_output, filename)
+                plot_single_shell(dataArray[0], dataArray[1], single_shell_output, filename)
             else:
-                self.plot_double_shell(dataArray[0], dataArray[1], double_shell_output, filename)
+                plot_double_shell(dataArray[0], dataArray[1], double_shell_output, filename)
         return fit_output
-
-    def plot_dielectric_properties(self, omega, cole_cole_output, suspension_output):
-        '''
-        eps is the complex valued permitivity from which we extract relative permitivity and conductivity
-        compares the dielectric properties before and after the compensation
-        '''
-        eh = suspension_output.params.valuesdict()['eh']
-        el = suspension_output.params.valuesdict()['epsi_l']
-        tau = suspension_output.params.valuesdict()['tau']
-        a = suspension_output.params.valuesdict()['a']
-        eps_fit = self.e_sus(omega, eh, el, tau, a)
-        eps_r_fit, cond_fit = self.return_diel_properties(omega, eps_fit)
-        eh = cole_cole_output.params.valuesdict()['eh']
-        el = cole_cole_output.params.valuesdict()['epsi_l']
-        tau = cole_cole_output.params.valuesdict()['tau']
-        a = cole_cole_output.params.valuesdict()['a']
-        eps_fit_corrected = self.e_sus(omega, eh, el, tau, a)
-        eps_r_fit_corr, cond_fit_corr = self.return_diel_properties(omega, eps_fit_corrected)
-        plt.figure()
-        plt.suptitle('dielectric properties compared', y=1.05)
-        plt.subplot(211)
-        plt.title("permittivity")
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.plot(omega, eps_r_fit, label="fit")
-        plt.plot(omega, eps_r_fit_corr, label="fit_corr")
-        plt.legend()
-
-        plt.subplot(212)
-        plt.title("conductivity")
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.plot(omega, cond_fit, label="fit")
-        plt.plot(omega, cond_fit_corr, label="corr")
-        plt.legend()
-        plt.tight_layout()
-        plt.show()
 
     def select_and_solve(self, solvername, residual, params, args):
         '''
         selects the needed solver and minimizes to the given residual
         '''
-        if(solvername == 'basinhopping'):
-            return minimize(residual, params, args=args, method='basinhopping')
-        if(solvername == 'levenberg-marquardt'):
-            return minimize(residual, params, args=args, method='leastsq', ftol=1e-12, xtol=1e-12, maxfev=10000)
-        if(solvername == 'least-squares'):
-            return minimize(residual, params, args=args, method='least_squares')  # , ftol=1e-12, xtol=1e-12, max_nfev=4000)
-        if(solvername == 'nelder-mead'):
-            return minimize(residual, params, args=args, method='nelder', options={'adaptive': True})
-        if(solvername == 'differential_evolution'):
-            return minimize(residual, params, args=args, method='differential_evolution')
-
-    def compare_to_data(self, omega, Z, Z_fit, filename, subplot=None):
-        '''
-        plots the relative difference of the fitted function to the data
-        '''
-        if subplot is None:
-            plt.figure()
-        else:
-            plt.subplot(subplot)
-        plt.xscale('log')
-        if subplot is None:
-            plt.title(str(filename) + "relative difference to data")
-        else:
-            plt.title("relative difference to data")
-        plt.ylabel('rel. difference [%] to data')
-        plt.plot(omega, 100. * np.abs((Z.real - Z_fit.real) / Z.real), 'g', label='rel .difference real part')
-        plt.plot(omega, 100. * np.abs((Z.imag - Z_fit.imag) / Z.imag), 'r', label='rel. difference imag part')
-        plt.legend()
-
-    def set_parameters_from_yaml(self, params, modelName):
-        if(modelName == 'single_shell'):
-            single_shell_input = open('single_shell_input.yaml', 'r')
-            bufdict = yaml.safe_load(single_shell_input)
-        if(modelName == 'double_shell'):
-            double_shell_input = open('double_shell_input.yaml', 'r')
-            bufdict = yaml.safe_load(double_shell_input)
-        if(modelName == 'cole_cole' or modelName == 'suspension'):
-            cole_cole_input = open('cole_cole_input.yaml', 'r')
-            bufdict = yaml.safe_load(cole_cole_input)
-        if(modelName == 'suspension'):
-            # remove values from cole_cole model that are not needed
-            del bufdict['alpha']
-            del bufdict['k']
-        for key in bufdict:
-            params.add(key, value=float(bufdict[key]['value']), min=float(bufdict[key]['min']), max=float(bufdict[key]['max']), vary=bool(bufdict[key]['vary']))
-        return params
-
-    def Z_CPE(self, omega, k, alpha):
-        return (1. / k) * (1j * omega) ** (-alpha)
-
-    def Z_sus(self, omega, es, kdc):  # only valid for cole_cole_fit and suspension_fit
-        return 1. / (1j * es * omega * constants.c0 + (kdc * constants.c0) / constants.e0 + 1j * omega * constants.cf)
-
-    def e_sus(self, omega, eh, el, tau, a):  # this is only valid for the cole_cole_fit and suspension_fit
-        return eh + (el - eh) / (1. + (1j * omega * tau) ** (a))
-
-    def return_diel_properties(self, omega, epsc):
-        eps_r = epsc.real
-        conductivity = -epsc.imag * constants.e0 * omega
-        return eps_r, conductivity
+        self.solver_kwargs['method'] = solvername
+        self.solver_kwargs['args'] = args
+        return minimize(residual, params, **self.solver_kwargs)
 
     #######################################################################
     # suspension model section
@@ -441,41 +354,16 @@ class Fitter(object):
         logger.debug('fit data to pure suspension model')
         logger.debug('#################################')
         params = Parameters()
-        params = self.set_parameters_from_yaml(params, 'suspension')
+        params = set_parameters_from_yaml(params, 'suspension')
         result = None
-        result = self.select_and_solve(self.solvername, self.suspension_residual, params, (omega, input1))
+        result = self.select_and_solve(self.solvername, suspension_residual, params, (omega, input1))
         logger.info(lmfit.fit_report(result))
         logger.info(result.params.pretty_print())
         return result
 
-    def suspension_residual(self, params, omega, data, data_i=None):
-        el = params['epsi_l'].value
-        tau = params['tau'].value
-        a = params['a'].value
-        kdc = params['conductivity'].value
-        eh = params['eh'].value
-        Z_fit = self.suspension_model(omega, el, tau, a, kdc, eh)
-        if data_i is None:
-            residual = data - Z_fit
-            return residual.view(np.float)
-        else:
-            Y_fit = 1. / Z_fit
-            efit = (Y_fit / (1j * omega * constants.c0))
-            efit_r = efit.real
-            efit_i = -efit.imag
-            kfit = efit_i * omega * constants.e0
-            residual = np.concatenate((1. - (np.log10(data) / np.log10(efit_r)), 1. - (data_i / kfit)))
-            return residual
-
-    def suspension_model(self, omega, el, tau, a, kdc, eh):
-        es = self.e_sus(omega, eh, el, tau, a)
-        Zs_fit = self.Z_sus(omega, es, kdc)
-        Z_fit = Zs_fit
-        return Z_fit
-
     ################################################################
     #  cole_cole_section
-    def fit_to_cole_cole(self, omega, input1, k=None):
+    def fit_to_cole_cole(self, omega, input1):
         # find more details in formula 6 and 7 of https://ieeexplore.ieee.org/document/6191683
         '''
         input 1 is either  Z in case of mode =='Matlab' or the real part of epsilon
@@ -484,218 +372,42 @@ class Fitter(object):
         logger.debug('fit data to cole-cole model to account for electrode polarisation')
         logger.debug('#################################################################')
         params = Parameters()
-        params = self.set_parameters_from_yaml(params, 'cole_cole')
+        params = set_parameters_from_yaml(params, 'cole_cole')
         result = None
         for i in range(2):  # we have two iterations
             if i == 1:
                 # fix these two parameters, conductivity and eh
                 params['conductivity'].set(vary=False, value=result.params['conductivity'].value)
                 params['eh'].set(vary=False, value=result.params['eh'].value)
-            if k is None:
-                result = self.select_and_solve(self.solvername, self.cole_cole_residual, params, args=(omega, input1))
-            else:
-                result = self.select_and_solve(self.solvername, self.cole_cole_residual, params, args=(omega, input1, k))
+            result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(omega, input1))
             # logger.info(lmfit.fit_report(result.params))
             logger.info(lmfit.fit_report(result))
             logger.debug(result.params.pretty_print())
-        global emed
-        emed = result.params['eh'].value  # emed = eh from first fit
         return result
-
-    def cole_cole_residual(self, params, omega, data, data_i=None):
-        """
-        We have two ways to compute the residual. One as in the Matlab script (data_i is not None) and just a plain fit.
-        In the matlab case, the input parameters have to be epsilon.real and k, which are determined in readin_Data_from_file.
-        """
-        k = params['k'].value
-        el = params['epsi_l'].value
-        tau = params['tau'].value
-        a = params['a'].value
-        alpha = params['alpha'].value
-        kdc = params['conductivity'].value
-        eh = params['eh'].value
-        Z_fit = self.cole_cole_model(omega, k, el, tau, a, alpha, kdc, eh)
-        if data_i is None:
-            residual = data - Z_fit
-            return residual.view(np.float)
-        else:
-            Y_fit = 1. / Z_fit
-            efit = (Y_fit / (1j * omega * constants.c0))
-            efit_r = efit.real
-            efit_i = -efit.imag
-            kfit = efit_i * omega * constants.e0
-            residual = np.concatenate((1. - (np.log10(np.abs(data)) / np.log10(efit_r)), 1. - (data_i / kfit)))
-            # data was negative for one of the xlsx files, so the abs is drawn
-            return residual
-
-    def cole_cole_model(self, omega, k, el, tau, a, alpha, kdc, eh):
-
-        """
-        function holding the cole_cole_model equations, returning the calculated impedance
-        """
-        Zep_fit = self.Z_CPE(omega, k, alpha)
-        es = self.e_sus(omega, eh, el, tau, a)
-
-        Zs_fit = self.Z_sus(omega, es, kdc)
-        Z_fit = Zep_fit + Zs_fit
-
-        return Z_fit
-
-    def plot_cole_cole(self, omega, Z, result, filename):
-        popt = np.fromiter(result.params.valuesdict().values(), dtype=np.float)
-        Z_fit = self.cole_cole_model(omega, *popt)
-        if self.LogLevel == "DEBUG" and self.mode == 'Matlab':
-            csvfile = open("1610_matlab_fit_cole_cole.csv", newline="\n")
-            matlabfitData = list(csv.reader(csvfile, delimiter=','))  # create a list, otherwise, its just  the iterator over the file
-            matlabfitData = np.array(matlabfitData, dtype=np.float)  # convert into numpy array
-
-        plt.figure()
-        plt.suptitle("Cole-Cole fit plot\n" + str(filename), y=1.05)
-        # plot real  Impedance part
-        plt.subplot(221)
-        plt.xscale('log')
-        plt.title("Z_real_part")
-        plt.plot(omega, Z_fit.real, '+', label='fitted by Python')
-        plt.plot(omega, Z.real, 'r', label='data')
-        plt.legend()
-        # plot imaginaray Impedance part
-        plt.subplot(222)
-        plt.title(" Z_imaginary_part")
-        plt.xscale('log')
-        plt.plot(omega, Z_fit.imag, '+', label='fitted by Python')
-        plt.plot(omega, Z.imag, 'r', label='data')
-        plt.legend()
-        # plot real vs  imaginary Partr
-        plt.subplot(223)
-        plt.title("real vs imag")
-        plt.plot(Z_fit.real, Z_fit.imag, '+', label="Z_fit")
-        plt.plot(Z.real, Z.imag, 'o', label="Z")
-        plt.legend()
-        self.compare_to_data(omega, Z, Z_fit, filename, subplot=224)
-        plt.tight_layout()
-        plt.show()
 
     #################################################################
     # single_shell_section
-    def fit_to_single_shell(self, omega, input1, k_fit, alpha_fit, k=None):
+    def fit_to_single_shell(self, omega, input1, k_fit, alpha_fit, emed_fit):
         '''
-        input and k depend on the mode being used, it is either Z if k is none or the real Part of epsilon
-        Mode=='Matlab' uses k and e.real
+        input is Z
         '''
         params = Parameters()
-        params = self.set_parameters_from_yaml(params, 'single_shell')
+        params = set_parameters_from_yaml(params, 'single_shell')
         params.add('k', vary=False, value=k_fit)
         params.add('alpha', vary=False, value=alpha_fit)
+        params.add('emed', vary=False, value=emed_fit)
         result = None
-        if k is None:
-            result = self.select_and_solve(self.solvername, self.single_shell_residual, params, args=(omega, input1))
-        else:
-            result = self.select_and_solve(self.solvername, self.single_shell_residual, self.params, args=(omega, input1, k))
+        result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, input1))
         logger.info(lmfit.fit_report(result))
         logger.info(result.message)
         logger.debug((result.params.pretty_print()))
         return result
 
-    def single_shell_model(self, omega, k, alpha, em, km, kcp, kmed):
-        '''
-        formulas for the single shell model are described here
-             -returns: Calculated impedance corrected by the constant-phase-element
-        '''
-        epsi_cp = constants.ecp - 1j * kcp / (constants.e0 * omega)
-        epsi_m = em - 1j * km / (constants.e0 * omega)
-        epsi_med = constants.emed - 1j * kmed / (constants.e0 * omega)
-        # model
-        E1 = epsi_cp / epsi_m
-        epsi_cell = epsi_m * (2. * (1. - constants.v1) + (1. + 2. * constants.v1) * E1) / ((2. + constants.v1) + (1. - constants.v1) * E1)
-
-        # electrode polarization and calculation of Z
-        E0 = epsi_cell / epsi_med
-        esus = epsi_med * (2. * (1. - constants.p) + (1. + 2. * constants.p) * E0) / ((2. + constants.p) + (1. - constants.p) * E0)
-        Ys = 1j * esus * omega * constants.c0 + 1j * omega * constants.cf                 # cell suspension admittance spectrum
-        Zs = 1 / Ys
-        Zep = self.Z_CPE(omega, k, alpha)               # including EP
-        Z = Zs + Zep
-        return Z
-
-    def single_shell_residual(self, params, omega, data, data_i=None):
-        '''
-        calculates the residual for the single-shell model, using the single_shell_model.
-        if the
-        Mode=='Matlab' uses k and e.real as data and data_i
-        :param data:
-            if data_i is not give, the array in data will be the Impedance calculated from the input file
-            if data_i is given, it will be the real part of the permitivity calculated from the input file
-        :param data_i:
-            if this is given, it will be the conductivity calculated from the input file
-        :param params:
-            parameters used fot the calculation of the impedance
-        '''
-        k = params['k'].value
-        alpha = params['alpha'].value
-        em = params['em'].value
-        km = params['km'].value
-        kcp = params['kcp'].value
-        kmed = params['kmed'].value
-        Z_fit = self.single_shell_model(omega, k, alpha, em, km, kcp, kmed)
-        if data_i is None:
-            residual = data - Z_fit
-            return residual.view(np.float)
-        else:
-            Y_fit = 1. / Z_fit
-            efit = (Y_fit / (1j * omega * constants.c0))
-            efit_r = efit.real
-            efit_i = -efit.imag
-            kfit = efit_i * omega * constants.e0
-            residual = np.concatenate((1. - (np.log10(np.abs(data)) / np.log10(efit_r)), 1. - (data_i / kfit)))
-            return residual
-
-    def plot_single_shell(self, omega, Z, result, filename):
-        '''
-        plot the real part, imaginary part vs frequency and real vs. imaginary part
-        '''
-        # calculate fitted Z function
-        popt = np.fromiter([result.params['k'],
-                            result.params['alpha'],
-                            result.params['em'],
-                            result.params['km'],
-                            result.params['kcp'],
-                            result.params['kmed'],
-                            ],
-                           dtype=np.float)
-        Z_fit = self.single_shell_model(omega, *popt)
-
-        # plot real  Impedance part
-        plt.figure()
-        plt.suptitle("single shell " + str(filename), y=1.05)
-        plt.subplot(221)
-        plt.xscale('log')
-        plt.title("Z_real_part")
-        plt.plot(omega, Z_fit.real, '+', label='fitted by Python')
-        plt.plot(omega, Z.real, 'r', label='data')
-        plt.legend()
-        # plot imaginaray Impedance part
-        plt.subplot(222)
-        plt.title(" Z_imag_part")
-        plt.xscale('log')
-        plt.plot(omega, Z_fit.imag, '+', label='fitted by Python')
-        plt.plot(omega, Z.imag, 'r', label='data')
-        plt.legend()
-        # plot real vs  imaginary Partr
-        plt.subplot(223)
-        plt.title("real vs imag")
-        plt.plot(Z_fit.real, Z_fit.imag, '+', label="Z_fit")
-        plt.plot(Z.real, Z.imag, 'o', label="Z")
-        plt.legend()
-        self.compare_to_data(omega, Z, Z_fit, filename, subplot=224)
-        plt.tight_layout()
-        plt.show()
-
     ################################################################
     # double_shell_section
-    def fit_to_double_shell(self, omega, input1, k_fit, alpha_fit, k=None):
+    def fit_to_double_shell(self, omega, input1, k_fit, alpha_fit, emed_fit):
         '''
-        input 1 can either be Z, if  k is None, or  the real Part of epsilon, k_fit and alpha_fit
-        are the determined values in the cole-cole-fit
+        input 1 is Z, k_fit, alpha_fit and emed_fit are the determined values in the cole-cole-fit
         '''
         logger.debug('##############################')
         logger.debug('fit data to double shell model')
@@ -703,7 +415,8 @@ class Fitter(object):
         params = Parameters()
         params.add('k', vary=False, value=k_fit)
         params.add('alpha', vary=False, value=alpha_fit)
-        params = self.set_parameters_from_yaml(params, 'double_shell')
+        params.add('emed', vary=False, value=emed_fit)
+        params = set_parameters_from_yaml(params, 'double_shell')
 
         result = None
         for i in range(4):
@@ -714,112 +427,8 @@ class Fitter(object):
                 params['em'].set(vary=False, value=result.params.valuesdict()['em'])
             if i == 3:
                 params['kcp'].set(vary=False, value=result.params.valuesdict()['kcp'])
-            if k is None:
-                result = self.select_and_solve(self.solvername, self.double_shell_residual, params, args=(omega, input1))
-            else:
-                result = self.select_and_solve(self.solvername, self.double_shell_residual, params, args=(omega, input1, k))
+            result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(omega, input1))
             logger.info(lmfit.fit_report(result))
             logger.info(result.message)
             logger.debug(result.params.pretty_print())
         return result
-
-    def double_shell_residual(self, params, omega, data, data_i=None):
-        '''
-        data is Z if data_i is None, if data_i is k, the real part of epsilon is data
-        '''
-        k = params['k'].value
-        alpha = params['alpha'].value
-        km = params['km'].value
-        em = params['em'].value
-        kcp = params['kcp'].value
-        ene = params['ene'].value
-        kne = params['kne'].value
-        knp = params['knp'].value
-        kmed = params['kmed'].value
-
-        Z_fit = self.double_shell_model(omega, k, alpha, km, em, kcp, ene, kne, knp, kmed)
-        # define the objective function
-        # optimize for impedance
-        if data_i is None:
-            residual = data - Z_fit
-            return residual.view(np.float)
-        # optimize for k and e.real
-        else:
-            Y_fit = 1. / Z_fit
-            efit = (Y_fit / (1j * omega * constants.c0))
-            efit_r = efit.real
-            efit_i = -efit.imag
-            kfit = efit_i * omega * constants.e0
-            residual = np.concatenate((1. - (np.log10(np.abs(data)) / np.log10(efit_r)), 1. - (data_i / kfit)))
-            return residual
-
-    def double_shell_model(self, omega, k, alpha, km, em, kcp, ene, kne, knp, kmed):
-        """
-        atm, this is a dummy for the Double-Shell-Model equations,
-        containing everything from double_shell_sopt_pso.py to fit the variable definitions in this file
-        """
-        epsi_m = em + km / (1j * omega * constants.e0)
-        epsi_cp = constants.ecp + kcp / (1j * omega * constants.e0)
-        epsi_ne = ene + kne / (1j * omega * constants.e0)
-        epsi_np = constants.enp + knp / (1j * omega * constants.e0)
-        epsi_med = emed + kmed / (1j * omega * constants.e0)
-
-        E3 = epsi_np / epsi_ne
-        E2 = ((epsi_ne / epsi_cp) * (2. * (1. - constants.v3) + (1. + 2. * constants.v3) * E3) /
-              ((2. + constants.v3) + (1. - constants.v3) * E3))  # Eq. 13
-        E1 = ((epsi_cp / epsi_m) * (2. * (1. - constants.v2) + (1. + 2. * constants.v2) * E2) /
-              ((2. + constants.v2) + (1. - constants.v2) * E2))  # Eq. 14
-
-        epsi_cell = (epsi_m * (2. * (1. - constants.v1) + (1. + 2. * constants.v1) * E1) /
-                     ((2. + constants.v1) + (1. - constants.v1) * E1))  # Eq. 11
-        E0 = epsi_cell / epsi_med
-        esus = epsi_med * (2. * (1. - constants.p) + (1. + 2. * constants.p) * E0) / ((2. + constants.p) + (1. - constants.p) * E0)
-        Ys = 1j * esus * omega * constants.c0 + 1j * omega * constants.cf                 # cell suspension admittance spectrum
-        Zs = 1 / Ys
-        Zep = self.Z_CPE(omega, k, alpha)               # including EP
-        Z = Zs + Zep
-        return Z
-
-    def plot_double_shell(self, omega, Z, result, filename):
-        '''
-        plot the real and imaginary part of the impedance vs. the frequency and
-        real vs. imaginary part
-        '''
-        popt = np.fromiter([result.params['k'],
-                            result.params['alpha'],
-                            result.params['km'],
-                            result.params['em'],
-                            result.params['kcp'],
-                            result.params['ene'],
-                            result.params['kne'],
-                            result.params['knp'],
-                            result.params['kmed'],
-                            ],
-                           dtype=np.float)
-        Z_fit = self.double_shell_model(omega, *popt)
-
-        # plot real  Impedance part
-        plt.figure()
-        plt.suptitle("double shell " + str(filename), y=1.05)
-        plt.xscale('log')
-        plt.subplot(221)
-        plt.title("Z_real_part")
-        plt.plot(omega, Z_fit.real, '+', label='fitted by Python')
-        plt.plot(omega, Z.real, 'r', label='data')
-        plt.legend()
-        # plot imaginaray Impedance part
-        plt.subplot(222)
-        plt.title("Z_imag_part")
-        plt.xscale('log')
-        plt.plot(omega, Z_fit.imag, '+', label='fitted by Python')
-        plt.plot(omega, Z.imag, 'r', label='data')
-        plt.legend()
-        # plot real vs  imaginary Partr
-        plt.subplot(223)
-        plt.title("real vs imag")
-        plt.plot(Z_fit.real, Z_fit.imag, '+', label="Z_fit")
-        plt.plot(Z.real, Z.imag, 'o', label="Z")
-        plt.legend()
-        self.compare_to_data(omega, Z, Z_fit, filename, subplot=224)
-        plt.tight_layout()
-        plt.show()

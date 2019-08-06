@@ -13,13 +13,15 @@
 \section{General}{
 \subsection{Files}{
 \begin{itemize}
-\item pyhton/main.py: this is the main file, which holds algorithms for the fitting procedure
-\item python/constants.py: this file holds all constants needed for the calculation. These include geometric and other Parameters(check parametertable.tex to see which parameters are fixed)
-\item python/cole$\_$cole$\_$input.yaml: holds the starting parameters and boundaries for the corresponding fitting procedure. With the vary bool you can choose if the fit should be able to change this value. 
+\item main.py: this is the main file, which holds algorithms for the fitting procedure
+\item constants.py: this file holds all constants needed for the calculation. These include geometric and other Parameters(check parametertable.tex to see which parameters are fixed)
+\item cole$\_$cole$\_$input.yaml, double$\_$shell$\_$input.yaml or single$\_$shell$\_$input.yaml: holds the starting parameters and boundaries for the corresponding fitting procedure. With the vary bool you can choose if the fit should be able to change this value. 
 \end{itemize}
 }
 \subsection{How it works}{
-The script will cycle through all .TXT and .xlsx files in a selected directory and fit those files to a selected model. The first step is, to compensate the electrode polarization of the experiment by fitting the data to a cole-cole-model. After this fit it will fit the data to a selected Model, this can either be the Double$\_$shell$\_$model or the Single$\_$Shell$\_$Model. At the end of the fitting procedure a pdf will be show.   
+The script will cycle through all .TXT and .xlsx files in a selected directory and fit those files to a selected model. You can exclude certain files by using the excludeEnding flag.
+
+The first step is, to compensate the electrode polarization of the experiment by fitting the data to a cole-cole-model. After this fit it will fit the data to a selected Model, this can either be the Double$\_$shell$\_$model or the Single$\_$Shell$\_$Model. At the end of the fitting procedure a pdf will be show.   
 }%end subsection
 \subsection{Parameters in main.py}{
 \begin{itemize}
@@ -27,12 +29,8 @@ The script will cycle through all .TXT and .xlsx files in a selected directory a
 \item 'DEBUG': the script will output plots after each fit
 \item 'INFO': the scipt will output results from each fit to the console
 \end{itemize}
-\item mode \begin{itemize}
-\item 'Matlab': this changes the calculation of the redsidual. If this is chose, the residual will be calculated from the permitivity and conductivity tracks
-\item None:  the residual will be calsulated from the impedance track
-\end{itemize}
 \item model: choose the model to which the data should be fitted after the electrode polarization(can either be 'SingleShell' or 'DoubleShell')
-\item solvername: choose the solver that should do the fitting
+\item solvername: choose the solver that should do the fitting. choose among all solvers available in lmfit
 \item directory: choose a different directory than the run directory from which the data files should be taken(note: output will be written to this directory as well)
 \item for more informations on the parameters, check parametertable.tex
 \end{itemize}
