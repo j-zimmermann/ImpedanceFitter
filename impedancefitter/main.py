@@ -167,7 +167,7 @@ class Fitter(object):
         c = 0
         for key in self.sampledict:
             graph = ot.HistogramFactory().build(self.sampledict[key]).drawPDF()  # drawpdf doesnt work for km, values are too equal
-            graph.setTitle(self.directory)  # TODO: crashes here with out of memory exception(single-shell)
+            graph.setTitle("Histogram for variables")
             graph.setXTitle(key)
             View(graph, axes=[ax[r, c]], plot_kwargs={'label': key, 'c': 'black'})
             kernel = ot.KernelSmoothing()
@@ -181,6 +181,7 @@ class Fitter(object):
             if(c == 3):
                 c = 0
                 r += 1
+        plt.tight_layout()
         plt.show()
 
     def fit_to_normal_distribution(self, parameter):
@@ -363,6 +364,8 @@ class Fitter(object):
         plt.plot(omega, cond_fit, label="fit")
         plt.plot(omega, cond_fit_corr, label="corr")
         plt.legend()
+        plt.tight_layout()
+        plt.show()
 
     def write_suspension_output(self, omega, values, filename):
         '''
@@ -582,6 +585,7 @@ class Fitter(object):
         plt.plot(Z.real, Z.imag, 'o', label="Z")
         plt.legend()
         self.compare_to_data(omega, Z, Z_fit, filename, subplot=224)
+        plt.tight_layout()
         plt.show()
 
     #################################################################
@@ -663,7 +667,14 @@ class Fitter(object):
         plot the real part, imaginary part vs frequency and real vs. imaginary part
         '''
         # calculate fitted Z function
-        popt = np.fromiter(result.params.valuesdict().values(), dtype=np.float)
+        popt = np.fromiter([result.params['k'],
+                            result.params['alpha'],
+                            result.params['em'],
+                            result.params['km'],
+                            result.params['kcp'],
+                            result.params['kmed'],
+                            ],
+                           dtype=np.float)
         Z_fit = self.single_shell_model(omega, *popt)
 
         # plot real  Impedance part
@@ -689,6 +700,7 @@ class Fitter(object):
         plt.plot(Z.real, Z.imag, 'o', label="Z")
         plt.legend()
         self.compare_to_data(omega, Z, Z_fit, filename, subplot=224)
+        plt.tight_layout()
         plt.show()
 
     ################################################################
@@ -786,7 +798,17 @@ class Fitter(object):
         plot the real and imaginary part of the impedance vs. the frequency and
         real vs. imaginary part
         '''
-        popt = np.fromiter(result.params.valuesdict().values(), dtype=np.float)
+        popt = np.fromiter([result.params['k'],
+                            result.params['alpha'],
+                            result.params['km'],
+                            result.params['em'],
+                            result.params['kcp'],
+                            result.params['ene'],
+                            result.params['kne'],
+                            result.params['knp'],
+                            result.params['kmed'],
+                            ],
+                           dtype=np.float)
         Z_fit = self.double_shell_model(omega, *popt)
 
         # plot real  Impedance part
@@ -812,4 +834,5 @@ class Fitter(object):
         plt.plot(Z.real, Z.imag, 'o', label="Z")
         plt.legend()
         self.compare_to_data(omega, Z, Z_fit, filename, subplot=224)
+        plt.tight_layout()
         plt.show()
