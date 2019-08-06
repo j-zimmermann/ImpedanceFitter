@@ -310,7 +310,6 @@ class Fitter(object):
         if self.LogLevel == 'DEBUG':
             suspension_output = self.fit_to_suspension_model(dataArray[0], dataArray[1])
         if self.LogLevel == 'DEBUG':
-            self.write_suspension_output(dataArray[0], cole_cole_output.params.valuesdict(), filename)
             self.plot_cole_cole(dataArray[0], dataArray[1], cole_cole_output, filename)
             self.plot_dielectric_properties(dataArray[0], cole_cole_output, suspension_output)
         k_fit = cole_cole_output.params.valuesdict()['k']
@@ -366,19 +365,6 @@ class Fitter(object):
         plt.legend()
         plt.tight_layout()
         plt.show()
-
-    def write_suspension_output(self, omega, values, filename):
-        '''
-        writes the output of the suspension_fit into a txt file
-        '''
-        eh = values['eh']
-        el = values['epsi_l']
-        tau = values['tau']
-        a = values['a']
-        es = eh + (el - eh) / (1. + (1j * omega * tau) ** a)
-        es = np.column_stack((es.real, es.imag))
-        out = np.column_stack((omega, es))
-        np.savetxt('ES_' + filename + '.txt', out)
 
     def select_and_solve(self, solvername, residual, params, args):
         '''
