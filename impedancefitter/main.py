@@ -347,7 +347,7 @@ class Fitter(object):
         eps_fit_corrected = self.e_sus(omega, eh, el, tau, a)
         eps_r_fit_corr, cond_fit_corr = self.return_diel_properties(omega, eps_fit_corrected)
         plt.figure()
-        plt.suptitle('dielectric properties compared')
+        plt.suptitle('dielectric properties compared', y=1.05)
         plt.subplot(211)
         plt.title("permittivity")
         plt.xscale('log')
@@ -550,7 +550,7 @@ class Fitter(object):
             matlabfitData = np.array(matlabfitData, dtype=np.float)  # convert into numpy array
 
         plt.figure()
-        plt.suptitle("Cole-Cole fit plot\n" + str(filename))
+        plt.suptitle("Cole-Cole fit plot\n" + str(filename), y=1.05)
         # plot real  Impedance part
         plt.subplot(221)
         plt.xscale('log')
@@ -666,7 +666,7 @@ class Fitter(object):
 
         # plot real  Impedance part
         plt.figure()
-        plt.suptitle("single shell " + str(filename))
+        plt.suptitle("single shell " + str(filename), y=1.05)
         plt.subplot(221)
         plt.xscale('log')
         plt.title("Z_real_part")
@@ -800,7 +800,7 @@ class Fitter(object):
 
         # plot real  Impedance part
         plt.figure()
-        plt.suptitle("double shell " + str(filename))
+        plt.suptitle("double shell " + str(filename), y=1.05)
         plt.xscale('log')
         plt.subplot(221)
         plt.title("Z_real_part")
