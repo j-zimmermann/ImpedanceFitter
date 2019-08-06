@@ -420,12 +420,13 @@ class Fitter(object):
         if(modelName == 'double_shell'):
             double_shell_input = open('double_shell_input.yaml', 'r')
             bufdict = yaml.safe_load(double_shell_input)
-        if(modelName == 'cole_cole'):
+        if(modelName == 'cole_cole' or modelName == 'suspension'):
             cole_cole_input = open('cole_cole_input.yaml', 'r')
             bufdict = yaml.safe_load(cole_cole_input)
         if(modelName == 'suspension'):
-            suspension_input = open('suspension_input.yaml', 'r')
-            bufdict = yaml.safe_load(suspension_input)
+            # remove values from cole_cole model that are not needed
+            del bufdict['alpha']
+            del bufdict['k']
         for key in bufdict:
             params.add(key, value=float(bufdict[key]['value']), min=float(bufdict[key]['min']), max=float(bufdict[key]['max']), vary=bool(bufdict[key]['vary']))
         return params
