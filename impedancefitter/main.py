@@ -165,6 +165,9 @@ class Fitter(object):
             self.sampledict['knp'] = ot.Sample(np.array(knplist))
 
     def plot_histograms(self):
+        """
+        fails if values are too close to each other
+        """
         if(self.model == 'SingleShell'):
             fig, ax = plt.subplots(nrows=2, ncols=3)
         else:
@@ -172,14 +175,14 @@ class Fitter(object):
         r = 0
         c = 0
         for key in self.sampledict:
-            graph = ot.HistogramFactory().build(self.sampledict[key]).drawPDF()  # drawpdf doesnt work for km, values are too equal
+            graph = ot.HistogramFactory().build(self.sampledict[key]).drawPDF()
             graph.setTitle("Histogram for variables")
             graph.setXTitle(key)
             View(graph, axes=[ax[r, c]], plot_kwargs={'label': key, 'c': 'black'})
             kernel = ot.KernelSmoothing()
             graph_k = kernel.build(self.sampledict[key])
             graph_k = graph_k.drawPDF()
-            graph_k.setTitle(self.directory + 'kernel')
+            graph_k.setTitle("Histogram for variables")
             graph_k.setXTitle(key)
             View(graph_k, axes=[ax[r, c]], plot_kwargs={'label': key})
             # jump to next ax object or next row
@@ -209,11 +212,18 @@ class Fitter(object):
         return distribution
 
     def best_model_kolmogorov(self, parameter):
+        """
+        suitable for small samples
+        """
         sample = self.sampledict[parameter]
-        tested_distributions = [ot.ExponentialFactory(), ot.NormalFactory(), ot.BetaFactory(), ot.UniformFactory(), ot.TruncatedNormalFactory()]
+        tested_distributions = [ot.NormalFactory(), ot.UniformFactory()]
         best_model, best_result = ot.FittingTest.BestModelKolmogorov(sample, tested_distributions)
         logger.info("Best model:")
         logger.info(best_model)
+        if self.LogLevel == 'DEBUG':
+            logger.debug("QQ Plot for best model:")
+            QQ_plot = ot.VisualTest.DrawQQplot(sample, best_model)
+            View(QQ_plot).show()
         return best_model
 
     def best_model_chisquared(self, parameter):
@@ -234,12 +244,15 @@ class Fitter(object):
         values = EIS.values
         # filter values,  so that only  the ones in a certain range get taken.
         filteredvalues = np.empty((0, values.shape[1]))
+        shift = [0.0, 0.0]
         if self.minimumFrequency is None:
             self.minimumFrequency = values[0, 0] - 10.  # to make checks work
+            shift[0] = 10.
         if self.maximumFrequency is None:
+            shift[1] = 10.
             self.maximumFrequency = values[-1, 0] + 10.  # to make checks work
-        logger.debug("minimumFrequency is {}".format(self.minimumFrequency))
-        logger.debug("maximumFrequency is {}".format(self.maximumFrequency))
+        logger.debug("minimumFrequency is {}".format(self.minimumFrequency + shift[0]))
+        logger.debug("maximumFrequency is {}".format(self.maximumFrequency - shift[1]))
 
         for i in range(values.shape[0]):
             if(values[i, 0] > self.minimumFrequency):
@@ -375,6 +388,7 @@ class Fitter(object):
         params = set_parameters_from_yaml(params, 'cole_cole')
         result = None
         for i in range(2):  # we have two iterations
+            logger.info("###########\nFitting round {}\n###########".format(i + 1))
             if i == 1:
                 # fix these two parameters, conductivity and eh
                 params['conductivity'].set(vary=False, value=result.params['conductivity'].value)
@@ -420,6 +434,7 @@ class Fitter(object):
 
         result = None
         for i in range(4):
+            logger.info("###########\nFitting round {}\n###########".format(i + 1))
             if i == 1:
                 params['kmed'].set(vary=False, value=result.params.valuesdict()['kmed'])
             if i == 2:

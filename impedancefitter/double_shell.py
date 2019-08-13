@@ -23,14 +23,12 @@ from .utils import compare_to_data, Z_CPE
 
 
 if os.path.isfile('./constants.py'):
-    print("Using constants specified in directory.")
     import importlib.util
     spec = importlib.util.spec_from_file_location("module.name", os.getcwd() + "/constants.py")
     constants = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(constants)
 
 else:
-    print("Using default constants.")
     import impedancefitter.constants as constants
 
 
@@ -106,8 +104,8 @@ def plot_double_shell(omega, Z, result, filename):
     # plot real  Impedance part
     plt.figure()
     plt.suptitle("double shell " + str(filename), y=1.05)
-    plt.xscale('log')
     plt.subplot(221)
+    plt.xscale('log')
     plt.title("Z_real_part")
     plt.plot(omega, Z_fit.real, '+', label='fitted by Python')
     plt.plot(omega, Z.real, 'r', label='data')

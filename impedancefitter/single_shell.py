@@ -23,14 +23,12 @@ import matplotlib.pyplot as plt
 from .utils import Z_CPE, compare_to_data
 
 if os.path.isfile('./constants.py'):
-    print("Using constants specified in directory.")
     import importlib.util
     spec = importlib.util.spec_from_file_location("module.name", os.getcwd() + "/constants.py")
     constants = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(constants)
 
 else:
-    print("Using default constants.")
     import impedancefitter.constants as constants
 
 
