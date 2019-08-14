@@ -99,7 +99,6 @@ def plot_dielectric_properties(omega, cole_cole_output, suspension_output):
     plt.subplot(212)
     plt.title("conductivity")
     plt.xscale('log')
-    plt.yscale('log')
     plt.plot(omega, cond_fit, label="fit")
     plt.plot(omega, cond_fit_corr, label="corr")
     plt.legend()

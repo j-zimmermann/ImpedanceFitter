@@ -75,7 +75,7 @@ def single_shell_residual(params, omega, data):
     kmed = params['kmed'].value
     emed = params['emed'].value
     Z_fit = single_shell_model(omega, k, alpha, em, km, kcp, kmed, emed)
-    residual = data - Z_fit
+    residual = (data - Z_fit) * (data - Z_fit)
     return residual.view(np.float)
 
 

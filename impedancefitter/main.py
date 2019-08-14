@@ -87,6 +87,10 @@ class Fitter(object):
         except KeyError:
             self.solver_kwargs = {}
             pass
+        try:  # for debugging reasons use for instance only 1 data set
+            self.data_sets = kwargs['data_sets']
+        except KeyError:
+            self.data_sets = None
 
         self.directory = os.getcwd() + '/'
         logger.setLevel(self.LogLevel)
@@ -96,8 +100,9 @@ class Fitter(object):
         ch.setLevel(logging.DEBUG)
         logger.addHandler(ch)
 
-    def main(self):
+    def main(self, protocol=None):
         max_rows_tag = False
+        self.protocol = protocol
         open(self.directory + 'outfile.yaml', 'w')  # create output file
         for filename in os.listdir(self.directory):
             filename = os.fsdecode(filename)
@@ -115,7 +120,10 @@ class Fitter(object):
                 self.process_fitting_results(fittedValues, filename)
             elif self.inputformat == 'XLSX' and filename.endswith(".xlsx"):
                 dataArray = self.readin_Data_from_xlsx(filename)
-                for i in range(dataArray[1].shape[0]):
+                iters = dataArray[1].shape[0]
+                if self.data_sets is not None:
+                    iters = self.data_sets
+                for i in range(iters):
                     fittedValues = self.process_data_from_file([dataArray[0], dataArray[1][i]], filename)
                     # dataArray in the form [omega, Z, Y, epsilon, k]
                     self.process_fitting_results(fittedValues, filename + ' Row' + str(i))
@@ -387,14 +395,16 @@ class Fitter(object):
         params = Parameters()
         params = set_parameters_from_yaml(params, 'cole_cole')
         result = None
-        for i in range(2):  # we have two iterations
+        iters = 1
+        if self.protocol == "Iterative":
+            iters = 2
+        for i in range(iters):  # we have two iterations
             logger.info("###########\nFitting round {}\n###########".format(i + 1))
             if i == 1:
                 # fix these two parameters, conductivity and eh
                 params['conductivity'].set(vary=False, value=result.params['conductivity'].value)
                 params['eh'].set(vary=False, value=result.params['eh'].value)
             result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(omega, input1))
-            # logger.info(lmfit.fit_report(result.params))
             logger.info(lmfit.fit_report(result))
             logger.debug(result.params.pretty_print())
         return result
@@ -433,7 +443,10 @@ class Fitter(object):
         params = set_parameters_from_yaml(params, 'double_shell')
 
         result = None
-        for i in range(4):
+        iters = 1
+        if self.protocol == "Iterative":
+            iters = 4
+        for i in range(iters):
             logger.info("###########\nFitting round {}\n###########".format(i + 1))
             if i == 1:
                 params['kmed'].set(vary=False, value=result.params.valuesdict()['kmed'])

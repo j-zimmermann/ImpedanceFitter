@@ -37,7 +37,7 @@ def suspension_residual(params, omega, data):
     kdc = params['conductivity'].value
     eh = params['eh'].value
     Z_fit = suspension_model(omega, el, tau, a, kdc, eh)
-    residual = data - Z_fit
+    residual = (data - Z_fit) * (data - Z_fit)
     return residual.view(np.float)
 
 
@@ -67,7 +67,7 @@ def cole_cole_residual(params, omega, data):
     kdc = params['conductivity'].value
     eh = params['eh'].value
     Z_fit = cole_cole_model(omega, k, el, tau, a, alpha, kdc, eh)
-    residual = data - Z_fit
+    residual = (data - Z_fit) * (data - Z_fit)
     return residual.view(np.float)
 
 
