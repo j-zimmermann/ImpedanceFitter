@@ -10,7 +10,6 @@ cf = 2.42532194241202e-13    # stray capacitance
 
 Rc = 9.05e-6  # unit(m). cell radius in buffer, this should be changed according to the chosed cell line
 dm = 7e-9    # thinckness of cell membrane m
-emed = 78    # permittivity for medium, usually fixed as 78
 ecp = 60     # permittivity for cytoplasm
 p = 0.15     # volumn fraction (*100*100%). p = 3/4*pi*Rc^3*n_cell/Volumn
 #Matlab: 
