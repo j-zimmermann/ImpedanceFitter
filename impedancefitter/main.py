@@ -147,7 +147,7 @@ class Fitter(object):
         '''
         file = open(self.directory + 'outfile.yaml', 'r')
         data = yaml.safe_load(file)
-        alphalist, emlist, klist, kmlist, kcplist, kmedlist, enelist, knelist, knplist = ([] for i in range(9))
+        alphalist, emlist, klist, kmlist, kcplist, kmedlist, emedlist, enelist, knelist, knplist = ([] for i in range(10))
         for key in data:
             alphalist.append([data[key]['alpha']])
             emlist.append([data[key]['em']])
@@ -155,6 +155,7 @@ class Fitter(object):
             kmlist.append([data[key]['km']])
             kcplist.append([data[key]['kcp']])
             kmedlist.append([data[key]['kmed']])
+            emedlist.append([data[key]['emed']])
             if(self.model == 'DoubleShell'):
                 enelist.append([data[key]['ene']])
                 knelist.append([data[key]['kne']])
@@ -167,6 +168,7 @@ class Fitter(object):
         self.sampledict['km'] = ot.Sample(np.array(kmlist))
         self.sampledict['kcp'] = ot.Sample(np.array(kcplist))
         self.sampledict['kmed'] = ot.Sample(np.array(kmedlist))
+        self.sampledict['emed'] = ot.Sample(np.array(emedlist))
         if(self.model == 'DoubleShell'):
             self.sampledict['ene'] = ot.Sample(np.array(enelist))
             self.sampledict['kne'] = ot.Sample(np.array(knelist))
