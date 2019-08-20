@@ -3,7 +3,7 @@ How to use this package
 
 Run
 ```
-pip3 install .
+pip3 install --process-dependency-links .
 ```
 in this directory.
 
