@@ -107,6 +107,9 @@ def plot_dielectric_properties(omega, cole_cole_output, suspension_output):
 
 
 def set_parameters_from_yaml(params, modelName):
+    """
+    for suspension model: if wanted one could create an own file
+    """
     if(modelName == 'single_shell'):
         single_shell_input = open('single_shell_input.yaml', 'r')
         bufdict = yaml.safe_load(single_shell_input)
@@ -117,9 +120,13 @@ def set_parameters_from_yaml(params, modelName):
         cole_cole_input = open('cole_cole_input.yaml', 'r')
         bufdict = yaml.safe_load(cole_cole_input)
     if(modelName == 'suspension'):
-        # remove values from cole_cole model that are not needed
-        del bufdict['alpha']
-        del bufdict['k']
+        try:
+            suspension_input = open('suspension_input.yaml', 'r')
+            bufdict = yaml.safe_load(suspension_input)
+        except FileNotFoundError:
+            # remove values from cole_cole model that are not needed
+            del bufdict['alpha']
+            del bufdict['k']
     for key in bufdict:
         params.add(key, value=float(bufdict[key]['value']), min=float(bufdict[key]['min']), max=float(bufdict[key]['max']), vary=bool(bufdict[key]['vary']))
     return params
