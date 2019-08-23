@@ -319,10 +319,18 @@ class Fitter(object):
         params.add('alpha', vary=False, value=alpha_fit)
         params.add('emed', vary=False, value=emed_fit)
         result = None
-        result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, input1))
-        logger.info(lmfit.fit_report(result))
-        logger.info(result.message)
-        logger.debug((result.params.pretty_print()))
+        iters = 1
+        if self.protocol == "Iterative":
+            iters = 2
+        for i in range(iters):  # we have two iterations
+            logger.info("###########\nFitting round {}\n###########".format(i + 1))
+            if i == 1:
+                # fix conductivity
+                params['kmed'].set(vary=False, value=result.params.valuesdict()['kmed'])
+            result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, input1))
+            logger.info(lmfit.fit_report(result))
+            logger.info(result.message)
+            logger.debug((result.params.pretty_print()))
         return result
 
     ################################################################
