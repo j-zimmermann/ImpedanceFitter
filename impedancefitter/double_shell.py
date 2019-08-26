@@ -29,8 +29,8 @@ def double_shell_model(omega, constants, k, alpha, km, em, kcp, ene, kne, knp, k
     c0 = constants['c0']
     cf = constants['cf']
     v1 = constants['v1']
-    v2 = constants['v1']
-    v3 = constants['v1']
+    v2 = constants['v2']
+    v3 = constants['v3']
 
     epsi_m = em + km / (1j * omega * e0)
     epsi_cp = ecp + kcp / (1j * omega * e0)

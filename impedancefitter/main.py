@@ -98,8 +98,9 @@ class Fitter(object):
     def _load_constants(self):
         self.constants = load_constants_from_yaml()
         self.constants['v1'] = (1. - self.constants['dm'] / self.constants['dm'])**3
-        self.constants['v2'] = (self.constants['Rn'] / (self.constants['Rc'] - self.constants['dm']))**3
-        self.constants['v3'] = (1. - self.constants['dn'] / self.constants['Rn'])**3
+        if self.model == 'DoubleShell':
+            self.constants['v2'] = (self.constants['Rn'] / (self.constants['Rc'] - self.constants['dm']))**3
+            self.constants['v3'] = (1. - self.constants['dn'] / self.constants['Rn'])**3
 
     def main(self, protocol=None):
         max_rows_tag = False
