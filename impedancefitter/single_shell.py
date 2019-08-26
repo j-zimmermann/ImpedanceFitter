@@ -31,6 +31,8 @@ if os.path.isfile('./constants.py'):
 else:
     import impedancefitter.constants as constants
 
+v1 = (1. - constants.dm / constants.Rc)**3
+
 
 def single_shell_model(omega, k, alpha, em, km, kcp, kmed, emed):
     '''
@@ -42,7 +44,7 @@ def single_shell_model(omega, k, alpha, em, km, kcp, kmed, emed):
     epsi_med = emed - 1j * kmed / (constants.e0 * omega)
     # model
     E1 = epsi_cp / epsi_m
-    epsi_cell = epsi_m * (2. * (1. - constants.v1) + (1. + 2. * constants.v1) * E1) / ((2. + constants.v1) + (1. - constants.v1) * E1)
+    epsi_cell = epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1) / ((2. + v1) + (1. - v1) * E1)
 
     # electrode polarization and calculation of Z
     E0 = epsi_cell / epsi_med
@@ -84,16 +86,7 @@ def plot_single_shell(omega, Z, result, filename):
     plot the real part, imaginary part vs frequency and real vs. imaginary part
     '''
     # calculate fitted Z function
-    popt = np.fromiter([result.params['k'],
-                        result.params['alpha'],
-                        result.params['em'],
-                        result.params['km'],
-                        result.params['kcp'],
-                        result.params['kmed'],
-                        result.params['emed'],
-                        ],
-                       dtype=np.float)
-    Z_fit = single_shell_model(omega, *popt)
+    Z_fit = get_single_shell_impedance(omega, result)
 
     # plot real  Impedance part
     plt.figure()
@@ -120,3 +113,17 @@ def plot_single_shell(omega, Z, result, filename):
     compare_to_data(omega, Z, Z_fit, filename, subplot=224)
     plt.tight_layout()
     plt.show()
+
+
+def get_single_shell_impedance(omega, result):
+    # calculate fitted Z function
+    popt = np.fromiter([result.params['k'],
+                        result.params['alpha'],
+                        result.params['em'],
+                        result.params['km'],
+                        result.params['kcp'],
+                        result.params['kmed'],
+                        result.params['emed'],
+                        ],
+                       dtype=np.float)
+    return single_shell_model(omega, *popt)
