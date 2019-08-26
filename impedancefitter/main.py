@@ -62,9 +62,12 @@ class Fitter(object):
             maximumFrequency=float
         """
         self.model = kwargs['model']
-        self.LogLevel = kwargs['LogLevel']  # log level: choose info for less verbose output
         self.solvername = kwargs['solvername']
         self.inputformat = kwargs['inputformat']
+        try:
+            self.LogLevel = kwargs['LogLevel']  # log level: choose info for less verbose output
+        except KeyError:
+            self.LogLevel = 'INFO'
         try:
             self.minimumFrequency = kwargs['minimumFrequency']
         except KeyError:
@@ -118,7 +121,7 @@ class Fitter(object):
                 self.process_fitting_results(filename)
             elif self.inputformat == 'XLSX' and filename.endswith(".xlsx"):
                 self.readin_Data_from_xlsx(filename)
-                iters = len(self.omega)
+                iters = len(self.zarray)
                 if self.data_sets is not None:
                     iters = self.data_sets
                 for i in range(iters):
