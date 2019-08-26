@@ -31,6 +31,10 @@ if os.path.isfile('./constants.py'):
 else:
     import impedancefitter.constants as constants
 
+v1 = (1. - constants.dm / constants.Rc)**3
+v2 = (constants.Rn / (constants.Rc - constants.dm))**3
+v3 = (1. - constants.dn / constants.Rn)**3
+
 
 def double_shell_model(omega, k, alpha, km, em, kcp, ene, kne, knp, kmed, emed):
     """
@@ -44,13 +48,13 @@ def double_shell_model(omega, k, alpha, km, em, kcp, ene, kne, knp, kmed, emed):
     epsi_med = emed + kmed / (1j * omega * constants.e0)
 
     E3 = epsi_np / epsi_ne
-    E2 = ((epsi_ne / epsi_cp) * (2. * (1. - constants.v3) + (1. + 2. * constants.v3) * E3) /
-          ((2. + constants.v3) + (1. - constants.v3) * E3))  # Eq. 13
-    E1 = ((epsi_cp / epsi_m) * (2. * (1. - constants.v2) + (1. + 2. * constants.v2) * E2) /
-          ((2. + constants.v2) + (1. - constants.v2) * E2))  # Eq. 14
+    E2 = ((epsi_ne / epsi_cp) * (2. * (1. - v3) + (1. + 2. * v3) * E3) /
+          ((2. + v3) + (1. - v3) * E3))  # Eq. 13
+    E1 = ((epsi_cp / epsi_m) * (2. * (1. - v2) + (1. + 2. * v2) * E2) /
+          ((2. + v2) + (1. - v2) * E2))  # Eq. 14
 
-    epsi_cell = (epsi_m * (2. * (1. - constants.v1) + (1. + 2. * constants.v1) * E1) /
-                 ((2. + constants.v1) + (1. - constants.v1) * E1))  # Eq. 11
+    epsi_cell = (epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1) /
+                 ((2. + v1) + (1. - v1) * E1))  # Eq. 11
     E0 = epsi_cell / epsi_med
     esus = epsi_med * (2. * (1. - constants.p) + (1. + 2. * constants.p) * E0) / ((2. + constants.p) + (1. - constants.p) * E0)
     Ys = 1j * esus * omega * constants.c0 + 1j * omega * constants.cf                 # cell suspension admittance spectrum

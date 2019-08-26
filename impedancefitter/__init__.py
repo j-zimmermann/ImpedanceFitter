@@ -18,3 +18,4 @@
 
 from .main import Fitter
 from .postprocess import PostProcess
+from .single_shell import get_single_shell_impedance
