@@ -113,18 +113,17 @@ class Fitter(object):
                 if max_rows_tag is False:  # all files have the same number of datarows, this only has to be determined once
                     max_rows = self.get_max_rows(filename)
                     max_rows_tag = True
-                dataArray = self.readin_Data_from_file(filename, max_rows)
-                self.fittedValues = self.process_data_from_file(dataArray, filename)
-                # dataArray in the form [omega, Z, Y, epsilon, k]
+                self.readin_Data_from_file(filename, max_rows)
+                self.fittedValues = self.process_data_from_file(filename)
                 self.process_fitting_results(filename)
             elif self.inputformat == 'XLSX' and filename.endswith(".xlsx"):
-                dataArray = self.readin_Data_from_xlsx(filename)
-                iters = dataArray[1].shape[0]
+                self.readin_Data_from_xlsx(filename)
+                iters = len(self.omega)
                 if self.data_sets is not None:
                     iters = self.data_sets
                 for i in range(iters):
-                    self.fittedValues = self.process_data_from_file([dataArray[0], dataArray[1][i]], filename)
-                    # dataArray in the form [omega, Z, Y, epsilon, k]
+                    self.Z = self.zarray[i]
+                    self.fittedValues = self.process_data_from_file(filename)
                     self.process_fitting_results(filename + ' Row' + str(i))
 
     def get_max_rows(self, filename):
@@ -171,13 +170,12 @@ class Fitter(object):
         values = filteredvalues
 
         f = values[:, 0]
-        omega = 2. * np.pi * f
+        self.omega = 2. * np.pi * f
         # construct complex-valued array from float data
-        zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
+        self.zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
 
         for i in range(np.int((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
-            zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
-        return(omega, zarray)
+            self.zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
 
     def process_fitting_results(self, filename):
         '''
@@ -221,38 +219,37 @@ class Fitter(object):
         fileDataArray = filteredvalues
 
         f = fileDataArray[:, 0].astype(np.float)
-        omega = 2. * np.pi * f
+        self.omega = 2. * np.pi * f
         Z_real = fileDataArray[:, 1]
         Z_im = fileDataArray[:, 2]
-        Z = Z_real + 1j * Z_im
-        return([omega, Z])
+        self.Z = Z_real + 1j * Z_im
 
-    def process_data_from_file(self, dataArray, filename):
+    def process_data_from_file(self, filename):
         """
         fitting the data to the cole_cole_model first(compensation of the electrode polarization)
         """
-        self.cole_cole_output = self.fit_to_cole_cole(dataArray[0], dataArray[1])
+        self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
         if self.LogLevel == 'DEBUG':
-            suspension_output = self.fit_to_suspension_model(dataArray[0], dataArray[1])
+            suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
         if self.LogLevel == 'DEBUG':
-            plot_cole_cole(dataArray[0], dataArray[1], self.cole_cole_output, filename)
-            plot_dielectric_properties(dataArray[0], self.cole_cole_output, suspension_output)
+            plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename)
+            plot_dielectric_properties(self.omega, self.cole_cole_output, suspension_output)
         k_fit = self.cole_cole_output.params.valuesdict()['k']
         alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
         emed = self.cole_cole_output.params.valuesdict()['eh']
         # now we need to know k and alpha only
         # fit data to cell model
         if self.model == 'SingleShell':
-            single_shell_output = self.fit_to_single_shell(dataArray[0], dataArray[1], k_fit, alpha_fit, emed)
+            single_shell_output = self.fit_to_single_shell(self.omega, self.Z, k_fit, alpha_fit, emed)
             fit_output = single_shell_output
         else:
-            double_shell_output = self.fit_to_double_shell(dataArray[0], dataArray[1], k_fit, alpha_fit, emed)
+            double_shell_output = self.fit_to_double_shell(self.omega, self.Z, k_fit, alpha_fit, emed)
             fit_output = double_shell_output
         if self.LogLevel == 'DEBUG':
             if self.model == 'SingleShell':
-                plot_single_shell(dataArray[0], dataArray[1], single_shell_output, filename)
+                plot_single_shell(self.omega, self.Z, single_shell_output, filename)
             else:
-                plot_double_shell(dataArray[0], dataArray[1], double_shell_output, filename)
+                plot_double_shell(self.omega, self.Z, double_shell_output, filename)
         return fit_output
 
     def select_and_solve(self, solvername, residual, params, args):
