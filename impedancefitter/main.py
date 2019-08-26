@@ -114,18 +114,18 @@ class Fitter(object):
                     max_rows = self.get_max_rows(filename)
                     max_rows_tag = True
                 dataArray = self.readin_Data_from_file(filename, max_rows)
-                fittedValues = self.process_data_from_file(dataArray, filename)
+                self.fittedValues = self.process_data_from_file(dataArray, filename)
                 # dataArray in the form [omega, Z, Y, epsilon, k]
-                self.process_fitting_results(fittedValues, filename)
+                self.process_fitting_results(filename)
             elif self.inputformat == 'XLSX' and filename.endswith(".xlsx"):
                 dataArray = self.readin_Data_from_xlsx(filename)
                 iters = dataArray[1].shape[0]
                 if self.data_sets is not None:
                     iters = self.data_sets
                 for i in range(iters):
-                    fittedValues = self.process_data_from_file([dataArray[0], dataArray[1][i]], filename)
+                    self.fittedValues = self.process_data_from_file([dataArray[0], dataArray[1][i]], filename)
                     # dataArray in the form [omega, Z, Y, epsilon, k]
-                    self.process_fitting_results(fittedValues, filename + ' Row' + str(i))
+                    self.process_fitting_results(filename + ' Row' + str(i))
 
     def get_max_rows(self, filename):
         '''
@@ -179,11 +179,11 @@ class Fitter(object):
             zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
         return(omega, zarray)
 
-    def process_fitting_results(self, fittedValues, filename):
+    def process_fitting_results(self, filename):
         '''
         function writes output into yaml file, statistical analysis of the result
         '''
-        values = dict(fittedValues.params.valuesdict())
+        values = dict(self.fittedValues.params.valuesdict())
         for key in values:
             values[key] = values.get(key).item()  # conversion into python native type
         data = {str(filename): values}
