@@ -19,25 +19,19 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import yaml
+from scipy.constants import epsilon_0 as e0
+import logging
 
-if os.path.isfile('./constants.py'):
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("module.name", os.getcwd() + "/constants.py")
-    constants = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(constants)
-
-else:
-    import impedancefitter.constants as constants
+logger = logging.getLogger('logger')
 
 
 def Z_CPE(omega, k, alpha):
     return (1. / k) * (1j * omega) ** (-alpha)
 
 
-def Z_sus(omega, es, kdc):  # only valid for cole_cole_fit and suspension_fit
-    return 1. / (1j * es * omega * constants.c0 + (kdc * constants.c0) / constants.e0 + 1j * omega * constants.cf)
+def Z_sus(omega, es, kdc, c0, cf):  # only valid for cole_cole_fit and suspension_fit
+    return 1. / (1j * es * omega * c0 + (kdc * c0) / e0 + 1j * omega * cf)
 
 
 def e_sus(omega, eh, el, tau, a):  # this is only valid for the cole_cole_fit and suspension_fit
@@ -65,7 +59,7 @@ def compare_to_data(omega, Z, Z_fit, filename, subplot=None):
 
 def return_diel_properties(omega, epsc):
     eps_r = epsc.real
-    conductivity = -epsc.imag * constants.e0 * omega
+    conductivity = -epsc.imag * e0 * omega
     return eps_r, conductivity
 
 
@@ -130,3 +124,14 @@ def set_parameters_from_yaml(params, modelName):
     for key in bufdict:
         params.add(key, value=float(bufdict[key]['value']), min=float(bufdict[key]['min']), max=float(bufdict[key]['max']), vary=bool(bufdict[key]['vary']))
     return params
+
+
+def load_constants_from_yaml():
+    constants_file = open('constants.yaml', 'r')
+    constants = yaml.safe_load(constants_file)
+    constants['Rn'] = eval(constants['Rn'])
+    for c in constants:
+        if not isinstance(constants[c], float):
+            constants[c] = float(constants[c])
+        logger.info("Constant {} has value {}.".format(c, constants[c]))
+    return constants

@@ -23,38 +23,38 @@ import numpy as np
 from .utils import Z_CPE, e_sus, Z_sus, compare_to_data
 
 
-def suspension_model(omega, el, tau, a, kdc, eh):
+def suspension_model(omega, c0, cf, el, tau, a, kdc, eh):
     es = e_sus(omega, eh, el, tau, a)
-    Zs_fit = Z_sus(omega, es, kdc)
+    Zs_fit = Z_sus(omega, es, kdc, c0, cf)
     Z_fit = Zs_fit
     return Z_fit
 
 
-def suspension_residual(params, omega, data):
+def suspension_residual(params, omega, data, c0, cf):
     el = params['epsi_l'].value
     tau = params['tau'].value
     a = params['a'].value
     kdc = params['conductivity'].value
     eh = params['eh'].value
-    Z_fit = suspension_model(omega, el, tau, a, kdc, eh)
+    Z_fit = suspension_model(omega, c0, cf, el, tau, a, kdc, eh)
     residual = (data - Z_fit) * (data - Z_fit)
     return residual.view(np.float)
 
 
-def cole_cole_model(omega, k, el, tau, a, alpha, kdc, eh):
+def cole_cole_model(omega, c0, cf, k, el, tau, a, alpha, kdc, eh):
     """
     function holding the cole_cole_model equations, returning the calculated impedance
     """
     Zep_fit = Z_CPE(omega, k, alpha)
     es = e_sus(omega, eh, el, tau, a)
 
-    Zs_fit = Z_sus(omega, es, kdc)
+    Zs_fit = Z_sus(omega, es, kdc, c0, cf)
     Z_fit = Zep_fit + Zs_fit
 
     return Z_fit
 
 
-def cole_cole_residual(params, omega, data):
+def cole_cole_residual(params, omega, data, c0, cf):
     """
     We have two ways to compute the residual. One as in the Matlab script (data_i is not None) and just a plain fit.
     In the matlab case, the input parameters have to be epsilon.real and k, which are determined in readin_Data_from_file.
@@ -66,14 +66,14 @@ def cole_cole_residual(params, omega, data):
     alpha = params['alpha'].value
     kdc = params['conductivity'].value
     eh = params['eh'].value
-    Z_fit = cole_cole_model(omega, k, el, tau, a, alpha, kdc, eh)
+    Z_fit = cole_cole_model(omega, c0, cf, k, el, tau, a, alpha, kdc, eh)
     residual = (data - Z_fit) * (data - Z_fit)
     return residual.view(np.float)
 
 
-def plot_cole_cole(omega, Z, result, filename):
+def plot_cole_cole(omega, Z, result, filename, c0, cf):
     popt = np.fromiter(result.params.valuesdict().values(), dtype=np.float)
-    Z_fit = cole_cole_model(omega, *popt)
+    Z_fit = cole_cole_model(omega, c0, cf, *popt)
 
     plt.figure()
     plt.suptitle("Cole-Cole fit plot\n" + str(filename), y=1.05)

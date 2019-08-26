@@ -27,21 +27,11 @@ import pandas as pd
 from .single_shell import plot_single_shell, single_shell_residual
 from .double_shell import plot_double_shell, double_shell_residual
 from .cole_cole import plot_cole_cole, cole_cole_residual, suspension_residual
-from .utils import set_parameters_from_yaml, plot_dielectric_properties
+from .utils import set_parameters_from_yaml, plot_dielectric_properties, load_constants_from_yaml
 # TODO: throw error when data from file is calculated to be wrong(negative epsilon)?
 # create logger
 logger = logging.getLogger('logger')
 
-if os.path.isfile('./constants.py'):
-    print("Using constants specified in directory.")
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("module.name", os.getcwd() + "/constants.py")
-    constants = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(constants)
-
-else:
-    print("Using default constants.")
-    import impedancefitter.constants as constants
 """
 For the documentation, check ../latex/documentation_python.tex
 """
@@ -101,6 +91,15 @@ class Fitter(object):
         ch = logging.StreamHandler()
         ch.setLevel(logging.DEBUG)
         logger.addHandler(ch)
+
+        # load constants
+        self._load_constants()
+
+    def _load_constants(self):
+        self.constants = load_constants_from_yaml()
+        self.constants['v1'] = (1. - self.constants['dm'] / self.constants['dm'])**3
+        self.constants['v2'] = (self.constants['Rn'] / (self.constants['Rc'] - self.constants['dm']))**3
+        self.constants['v3'] = (1. - self.constants['dn'] / self.constants['Rn'])**3
 
     def main(self, protocol=None):
         max_rows_tag = False
@@ -235,7 +234,7 @@ class Fitter(object):
         if self.LogLevel == 'DEBUG':
             suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
         if self.LogLevel == 'DEBUG':
-            plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename)
+            plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename, self.constants['c0'], self.constants['cf'])
             plot_dielectric_properties(self.omega, self.cole_cole_output, suspension_output)
         k_fit = self.cole_cole_output.params.valuesdict()['k']
         alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
@@ -250,9 +249,9 @@ class Fitter(object):
             fit_output = double_shell_output
         if self.LogLevel == 'DEBUG':
             if self.model == 'SingleShell':
-                plot_single_shell(self.omega, self.Z, single_shell_output, filename)
+                plot_single_shell(self.omega, self.Z, single_shell_output, filename, self.constants)
             else:
-                plot_double_shell(self.omega, self.Z, double_shell_output, filename)
+                plot_double_shell(self.omega, self.Z, double_shell_output, filename, self.constants)
         return fit_output
 
     def select_and_solve(self, solvername, residual, params, args):
@@ -275,7 +274,7 @@ class Fitter(object):
         params = Parameters()
         params = set_parameters_from_yaml(params, 'suspension')
         result = None
-        result = self.select_and_solve(self.solvername, suspension_residual, params, (omega, input1))
+        result = self.select_and_solve(self.solvername, suspension_residual, params, (omega, input1, self.constants['c0'], self.constants['cf']))
         logger.info(lmfit.fit_report(result))
         logger.info(result.params.pretty_print())
         return result
@@ -302,7 +301,7 @@ class Fitter(object):
                 # fix these two parameters, conductivity and eh
                 params['conductivity'].set(vary=False, value=result.params['conductivity'].value)
                 params['eh'].set(vary=False, value=result.params['eh'].value)
-            result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(omega, input1))
+            result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(omega, input1, self.constants['c0'], self.constants['cf']))
             logger.info(lmfit.fit_report(result))
             logger.debug(result.params.pretty_print())
         return result
@@ -327,7 +326,7 @@ class Fitter(object):
             if i == 1:
                 # fix conductivity
                 params['kmed'].set(vary=False, value=result.params.valuesdict()['kmed'])
-            result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, input1))
+            result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, input1, self.constants))
             logger.info(lmfit.fit_report(result))
             logger.info(result.message)
             logger.debug((result.params.pretty_print()))
@@ -361,7 +360,7 @@ class Fitter(object):
                 params['em'].set(vary=False, value=result.params.valuesdict()['em'])
             if i == 3:
                 params['kcp'].set(vary=False, value=result.params.valuesdict()['kcp'])
-            result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(omega, input1))
+            result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(omega, input1, self.constants))
             logger.info(lmfit.fit_report(result))
             logger.info(result.message)
             logger.debug(result.params.pretty_print())

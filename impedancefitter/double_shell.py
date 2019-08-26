@@ -18,34 +18,25 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+from scipy.constants import epsilon_0 as e0
 from .utils import compare_to_data, Z_CPE
 
 
-if os.path.isfile('./constants.py'):
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("module.name", os.getcwd() + "/constants.py")
-    constants = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(constants)
+def double_shell_model(omega, constants, k, alpha, km, em, kcp, ene, kne, knp, kmed, emed):
+    ecp = constants['ecp']
+    enp = constants['enp']
+    p = constants['p']
+    c0 = constants['c0']
+    cf = constants['cf']
+    v1 = constants['v1']
+    v2 = constants['v1']
+    v3 = constants['v1']
 
-else:
-    import impedancefitter.constants as constants
-
-v1 = (1. - constants.dm / constants.Rc)**3
-v2 = (constants.Rn / (constants.Rc - constants.dm))**3
-v3 = (1. - constants.dn / constants.Rn)**3
-
-
-def double_shell_model(omega, k, alpha, km, em, kcp, ene, kne, knp, kmed, emed):
-    """
-    atm, this is a dummy for the Double-Shell-Model equations,
-    containing everything from double_shell_sopt_pso.py to fit the variable definitions in this file
-    """
-    epsi_m = em + km / (1j * omega * constants.e0)
-    epsi_cp = constants.ecp + kcp / (1j * omega * constants.e0)
-    epsi_ne = ene + kne / (1j * omega * constants.e0)
-    epsi_np = constants.enp + knp / (1j * omega * constants.e0)
-    epsi_med = emed + kmed / (1j * omega * constants.e0)
+    epsi_m = em + km / (1j * omega * e0)
+    epsi_cp = ecp + kcp / (1j * omega * e0)
+    epsi_ne = ene + kne / (1j * omega * e0)
+    epsi_np = enp + knp / (1j * omega * e0)
+    epsi_med = emed + kmed / (1j * omega * e0)
 
     E3 = epsi_np / epsi_ne
     E2 = ((epsi_ne / epsi_cp) * (2. * (1. - v3) + (1. + 2. * v3) * E3) /
@@ -56,15 +47,15 @@ def double_shell_model(omega, k, alpha, km, em, kcp, ene, kne, knp, kmed, emed):
     epsi_cell = (epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1) /
                  ((2. + v1) + (1. - v1) * E1))  # Eq. 11
     E0 = epsi_cell / epsi_med
-    esus = epsi_med * (2. * (1. - constants.p) + (1. + 2. * constants.p) * E0) / ((2. + constants.p) + (1. - constants.p) * E0)
-    Ys = 1j * esus * omega * constants.c0 + 1j * omega * constants.cf                 # cell suspension admittance spectrum
+    esus = epsi_med * (2. * (1. - p) + (1. + 2. * p) * E0) / ((2. + p) + (1. - p) * E0)
+    Ys = 1j * esus * omega * c0 + 1j * omega * cf  # cell suspension admittance spectrum
     Zs = 1 / Ys
-    Zep = Z_CPE(omega, k, alpha)               # including EP
+    Zep = Z_CPE(omega, k, alpha)  # including EP
     Z = Zs + Zep
     return Z
 
 
-def double_shell_residual(params, omega, data):
+def double_shell_residual(params, omega, data, constants):
     '''
     data is Z
     '''
@@ -79,14 +70,14 @@ def double_shell_residual(params, omega, data):
     kmed = params['kmed'].value
     emed = params['emed'].value
 
-    Z_fit = double_shell_model(omega, k, alpha, km, em, kcp, ene, kne, knp, kmed, emed)
+    Z_fit = double_shell_model(omega, constants, k, alpha, km, em, kcp, ene, kne, knp, kmed, emed)
     # define the objective function
     # optimize for impedance
     residual = (data - Z_fit) * (data - Z_fit)
     return residual.view(np.float)
 
 
-def plot_double_shell(omega, Z, result, filename):
+def plot_double_shell(omega, Z, result, filename, constants):
     '''
     plot the real and imaginary part of the impedance vs. the frequency and
     real vs. imaginary part
@@ -103,7 +94,7 @@ def plot_double_shell(omega, Z, result, filename):
                         result.params['emed'],
                         ],
                        dtype=np.float)
-    Z_fit = double_shell_model(omega, *popt)
+    Z_fit = double_shell_model(omega, constants, *popt)
 
     # plot real  Impedance part
     plt.figure()
