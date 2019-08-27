@@ -23,7 +23,7 @@ from openturns.viewer import View
 import yaml
 import logging
 
-logger = logging.getLogger('logger')
+logger = logging.getLogger('impedancefitter-logger')
 
 
 class PostProcess(object):

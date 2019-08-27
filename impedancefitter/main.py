@@ -30,7 +30,7 @@ from .cole_cole import plot_cole_cole, cole_cole_residual, suspension_residual
 from .utils import set_parameters_from_yaml, plot_dielectric_properties, load_constants_from_yaml, process_constants
 # TODO: throw error when data from file is calculated to be wrong(negative epsilon)?
 # create logger
-logger = logging.getLogger('logger')
+logger = logging.getLogger('impedancefitter-logger')
 
 """
 For the documentation, check ../latex/documentation_python.tex
@@ -87,10 +87,11 @@ class Fitter(object):
         self.directory = directory + '/'
         logger.setLevel(self.LogLevel)
 
-        # create console handler and set level to debug
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-        logger.addHandler(ch)
+        if not len(logger.handlers):
+            # create console handler and set level to debug
+            ch = logging.StreamHandler()
+            ch.setLevel(logging.DEBUG)
+            logger.addHandler(ch)
 
         self.constants = constants
         # load constants
