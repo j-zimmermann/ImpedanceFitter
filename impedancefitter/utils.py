@@ -126,12 +126,18 @@ def set_parameters_from_yaml(params, modelName):
     return params
 
 
-def load_constants_from_yaml():
+def load_constants_from_yaml(model=None):
     constants_file = open('constants.yaml', 'r')
     constants = yaml.safe_load(constants_file)
     constants['Rn'] = eval(constants['Rn'])
     for c in constants:
         if not isinstance(constants[c], float):
             constants[c] = float(constants[c])
+    if model == 'SingleShell' or model == 'DoubleShell':
+        constants['v1'] = (1. - constants['dm'] / constants['Rc'])**3
+    if model == 'DoubleShell':
+            constants['v2'] = (constants['Rn'] / (constants['Rc'] - constants['dm']))**3
+            constants['v3'] = (1. - constants['dn'] / constants['Rn'])**3
+    for c in constants:
         logger.info("Constant {} has value {}.".format(c, constants[c]))
     return constants
