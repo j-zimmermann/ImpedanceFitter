@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="impedancefitter",
-    version="0.0.1",
+    version="1.0.0",
     author="Leonard Thiele, Julius Zimmermann",
     author_email="leonard.thiele@uni-rostock.de, julius.zimmermann@uni-rostock.de",
     description="Library for fitting impedance data to models like single-shell oder double-shell model.",
