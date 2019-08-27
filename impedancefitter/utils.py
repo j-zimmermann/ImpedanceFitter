@@ -130,6 +130,10 @@ def load_constants_from_yaml(model=None):
     constants_file = open('constants.yaml', 'r')
     constants = yaml.safe_load(constants_file)
     constants['Rn'] = eval(constants['Rn'])
+    return process_constants(constants, model)
+
+
+def process_constants(constants, model=None):
     for c in constants:
         if not isinstance(constants[c], float):
             constants[c] = float(constants[c])

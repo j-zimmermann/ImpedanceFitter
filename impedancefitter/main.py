@@ -27,7 +27,7 @@ import pandas as pd
 from .single_shell import plot_single_shell, single_shell_residual
 from .double_shell import plot_double_shell, double_shell_residual
 from .cole_cole import plot_cole_cole, cole_cole_residual, suspension_residual
-from .utils import set_parameters_from_yaml, plot_dielectric_properties, load_constants_from_yaml
+from .utils import set_parameters_from_yaml, plot_dielectric_properties, load_constants_from_yaml, process_constants
 # TODO: throw error when data from file is calculated to be wrong(negative epsilon)?
 # create logger
 logger = logging.getLogger('logger')
@@ -38,7 +38,7 @@ For the documentation, check ../latex/documentation_python.tex
 
 
 class Fitter(object):
-    def __init__(self, directory=None, **kwargs):
+    def __init__(self, directory=None, constants=None, **kwargs):
         """
         provide directory if you run code from directory different to data directory
         provide kwargs as:
@@ -92,8 +92,13 @@ class Fitter(object):
         ch.setLevel(logging.DEBUG)
         logger.addHandler(ch)
 
+        self.constants = constants
         # load constants
-        self._load_constants()
+        if self.constants is None:
+            self._load_constants()
+        else:
+            assert(isinstance(constants, dict)), "You need to provide an input dictionary!"
+            self.constants = process_constants(constants, self.model)
 
     def _load_constants(self):
         self.constants = load_constants_from_yaml(model=self.model)
