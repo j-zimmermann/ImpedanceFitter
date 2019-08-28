@@ -23,7 +23,7 @@ import yaml
 from scipy.constants import epsilon_0 as e0
 import logging
 
-logger = logging.getLogger('logger')
+logger = logging.getLogger('impedancefitter-logger')
 
 
 def Z_CPE(omega, k, alpha):
