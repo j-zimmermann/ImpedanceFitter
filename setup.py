@@ -12,7 +12,6 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
-    dependency_links=['https://github.com/lmfit/lmfit-py/tarball/0.9.14rc1#egg=lmfit-0.9.14rc1'],
-    install_requires=['pyyaml', 'lmfit==0.9.14rc1',
-                      'numpy>=1.16', 'xlrd>=1.2.0', 'openturns>=1.12'],
+    install_requires=['pyyaml', 'numpy==1.17', 'xlrd==1.2.0',
+                      'openturns==1.13', 'scipy==1.3.1', 'lmfit==0.9.14'],
 )

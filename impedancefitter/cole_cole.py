@@ -24,6 +24,9 @@ from .utils import Z_CPE, e_sus, Z_sus, compare_to_data
 
 
 def suspension_model(omega, c0, cf, el, tau, a, kdc, eh):
+    """
+    Simple suspension model using :func:`impedancefitter.utils.Z_sus`
+    """
     es = e_sus(omega, eh, el, tau, a)
     Zs_fit = Z_sus(omega, es, kdc, c0, cf)
     Z_fit = Zs_fit

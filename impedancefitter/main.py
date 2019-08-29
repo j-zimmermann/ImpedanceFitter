@@ -59,7 +59,7 @@ class Fitter(object):
     inputformat: {string, 'TXT' OR 'XLSX'}
         currently only TXT and Excel files with a certain formatting (impedance in two columns, first is real part, second imaginary part, is accepted).
     LogLevel: {string, optional, 'DEBUG' OR 'INFO' OR 'WARNING'}
-        choose level for logger
+        choose level for logger. Case DEBUG: the script will output plots after each fit, case INFO: the script will output results from each fit to the console.
     excludeEnding: {string, optional}
         for ending that should be ignored (if there are files with the same ending as the chosen inputformat)
     minimumFrequency: {float, optional}
@@ -308,6 +308,8 @@ class Fitter(object):
     def fit_to_suspension_model(self, omega, Z):
         '''
         fit data to pure suspension model to compare to cole-cole based correction.
+        See also: :func:`impedancefitter.cole_cole.suspension_model`
+
         '''
         logger.debug('#################################')
         logger.debug('fit data to pure suspension model')
@@ -329,7 +331,7 @@ class Fitter(object):
         If the :attr:`protocol` is specified to be 'Iterative', the data is fitted to the Cole-Cole-Model twice. Then, in the second fit, the parameters 'conductivity' and 'eh' are being fixed.
 
         The initial parameters and boundaries for the variables are read from the .yaml file in the directory of the python script.
-        see also: :meth:`impedancefitter.cole_cole.cole_cole_model`
+        see also: :func:`impedancefitter.cole_cole.cole_cole_model`
         '''
         logger.debug('#################################################################')
         logger.debug('fit data to cole-cole model to account for electrode polarisation')
@@ -353,9 +355,10 @@ class Fitter(object):
 
     #################################################################
     # single_shell_section
-    def fit_to_single_shell(self, omega, input1, k_fit, alpha_fit, emed_fit):
+    def fit_to_single_shell(self, omega, Z, k_fit, alpha_fit, emed_fit):
         '''
-        input is Z
+        if :attr:`protocol` is `Iterative`, the conductivity of the medium is determined in the first run and then fixed.
+        See also: :func:`impedancefitter.single_shell.single_shell_model`
         '''
         params = Parameters()
         params = set_parameters_from_yaml(params, 'single_shell')
@@ -371,7 +374,7 @@ class Fitter(object):
             if i == 1:
                 # fix conductivity
                 params['kmed'].set(vary=False, value=result.params.valuesdict()['kmed'])
-            result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, input1, self.constants))
+            result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, Z, self.constants))
             logger.info(lmfit.fit_report(result))
             logger.info(result.message)
             logger.debug((result.params.pretty_print()))
@@ -379,10 +382,24 @@ class Fitter(object):
 
     ################################################################
     # double_shell_section
-    def fit_to_double_shell(self, omega, input1, k_fit, alpha_fit, emed_fit):
-        '''
-        input 1 is Z, k_fit, alpha_fit and emed_fit are the determined values in the cole-cole-fit
-        '''
+    def fit_to_double_shell(self, omega, Z, k_fit, alpha_fit, emed_fit):
+        r"""
+        k_fit, alpha_fit and emed_fit are the determined values in the cole-cole-fit
+
+        If :attr:`protocol` is equal to `Iterative`, the following procedure is applied:
+
+        #. 1st Fit: the parameters :math:`k` and :math:`\alpha` are fixed(coming from cole-cole-fit), and the data is fitted against the double-shell-model. To be determined in this fit: :math:`\sigma_\mathrm{sup} / k_\mathrm{med}`.
+
+        #. 2nd Fit: the parameters :math:`k`, :math:`\alpha` and :math:`\sigma_\mathrm{sup}` are fixed and the data is fitted again. To be determined in this fit: :math:`\sigma_\mathrm{m}, \varepsilon_\mathrm{m}, \sigma_\mathrm{cp}`.
+
+        #. 3rd Fit: the parameters :math:`k`, :math:`\alpha`, :math:`\sigma_\mathrm{sup}`, :math:`\sigma_\mathrm{m}` and :math:`\varepsilon_\mathrm{m}` are fixed and the data is fitted again. To be determined in this fit: :math:`\sigma_\mathrm{cp}`.
+
+        #. last Fit: the parameters :math:`k`, :math:`\alpha`, :math:`\sigma_\mathrm{sup}, \sigma_\mathrm{ne}, \sigma_\mathrm{np}, \sigma_\mathrm{m}, \varepsilon_\mathrm{m}` are fixed. To be determined in this fit: :math:`\varepsilon_\mathrm{ne}, \sigma_\mathrm{ne}, \varepsilon_\mathrm{np}, \sigma_\mathrm{np}`.
+
+
+        See also: :func:`impedancefitter.double_shell.double_shell_model`
+
+        """
         logger.debug('##############################')
         logger.debug('fit data to double shell model')
         logger.debug('##############################')
@@ -405,7 +422,7 @@ class Fitter(object):
                 params['em'].set(vary=False, value=result.params.valuesdict()['em'])
             if i == 3:
                 params['kcp'].set(vary=False, value=result.params.valuesdict()['kcp'])
-            result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(omega, input1, self.constants))
+            result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(omega, Z, self.constants))
             logger.info(lmfit.fit_report(result))
             logger.info(result.message)
             logger.debug(result.params.pretty_print())

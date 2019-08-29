@@ -11,8 +11,11 @@ Welcome to ImpedanceFitter's documentation!
    :caption: Contents:
 
    main 
+   utils
    cole_cole
-
+   single_shell
+   double_shell
+   postprocess
 
 Indices and tables
 ==================

@@ -27,6 +27,10 @@ logger = logging.getLogger('impedancefitter-logger')
 
 
 class PostProcess(object):
+    """
+    This class provides the possibility, to analyse the statistics of the fitted data.
+    The fitting results are read in from the outfile.
+    """
     def __init__(self, model, yamlfile=None):
         self.model = model
         if yamlfile is None:
@@ -62,6 +66,7 @@ class PostProcess(object):
 
     def plot_histograms(self):
         """
+        Plot histograms for all determined parameters.
         fails if values are too close to each other
         """
         if(self.model == 'SingleShell'):
@@ -90,6 +95,11 @@ class PostProcess(object):
         plt.show()
 
     def fit_to_normal_distribution(self, parameter):
+        """
+        Fit results for to normal distribution.
+
+        :param parameter: string, parameter that is to be fitted.
+        """
         sample = self.sampledict[parameter]
         distribution = ot.NormalFactory().build(sample)
         print(distribution)
@@ -99,6 +109,11 @@ class PostProcess(object):
         return distribution
 
     def fit_to_histogram_distribution(self, parameter):
+        """
+        Generate histogram from results.
+
+        :param parameter: string, parameter that is to be fitted.
+        """
         sample = self.sampledict[parameter]
         distribution = ot.HistogramFactory().build(sample)
         print(distribution)
@@ -109,7 +124,10 @@ class PostProcess(object):
 
     def best_model_kolmogorov(self, parameter, distributions):
         """
+        Test, which distribution models your data best based on the kolmogorov test (see https://openturns.github.io/openturns/master/user_manual/_generated/openturns.FittingTest_BestModelKolmogorov.html#openturns.FittingTest_BestModelKolmogorov).
         suitable for small samples
+
+        :param distributions: list of strings like: :code:`['Normal', 'Uniform']`
         """
         sample = self.sampledict[parameter]
         tested_distributions = []
@@ -127,7 +145,10 @@ class PostProcess(object):
 
     def best_model_bic(self, parameter, distributions):
         """
+        Test, which distribution models your data best based on the Bayesian information criterion (see https://openturns.github.io/openturns/master/user_manual/_generated/openturns.FittingTest_BestModelBIC.html#openturns.FittingTest_BestModelBIC).
         suitable for small samples
+
+        :param distributions: list of strings like: :code:`['Normal', 'Uniform']`
         """
         ot.RandomGenerator.SetSeed(0)
         sample = self.sampledict[parameter]
@@ -145,6 +166,11 @@ class PostProcess(object):
         return best_model
 
     def best_model_chisquared(self, parameter, distributions):
+        """
+        Test, which distribution models your data best based on the chisquared test (see https://openturns.github.io/openturns/master/user_manual/_generated/openturns.FittingTest_BestModelChiSquared.html).
+
+        :param distributions: list of strings like: :code:`['Normal', 'Uniform']`
+        """
         sample = self.sampledict[parameter]
         tested_distributions = []
         for dist in distributions:

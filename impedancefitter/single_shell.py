@@ -24,10 +24,26 @@ from scipy.constants import epsilon_0 as e0
 
 
 def single_shell_model(omega, constants, k, alpha, em, km, kcp, kmed, emed):
-    '''
-    formulas for the single shell model are described here
-         -returns: Calculated impedance corrected by the constant-phase-element
-    '''
+    r"""
+    Equations for the single-shell-model( :math:`\nu_1` is calculated like in the double-shell-model):
+
+    .. math::
+
+        \varepsilon_\mathrm{cell}^* = \varepsilon_\mathrm{m}^* * \frac{(2 * (1 - \nu_1) + (1 + 2 * \nu_1) * E_1}{((2 + \nu_1) + (1 - -\nu_1) * E_1}
+
+    .. math::
+
+        E_1 = \frac{\varepsilon_\mathrm{cp}^*}{\varepsilon_\mathrm{m}^*}
+
+    .. math::
+
+        \varepsilon_\mathrm{sus}^* = \varepsilon_\mathrm{med}^* * \frac{2 * (1- p) + (1 + 2 * p) * E_0}{(2 + p) + (1- p) * E_0}
+
+    .. math::
+
+        E_0  = \frac{\varepsilon_\mathrm{cell}^*}{\varepsilon_\mathrm{med}^*}
+
+    """
     ecp = constants['ecp']
     p = constants['p']
     c0 = constants['c0']
@@ -54,15 +70,6 @@ def single_shell_model(omega, constants, k, alpha, em, km, kcp, kmed, emed):
 def single_shell_residual(params, omega, data, constants):
     '''
     calculates the residual for the single-shell model, using the single_shell_model.
-    if the
-    Mode=='Matlab' uses k and e.real as data and data_i
-    :param data:
-        if data_i is not give, the array in data will be the Impedance calculated from the input file
-        if data_i is given, it will be the real part of the permitivity calculated from the input file
-    :param data_i:
-        if this is given, it will be the conductivity calculated from the input file
-    :param params:
-        parameters used fot the calculation of the impedance
     '''
     k = params['k'].value
     alpha = params['alpha'].value

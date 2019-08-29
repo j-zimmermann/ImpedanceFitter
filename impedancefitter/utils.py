@@ -27,14 +27,23 @@ logger = logging.getLogger('impedancefitter-logger')
 
 
 def Z_CPE(omega, k, alpha):
+    """
+    CPE impedance
+    """
     return (1. / k) * (1j * omega) ** (-alpha)
 
 
-def Z_sus(omega, es, kdc, c0, cf):  # only valid for cole_cole_fit and suspension_fit
+def Z_sus(omega, es, kdc, c0, cf):
+    """
+    Accounts for air capacitance and stray capacitance.
+    """
     return 1. / (1j * es * omega * c0 + (kdc * c0) / e0 + 1j * omega * cf)
 
 
 def e_sus(omega, eh, el, tau, a):  # this is only valid for the cole_cole_fit and suspension_fit
+    """
+    complex permitivity of suspension
+    """
     return eh + (el - eh) / (1. + (1j * omega * tau) ** (a))
 
 
@@ -58,6 +67,9 @@ def compare_to_data(omega, Z, Z_fit, filename, subplot=None):
 
 
 def return_diel_properties(omega, epsc):
+    """
+    return real permittivity and conductivity
+    """
     eps_r = epsc.real
     conductivity = -epsc.imag * e0 * omega
     return eps_r, conductivity

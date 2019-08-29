@@ -23,6 +23,44 @@ from .utils import compare_to_data, Z_CPE
 
 
 def double_shell_model(omega, constants, k, alpha, km, em, kcp, ene, kne, knp, kmed, emed):
+    r"""
+    Equations for the double-shell-model:
+
+    .. math::
+
+        \varepsilon_\mathrm{mix}^\ast = \varepsilon_\mathrm{sup}^\ast\frac{(2\varepsilon_\mathrm{sup}^\ast+\varepsilon_\mathrm{c}^\ast)-2p(\varepsilon_\mathrm{sup}^\ast-\varepsilon_\mathrm{c}^\ast)}{(2\varepsilon_\mathrm{sup}^\ast+\varepsilon_\mathrm{c}^\ast)+p(\varepsilon_\mathrm{sup}^\ast-\varepsilon_\mathrm{c}^\ast)}
+
+    .. math::
+
+            \varepsilon_\mathrm{c}^\ast = \varepsilon_\mathrm{m}^\ast\frac{2(1-\nu_\mathrm{1})+(1+2\nu_\mathrm{1})E_\mathrm{1}}{(2+\nu_\mathrm{1})+(1-\nu_\mathrm{1})E_\mathrm{1}}
+
+    .. math::
+
+            E_\mathrm{1}  = \frac{\varepsilon_\mathrm{cp}^\ast}{\varepsilon_\mathrm{m}^\ast} \frac{2(1-\nu_\mathrm{2})+(1+2\nu_\mathrm{2})E_\mathrm{2}}{(2+\nu_\mathrm{2})+(1-\nu_\mathrm{2})E_\mathrm{2}}
+
+    .. math::
+
+            E_\mathrm{2} = \frac{\varepsilon_\mathrm{ne}^\ast}{\varepsilon_\mathrm{cp}^\ast}\frac{2(1-\nu_\mathrm{3})+(1+2\nu_\mathrm{3})E_\mathrm{3}}{(2+\nu_\mathrm{3})+(1-\nu_\mathrm{3})E_\mathrm{3}}
+
+    .. math::
+
+            E_\mathrm{3} = \frac{\varepsilon_\mathrm{np}^\ast}{\varepsilon_\mathrm{ne}^\ast}
+
+    with :math:`R \hat{=}` outer cell Radius; :math:`R_\mathrm{n} \hat{=}` outer Radius of the nucleus; :math:`d \hat{=}` thickness of the membrane
+
+    .. math::
+
+            \nu_\mathrm{1} = \left(1-\frac{d}{R}\right)^3
+
+    .. math::
+
+            \nu_\mathrm{2} = \left(\frac{R_\mathrm{n}}{R-d}\right)^3
+
+    .. math::
+
+            \nu_\mathrm{3} = \left(1-\frac{d_\mathrm{n}}{R_\mathrm{n}}\right)^3
+
+    """
     ecp = constants['ecp']
     enp = constants['enp']
     p = constants['p']

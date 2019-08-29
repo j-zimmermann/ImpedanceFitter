@@ -3,6 +3,7 @@
 *.toc
 *.out
 build/
+_build/
 dist/
 outfile.yaml
 impedancefitter.egg-info/
