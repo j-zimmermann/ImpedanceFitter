@@ -28,29 +28,61 @@ from .single_shell import plot_single_shell, single_shell_residual
 from .double_shell import plot_double_shell, double_shell_residual
 from .cole_cole import plot_cole_cole, cole_cole_residual, suspension_residual
 from .utils import set_parameters_from_yaml, plot_dielectric_properties, load_constants_from_yaml, process_constants
-# TODO: throw error when data from file is calculated to be wrong(negative epsilon)?
+
 # create logger
 logger = logging.getLogger('impedancefitter-logger')
-
 """
-For the documentation, check ../latex/documentation_python.tex
+We use an own logger for the impedancefitter module.
 """
 
 
 class Fitter(object):
-    def __init__(self, directory=None, constants=None, **kwargs):
-        """
+    """
+    The main fitting object class.
+    The chosen fitting routine is applied to all files in the chosen directory.
+
+    Parameters
+    ----------
+
+    directory: {string, optional, path to data directory}
         provide directory if you run code from directory different to data directory
-        provide kwargs as:
-            model='SingleShell' OR 'DoubleShell'
-            LogLevel='DEBUG' OR 'INFO'
-            solvername='solver', choose among globalSolvers: basinhopping, differential_evolution; local Solvers: levenberg-marquardt, nelder-mead, least-squares
-            inputformat='TXT' OR 'XLSX'
-        possible extra values:
-            excludeEnding=string for ending that should be ignored (if there are files with the same ending as the chosen inputformat)
-            minimumFrequency=float
-            maximumFrequency=float
-        """
+    constants: {dict, optional, needed constants}
+        provide constants if you do not want to use a yaml file (for instance in parallel UQ runs).
+
+    Kwargs
+    ------
+
+    model: {string, 'SingleShell' OR 'DoubleShell'}
+        currently, you can choose between SingleShell and DoubleShell.
+    solvername : {string, name of solver}
+        choose among global solvers from lmfit: basinhopping, differential_evolution, ...; local solvers: levenberg-marquardt, nelder-mead, least-squares. See also lmfit documentation.
+    inputformat: {string, 'TXT' OR 'XLSX'}
+        currently only TXT and Excel files with a certain formatting (impedance in two columns, first is real part, second imaginary part, is accepted).
+    LogLevel: {string, optional, 'DEBUG' OR 'INFO' OR 'WARNING'}
+        choose level for logger
+    excludeEnding: {string, optional}
+        for ending that should be ignored (if there are files with the same ending as the chosen inputformat)
+    minimumFrequency: {float, optional}
+        if you want to use another frequency than the minimum frequency in the dataset.
+    maximumFrequency: {float, optional}
+        if you want to use another frequency than the maximum frequency in the dataset.
+    solver_kwargs: {dict, optional}
+        Contains infos for the solver. find possible kwargs in the lmfit documentation.
+    data_sets: {int, optional}
+        Use only a certain number of data sets instead of all in directory.
+
+    Attributes
+    ----------
+
+    omega: list
+        Contains frequencies.
+    Z: list
+        Contains corresponding impedances.
+    protocol: None or string
+        Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
+    """
+
+    def __init__(self, directory=None, constants=None, **kwargs):
         self.model = kwargs['model']
         self.solvername = kwargs['solvername']
         self.inputformat = kwargs['inputformat']
@@ -105,6 +137,9 @@ class Fitter(object):
         self.constants = load_constants_from_yaml(model=self.model)
 
     def main(self, protocol=None):
+        """
+        Main function that iterates through all data sets provided.
+        """
         max_rows_tag = False
         self.protocol = protocol
         open('outfile.yaml', 'w')  # create output file
@@ -133,7 +168,7 @@ class Fitter(object):
 
     def get_max_rows(self, filename):
         '''
-        determins the number of actual data rows
+        determines the number of actual data rows in TXT files.
         '''
         txt_file = open(self.directory + filename)
         for num, line in enumerate(txt_file, 1):
@@ -184,7 +219,7 @@ class Fitter(object):
 
     def process_fitting_results(self, filename):
         '''
-        function writes output into yaml file, statistical analysis of the result
+        function writes output into yaml file to prepare statistical analysis of the result
         '''
         values = dict(self.fittedValues.params.valuesdict())
         for key in values:
@@ -194,13 +229,16 @@ class Fitter(object):
         yaml.dump(data, outfile)
 
     def prepare_txt(self):
+        """
+        Function for txt files that are currently supported. The section for "TRACE: A" is used, also the number of skiprows_txt needs to be aligned, if there is a deviating TXT-format.
+        """
         self.trace_b = 'TRACE: B'
         self.skiprows_txt = 21  # header rows inside the *.txt files
         self.skiprows_trace = 2  # line between traces blocks
 
     def readin_Data_from_file(self, filename, max_rows):
         """
-        data from txt files get read in, returns array with omega and complex-valued Z
+        Data from txt files get reads in, returns array with omega and complex-valued impedance Z
         """
         logger.debug('going to process  text file: ' + self.directory + filename)
         txt_file = open(self.directory + filename, 'r')
@@ -231,7 +269,7 @@ class Fitter(object):
 
     def process_data_from_file(self, filename):
         """
-        fitting the data to the cole_cole_model first(compensation of the electrode polarization)
+        fit the data to the cole_cole_model first (compensation of the electrode polarization) and then to the defined model.
         """
         self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
         if self.LogLevel == 'DEBUG':
@@ -259,7 +297,7 @@ class Fitter(object):
 
     def select_and_solve(self, solvername, residual, params, args):
         '''
-        selects the needed solver and minimizes to the given residual
+        selects the needed solver and minimizes the given residual
         '''
         self.solver_kwargs['method'] = solvername
         self.solver_kwargs['args'] = args
@@ -267,9 +305,9 @@ class Fitter(object):
 
     #######################################################################
     # suspension model section
-    def fit_to_suspension_model(self, omega, input1):
+    def fit_to_suspension_model(self, omega, Z):
         '''
-        input 1 is the real part of epsilon
+        fit data to pure suspension model to compare to cole-cole based correction.
         '''
         logger.debug('#################################')
         logger.debug('fit data to pure suspension model')
@@ -277,17 +315,21 @@ class Fitter(object):
         params = Parameters()
         params = set_parameters_from_yaml(params, 'suspension')
         result = None
-        result = self.select_and_solve(self.solvername, suspension_residual, params, (omega, input1, self.constants['c0'], self.constants['cf']))
+        result = self.select_and_solve(self.solvername, suspension_residual, params, (omega, Z, self.constants['c0'], self.constants['cf']))
         logger.info(lmfit.fit_report(result))
         logger.info(result.params.pretty_print())
         return result
 
     ################################################################
     #  cole_cole_section
-    def fit_to_cole_cole(self, omega, input1):
-        # find more details in formula 6 and 7 of https://ieeexplore.ieee.org/document/6191683
+    def fit_to_cole_cole(self, omega, Z):
         '''
-        input 1 is either  Z in case of mode =='Matlab' or the real part of epsilon
+        Fit data to cole-cole model.
+
+        If the :attr:`protocol` is specified to be 'Iterative', the data is fitted to the Cole-Cole-Model twice. Then, in the second fit, the parameters 'conductivity' and 'eh' are being fixed.
+
+        The initial parameters and boundaries for the variables are read from the .yaml file in the directory of the python script.
+        see also: :meth:`impedancefitter.cole_cole.cole_cole_model`
         '''
         logger.debug('#################################################################')
         logger.debug('fit data to cole-cole model to account for electrode polarisation')
@@ -304,7 +346,7 @@ class Fitter(object):
                 # fix these two parameters, conductivity and eh
                 params['conductivity'].set(vary=False, value=result.params['conductivity'].value)
                 params['eh'].set(vary=False, value=result.params['eh'].value)
-            result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(omega, input1, self.constants['c0'], self.constants['cf']))
+            result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(omega, Z, self.constants['c0'], self.constants['cf']))
             logger.info(lmfit.fit_report(result))
             logger.debug(result.params.pretty_print())
         return result
