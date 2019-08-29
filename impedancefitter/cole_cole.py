@@ -31,19 +31,42 @@ def suspension_model(omega, c0, cf, el, tau, a, kdc, eh):
 
 
 def suspension_residual(params, omega, data, c0, cf):
+    """
+    use the plain suspension model and calculate the residual (the difference between data and fitted values)
+    """
     el = params['epsi_l'].value
     tau = params['tau'].value
     a = params['a'].value
     kdc = params['conductivity'].value
     eh = params['eh'].value
     Z_fit = suspension_model(omega, c0, cf, el, tau, a, kdc, eh)
-    residual = (data - Z_fit) * (data - Z_fit)
+    residual = (data - Z_fit)
     return residual.view(np.float)
 
 
 def cole_cole_model(omega, c0, cf, k, el, tau, a, alpha, kdc, eh):
-    """
+    r"""
     function holding the cole_cole_model equations, returning the calculated impedance
+    Equations for calculations:
+
+    .. math::
+
+         Z_\mathrm{ep} = k^{-1} \* j\*\omega^{-\alpha}
+
+    .. math::
+
+        \varepsilon_\mathrm{s} = \varepsilon_\mathrm{h} + \frac{\varepsilon_\mathrm{l}-\varepsilon_\mathrm{h}}{1+(j\*\omega\*\tau)^a}
+
+    .. math::
+
+        Z_\mathrm{s} = \frac{1}{j\*\varepsilon_\mathrm{s}\*\omega\*c_\mathrm{0} + \frac{\sigma_\mathrm{dc}\*c_\mathrm{0}}{\varepsilon_\mathrm{0}} + j\*\omega\*c_\mathrm{f}}
+
+    .. math::
+
+        Z_\mathrm{fit} = Z_\mathrm{s} + Z_\mathrm{ep}
+
+    find more details in formula 6 and 7 of https://ieeexplore.ieee.org/document/6191683
+
     """
     Zep_fit = Z_CPE(omega, k, alpha)
     es = e_sus(omega, eh, el, tau, a)
@@ -56,8 +79,7 @@ def cole_cole_model(omega, c0, cf, k, el, tau, a, alpha, kdc, eh):
 
 def cole_cole_residual(params, omega, data, c0, cf):
     """
-    We have two ways to compute the residual. One as in the Matlab script (data_i is not None) and just a plain fit.
-    In the matlab case, the input parameters have to be epsilon.real and k, which are determined in readin_Data_from_file.
+    compute difference between data and model.
     """
     k = params['k'].value
     el = params['epsi_l'].value
@@ -67,11 +89,14 @@ def cole_cole_residual(params, omega, data, c0, cf):
     kdc = params['conductivity'].value
     eh = params['eh'].value
     Z_fit = cole_cole_model(omega, c0, cf, k, el, tau, a, alpha, kdc, eh)
-    residual = (data - Z_fit) * (data - Z_fit)
+    residual = (data - Z_fit)
     return residual.view(np.float)
 
 
 def plot_cole_cole(omega, Z, result, filename, c0, cf):
+    """
+    plot results of cole-cole model and compare fit to data.
+    """
     popt = np.fromiter(result.params.valuesdict().values(), dtype=np.float)
     Z_fit = cole_cole_model(omega, c0, cf, *popt)
 
@@ -91,7 +116,7 @@ def plot_cole_cole(omega, Z, result, filename, c0, cf):
     plt.plot(omega, Z_fit.imag, '+', label='fitted by Python')
     plt.plot(omega, Z.imag, 'r', label='data')
     plt.legend()
-    # plot real vs  imaginary Partr
+    # plot real vs  imaginary Part
     plt.subplot(223)
     plt.title("real vs imag")
     plt.plot(Z_fit.real, Z_fit.imag, '+', label="Z_fit")
