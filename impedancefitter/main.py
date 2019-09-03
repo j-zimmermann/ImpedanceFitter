@@ -281,7 +281,7 @@ class Fitter(object):
         """
         fit the data to the cole_cole_model first (compensation of the electrode polarization) and then to the defined model.
         """
-        if self.electrode_polarization:
+        if self.electrode_polarization is True:
             self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
             if self.LogLevel == 'DEBUG':
                 suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
