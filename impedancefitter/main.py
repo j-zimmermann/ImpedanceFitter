@@ -350,6 +350,10 @@ class Fitter(object):
                 params['eh'].set(vary=False, value=result.params['eh'].value)
             result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(omega, Z, self.constants['c0'], self.constants['cf']))
             logger.info(lmfit.fit_report(result))
+            if self.solvername != "ampgo":
+                logger.info(result.message)
+            else:
+                logger.info(result.ampgo_msg)
             logger.debug(result.params.pretty_print())
         return result
 
@@ -376,7 +380,10 @@ class Fitter(object):
                 params['kmed'].set(vary=False, value=result.params.valuesdict()['kmed'])
             result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, Z, self.constants))
             logger.info(lmfit.fit_report(result))
-            logger.info(result.message)
+            if self.solvername != "ampgo":
+                logger.info(result.message)
+            else:
+                logger.info(result.ampgo_msg)
             logger.debug((result.params.pretty_print()))
         return result
 
@@ -424,6 +431,9 @@ class Fitter(object):
                 params['kcp'].set(vary=False, value=result.params.valuesdict()['kcp'])
             result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(omega, Z, self.constants))
             logger.info(lmfit.fit_report(result))
-            logger.info(result.message)
+            if self.solvername != "ampgo":
+                logger.info(result.message)
+            else:
+                logger.info(result.ampgo_msg)
             logger.debug(result.params.pretty_print())
         return result
