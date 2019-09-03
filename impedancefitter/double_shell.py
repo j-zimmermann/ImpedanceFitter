@@ -22,7 +22,7 @@ from scipy.constants import epsilon_0 as e0
 from .utils import compare_to_data, Z_CPE
 
 
-def double_shell_model(omega, constants, k, alpha, km, em, kcp, ene, kne, knp, kmed, emed):
+def double_shell_model(omega, constants, km, em, kcp, ene, kne, knp, kmed, emed):
     r"""
     Equations for the double-shell-model:
 
@@ -88,17 +88,13 @@ def double_shell_model(omega, constants, k, alpha, km, em, kcp, ene, kne, knp, k
     esus = epsi_med * (2. * (1. - p) + (1. + 2. * p) * E0) / ((2. + p) + (1. - p) * E0)
     Ys = 1j * esus * omega * c0 + 1j * omega * cf  # cell suspension admittance spectrum
     Zs = 1 / Ys
-    Zep = Z_CPE(omega, k, alpha)  # including EP
-    Z = Zs + Zep
-    return Z
+    return Zs
 
 
 def double_shell_residual(params, omega, data, constants):
     '''
     data is Z
     '''
-    k = params['k'].value
-    alpha = params['alpha'].value
     km = params['km'].value
     em = params['em'].value
     kcp = params['kcp'].value
@@ -108,7 +104,12 @@ def double_shell_residual(params, omega, data, constants):
     kmed = params['kmed'].value
     emed = params['emed'].value
 
-    Z_fit = double_shell_model(omega, constants, k, alpha, km, em, kcp, ene, kne, knp, kmed, emed)
+    Z_fit = double_shell_model(omega, constants, km, em, kcp, ene, kne, knp, kmed, emed)
+    if 'k' in params and 'alpha' in params:
+        k = params['k'].value
+        alpha = params['alpha'].value
+        Z_fit = Z_fit + Z_CPE(omega, k, alpha)  # including EP
+
     # define the objective function
     # optimize for impedance
     residual = (data - Z_fit)
@@ -120,9 +121,7 @@ def plot_double_shell(omega, Z, result, filename, constants):
     plot the real and imaginary part of the impedance vs. the frequency and
     real vs. imaginary part
     '''
-    popt = np.fromiter([result.params['k'],
-                        result.params['alpha'],
-                        result.params['km'],
+    popt = np.fromiter([result.params['km'],
                         result.params['em'],
                         result.params['kcp'],
                         result.params['ene'],
@@ -133,6 +132,8 @@ def plot_double_shell(omega, Z, result, filename, constants):
                         ],
                        dtype=np.float)
     Z_fit = double_shell_model(omega, constants, *popt)
+    if 'k' in result.params and 'alpha' in result.params:
+        Z_fit = Z_fit + Z_CPE(omega, result.params['k'], result.params['alpha'])
 
     # plot real  Impedance part
     plt.figure()

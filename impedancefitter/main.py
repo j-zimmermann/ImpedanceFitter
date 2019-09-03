@@ -136,11 +136,21 @@ class Fitter(object):
     def _load_constants(self):
         self.constants = load_constants_from_yaml(model=self.model)
 
-    def main(self, protocol=None):
+    def main(self, protocol=None, electrode_polarization=True):
         """
         Main function that iterates through all data sets provided.
+
+        Parameters
+        ----------
+
+        protocol: None or string
+            Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
+
+        electrode_polarization: True or False
+            Switch on whether to account for electrode polarization or not. Currently, only a CPE correction is possible.
         """
         max_rows_tag = False
+        self.electrode_polarization = electrode_polarization
         self.protocol = protocol
         open('outfile.yaml', 'w')  # create output file
         for filename in os.listdir(self.directory):
@@ -271,15 +281,20 @@ class Fitter(object):
         """
         fit the data to the cole_cole_model first (compensation of the electrode polarization) and then to the defined model.
         """
-        self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
-        if self.LogLevel == 'DEBUG':
-            suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
-        if self.LogLevel == 'DEBUG':
-            plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename, self.constants['c0'], self.constants['cf'])
-            plot_dielectric_properties(self.omega, self.cole_cole_output, suspension_output)
-        k_fit = self.cole_cole_output.params.valuesdict()['k']
-        alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
-        emed = self.cole_cole_output.params.valuesdict()['eh']
+        if self.electrode_polarization:
+            self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
+            if self.LogLevel == 'DEBUG':
+                suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
+            if self.LogLevel == 'DEBUG':
+                plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename, self.constants['c0'], self.constants['cf'])
+                plot_dielectric_properties(self.omega, self.cole_cole_output, suspension_output)
+            k_fit = self.cole_cole_output.params.valuesdict()['k']
+            alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
+            emed = self.cole_cole_output.params.valuesdict()['eh']
+        else:
+            k_fit = None
+            alpha_fit = None
+            emed = None
         # now we need to know k and alpha only
         # fit data to cell model
         if self.model == 'SingleShell':
@@ -362,13 +377,16 @@ class Fitter(object):
     def fit_to_single_shell(self, omega, Z, k_fit, alpha_fit, emed_fit):
         '''
         if :attr:`protocol` is `Iterative`, the conductivity of the medium is determined in the first run and then fixed.
+        Attention!!! if no electrode_polarization correction is needed, emed must be in the input dict!!!
         See also: :func:`impedancefitter.single_shell.single_shell_model`
         '''
         params = Parameters()
         params = set_parameters_from_yaml(params, 'single_shell')
-        params.add('k', vary=False, value=k_fit)
-        params.add('alpha', vary=False, value=alpha_fit)
-        params.add('emed', vary=False, value=emed_fit)
+        if self.electrode_polarization is True:
+            params.add('k', vary=False, value=k_fit)
+            params.add('alpha', vary=False, value=alpha_fit)
+            params.add('emed', vary=False, value=emed_fit)
+        assert ('emed' in params), "You need to provide emed if you don't use electrode_polarization correction!"
         result = None
         iters = 1
         if self.protocol == "Iterative":
@@ -378,6 +396,8 @@ class Fitter(object):
             if i == 1:
                 # fix conductivity
                 params['kmed'].set(vary=False, value=result.params.valuesdict()['kmed'])
+                if self.electrode_polarization is not True:
+                    params['emed'].set(vary=False, value=result.params.valuesdict()['emed'])
             result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, Z, self.constants))
             logger.info(lmfit.fit_report(result))
             if self.solvername != "ampgo":
@@ -411,10 +431,12 @@ class Fitter(object):
         logger.debug('fit data to double shell model')
         logger.debug('##############################')
         params = Parameters()
-        params.add('k', vary=False, value=k_fit)
-        params.add('alpha', vary=False, value=alpha_fit)
-        params.add('emed', vary=False, value=emed_fit)
+        if self.electrode_polarization is True:
+            params.add('k', vary=False, value=k_fit)
+            params.add('alpha', vary=False, value=alpha_fit)
+            params.add('emed', vary=False, value=emed_fit)
         params = set_parameters_from_yaml(params, 'double_shell')
+        assert ('emed' in params), "You need to provide emed if you don't use electrode_polarization correction!"
 
         result = None
         iters = 1
@@ -424,6 +446,8 @@ class Fitter(object):
             logger.info("###########\nFitting round {}\n###########".format(i + 1))
             if i == 1:
                 params['kmed'].set(vary=False, value=result.params.valuesdict()['kmed'])
+                if self.electrode_polarization is not True:
+                    params['emed'].set(vary=False, value=result.params.valuesdict()['emed'])
             if i == 2:
                 params['km'].set(vary=False, value=result.params.valuesdict()['km'])
                 params['em'].set(vary=False, value=result.params.valuesdict()['em'])

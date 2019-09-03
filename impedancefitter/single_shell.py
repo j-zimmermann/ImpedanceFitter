@@ -23,7 +23,7 @@ from .utils import Z_CPE, compare_to_data
 from scipy.constants import epsilon_0 as e0
 
 
-def single_shell_model(omega, constants, k, alpha, em, km, kcp, kmed, emed):
+def single_shell_model(omega, constants, em, km, kcp, kmed, emed):
     r"""
     Equations for the single-shell-model( :math:`\nu_1` is calculated like in the double-shell-model):
 
@@ -62,23 +62,23 @@ def single_shell_model(omega, constants, k, alpha, em, km, kcp, kmed, emed):
     esus = epsi_med * (2. * (1. - p) + (1. + 2. * p) * E0) / ((2. + p) + (1. - p) * E0)
     Ys = 1j * esus * omega * c0 + 1j * omega * cf  # cell suspension admittance spectrum
     Zs = 1 / Ys
-    Zep = Z_CPE(omega, k, alpha)  # including EP
-    Z = Zs + Zep
-    return Z
+    return Zs
 
 
 def single_shell_residual(params, omega, data, constants):
     '''
     calculates the residual for the single-shell model, using the single_shell_model.
     '''
-    k = params['k'].value
-    alpha = params['alpha'].value
     em = params['em'].value
     km = params['km'].value
     kcp = params['kcp'].value
     kmed = params['kmed'].value
     emed = params['emed'].value
-    Z_fit = single_shell_model(omega, constants, k, alpha, em, km, kcp, kmed, emed)
+    Z_fit = single_shell_model(omega, constants, em, km, kcp, kmed, emed)
+    if 'k' in params and 'alpha' in params:
+        k = params['k'].value
+        alpha = params['alpha'].value
+        Z_fit = Z_fit + Z_CPE(omega, k, alpha)  # including EP
     residual = (data - Z_fit)
     return residual.view(np.float)
 
@@ -119,13 +119,14 @@ def plot_single_shell(omega, Z, result, filename, constants):
 
 def get_single_shell_impedance(omega, result, constants):
     # calculate fitted Z function
-    popt = np.fromiter([result.params['k'],
-                        result.params['alpha'],
-                        result.params['em'],
+    popt = np.fromiter([result.params['em'],
                         result.params['km'],
                         result.params['kcp'],
                         result.params['kmed'],
                         result.params['emed'],
                         ],
                        dtype=np.float)
-    return single_shell_model(omega, constants, *popt)
+
+    Z_s = single_shell_model(omega, constants, *popt)
+    if 'k' in result.params and 'alpha' in result.params:
+        Z_s = Z_s + Z_CPE(omega, result.params['k'], result.params['alpha'])
