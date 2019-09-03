@@ -7,8 +7,9 @@ How it works
 The script will cycle through all .TXT and .xlsx files in a selected directory and fit those files to a selected model. 
 You can exclude certain files by using the excludeEnding flag.
 
-The first step is, to compensate the electrode polarization of the experiment by fitting the data to a cole-cole-model. 
+The first possible step is to compensate the electrode polarization of the experiment by fitting the data to a cole-cole-model. 
 After this fit it will fit the data to a selected model, this can either be the Double Shell model or the Single Shell model.
+If there is no electrode polarization to compensate for, you can also skip this. See :py:meth:`impedancefitter.main.Fitter.main`
 
 After the fit to one of the models has finished, the calculated values get written into the 'outfile.yaml' in the data-directory.
 
@@ -120,6 +121,14 @@ Exemplary file:
 
 With the `vary` flag, one can choose whether a variable should be included in the fitting procedure or fixed.
 
+.. note::
+
+	If you run without electrode polarization, you must include a line for emed as here:
+   
+    .. code-block:: python
+
+    	emed: {value: 78, min: 70, max: 80, vary: True} 
+
 double_shell_input.yaml
 -----------------------
 
@@ -154,6 +163,14 @@ Exemplary file:
     kmed: {value: 0.05, min: 0.04, max: 0.3, vary: True} 
 
 With the `vary` flag, one can choose whether a variable should be included in the fitting procedure or fixed.
+
+.. note::
+
+	If you run without electrode polarization, you must include a line for emed as here:
+   
+    .. code-block:: python
+
+    	emed: {value: 78, min: 70, max: 80, vary: True} 
 
 possible values
 ---------------

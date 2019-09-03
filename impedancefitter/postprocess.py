@@ -30,18 +30,30 @@ class PostProcess(object):
     """
     This class provides the possibility, to analyse the statistics of the fitted data.
     The fitting results are read in from the outfile.
+
+    Parameters
+    ----------
+
+    model: {string, DoubleShell OR SingleShell}
+         define, which model has been used
+    electrode_polarization: {bool, default True}
+         set to false if not used
+    yamlfile: {string, default None}
+         define path to yamlfile or use current working directory
     """
-    def __init__(self, model, yamlfile=None):
+    def __init__(self, model, electrode_polarization=True, yamlfile=None):
         self.model = model
+        self.electrode_polarization = electrode_polarization
         if yamlfile is None:
             yamlfile = 'outfile.yaml'
         file = open(yamlfile, 'r')
         data = yaml.safe_load(file)
         alphalist, emlist, klist, kmlist, kcplist, kmedlist, emedlist, enelist, knelist, knplist = ([] for i in range(10))
         for key in data:
-            alphalist.append([data[key]['alpha']])
+            if self.electrode_polarization is True:
+                alphalist.append([data[key]['alpha']])
+                klist.append([data[key]['k']])
             emlist.append([data[key]['em']])
-            klist.append([data[key]['k']])
             kmlist.append([data[key]['km']])
             kcplist.append([data[key]['kcp']])
             kmedlist.append([data[key]['kmed']])
@@ -52,9 +64,10 @@ class PostProcess(object):
                 knplist.append([data[key]['knp']])
         # write data into dict
         self.sampledict = {}
-        self.sampledict['alpha'] = ot.Sample(np.array(alphalist))
+        if self.electrode_polarization is True:
+            self.sampledict['alpha'] = ot.Sample(np.array(alphalist))
+            self.sampledict['k'] = ot.Sample(np.array(klist))
         self.sampledict['em'] = ot.Sample(np.array(emlist))
-        self.sampledict['k'] = ot.Sample(np.array(klist))
         self.sampledict['km'] = ot.Sample(np.array(kmlist))
         self.sampledict['kcp'] = ot.Sample(np.array(kcplist))
         self.sampledict['kmed'] = ot.Sample(np.array(kmedlist))
@@ -69,10 +82,13 @@ class PostProcess(object):
         Plot histograms for all determined parameters.
         fails if values are too close to each other
         """
-        if(self.model == 'SingleShell'):
-            fig, ax = plt.subplots(nrows=3, ncols=3)
-        else:
-            fig, ax = plt.subplots(nrows=4, ncols=3)
+        nrows = 3
+        ncols = 3
+        if self.electrode_polarization is not True:
+            nrows -= 1
+        if(self.model == 'DoubleShell'):
+            nrows += 1
+        fig, ax = plt.subplots(nrows=nrows, ncols=ncols)
         r = 0
         c = 0
         for key in self.sampledict:
