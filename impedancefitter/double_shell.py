@@ -160,3 +160,22 @@ def plot_double_shell(omega, Z, result, filename, constants):
     compare_to_data(omega, Z, Z_fit, filename, subplot=224)
     plt.tight_layout()
     plt.show()
+
+
+def get_double_shell_impedance(omega, result, constants):
+    # calculate fitted Z function
+    popt = np.fromiter([result.params['km'],
+                        result.params['em'],
+                        result.params['kcp'],
+                        result.params['ene'],
+                        result.params['kne'],
+                        result.params['knp'],
+                        result.params['kmed'],
+                        result.params['emed'],
+                        ],
+                       dtype=np.float)
+
+    Z_s = double_shell_model(omega, constants, *popt)
+    if 'k' in result.params and 'alpha' in result.params:
+        Z_s = Z_s + Z_CPE(omega, result.params['k'], result.params['alpha'])
+    return Z_s
