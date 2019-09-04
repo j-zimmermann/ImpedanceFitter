@@ -130,3 +130,4 @@ def get_single_shell_impedance(omega, result, constants):
     Z_s = single_shell_model(omega, constants, *popt)
     if 'k' in result.params and 'alpha' in result.params:
         Z_s = Z_s + Z_CPE(omega, result.params['k'], result.params['alpha'])
+    return Z_s
