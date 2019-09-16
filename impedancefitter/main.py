@@ -233,7 +233,7 @@ class Fitter(object):
         '''
         values = dict(self.fittedValues.params.valuesdict())
         for key in values:
-            values[key] = values.get(key).item()  # conversion into python native type
+            values[key] = float(values[key])  # conversion into python native type
         data = {str(filename): values}
         outfile = open('outfile.yaml', 'a')  # append to the already existing file, or create it, if ther is no file
         yaml.dump(data, outfile)
@@ -460,4 +460,83 @@ class Fitter(object):
             else:
                 logger.info(result.ampgo_msg)
             logger.debug(result.params.pretty_print())
+        return result
+
+    def emcee_plot(self, res):
+        import corner
+        plot = corner.corner(res.flatchain, labels=res.var_names,
+                             truths=list(res.params.valuesdict().values()))
+        return plot
+
+    def emcee_main(self, electrode_polarization=True, lnsigma=None):
+        """
+        Main function that iterates through all data sets provided.
+
+        Parameters
+        ----------
+
+        electrode_polarization: True or False
+            Switch on whether to account for electrode polarization or not. Currently, only a CPE correction is possible.
+        """
+        max_rows_tag = False
+        self.electrode_polarization = electrode_polarization
+        self.lnsigma = lnsigma
+        open('outfile.yaml', 'w')  # create output file
+        for filename in os.listdir(self.directory):
+            filename = os.fsdecode(filename)
+            if filename.endswith(self.excludeEnding):
+                logger.info("Skipped file {} due to excluded ending.".format(filename))
+                break
+            if self.inputformat == 'TXT' and filename.endswith(".TXT"):
+                self.prepare_txt()
+                if max_rows_tag is False:  # all files have the same number of datarows, this only has to be determined once
+                    max_rows = self.get_max_rows(filename)
+                    max_rows_tag = True
+                self.readin_Data_from_file(filename, max_rows)
+                self.fittedValues = self.fit_emcee_models(filename)
+                self.process_fitting_results(filename)
+                if self.LogLevel == 'DEBUG':
+                    self.emcee_plot(self.fittedValues)
+
+            elif self.inputformat == 'XLSX' and filename.endswith(".xlsx"):
+                self.readin_Data_from_xlsx(filename)
+                iters = len(self.zarray)
+                if self.data_sets is not None:
+                    iters = self.data_sets
+                for i in range(iters):
+                    self.Z = self.zarray[i]
+                    self.fittedValues = self.fit_emcee_models(filename)
+                    self.process_fitting_results(filename + ' Row' + str(i))
+                if self.LogLevel == 'DEBUG':
+                    self.emcee_plot(self.fittedValues)
+
+    def fit_emcee_models(self, filename):
+        """
+        fit the data to the cole_cole_model first (compensation of the electrode polarization) and then to the defined model.
+        """
+        params = Parameters()
+        params = set_parameters_from_yaml(params, 'cole_cole')
+        cole_cole_params = Parameters()
+        if self.electrode_polarization is True:
+            cole_cole_params = set_parameters_from_yaml(params, 'cole_cole')
+            if 'eh' in cole_cole_params:
+                cole_cole_params['emed'] = cole_cole_params['eh']
+        if self.lnsigma is not None:
+            params.add('__lnsigma', value=self.lnsigma['value'], min=self.lnsigma['min'], max=self.lnsigma['max'])
+        if self.model == 'SingleShell':
+            params = set_parameters_from_yaml(params, 'single_shell')
+            params = params + cole_cole_params
+            result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(self.omega, self.Z, self.constants))
+        else:
+            params = set_parameters_from_yaml(params, 'double_shell')
+            params = params + cole_cole_params
+            result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(self.omega, self.Z, self.constants))
+        logger.info(lmfit.fit_report(result))
+        logger.debug((result.params.pretty_print()))
+
+        if self.LogLevel == 'DEBUG':
+            if self.model == 'SingleShell':
+                plot_single_shell(self.omega, self.Z, result, filename, self.constants)
+            else:
+                plot_double_shell(self.omega, self.Z, result, filename, self.constants)
         return result
