@@ -118,7 +118,7 @@ class PostProcess(object):
         """
         sample = self.sampledict[parameter]
         distribution = ot.NormalFactory().build(sample)
-        print(distribution)
+        logger.info(distribution)
         # Draw QQ plot to check fitted distribution
         QQ_plot = ot.VisualTest.DrawQQplot(sample, distribution)
         View(QQ_plot).show()
@@ -132,7 +132,7 @@ class PostProcess(object):
         """
         sample = self.sampledict[parameter]
         distribution = ot.HistogramFactory().build(sample)
-        print(distribution)
+        logger.info(distribution)
         # Draw QQ plot to check fitted distribution
         QQ_plot = ot.VisualTest.DrawQQplot(sample, distribution)
         View(QQ_plot).show()

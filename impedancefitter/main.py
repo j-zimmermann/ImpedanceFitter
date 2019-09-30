@@ -515,7 +515,6 @@ class Fitter(object):
         fit the data to the cole_cole_model first (compensation of the electrode polarization) and then to the defined model.
         """
         params = Parameters()
-        params = set_parameters_from_yaml(params, 'cole_cole')
         cole_cole_params = Parameters()
         if self.electrode_polarization is True:
             cole_cole_params = set_parameters_from_yaml(params, 'cole_cole')
