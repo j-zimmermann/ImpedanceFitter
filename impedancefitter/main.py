@@ -82,10 +82,11 @@ class Fitter(object):
         Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
     """
 
-    def __init__(self, directory=None, constants=None, **kwargs):
+    def __init__(self, directory=None, constants=None, write_output=True, **kwargs):
         self.model = kwargs['model']
         self.solvername = kwargs['solvername']
         self.inputformat = kwargs['inputformat']
+        self.write_output = write_output
         try:
             self.LogLevel = kwargs['LogLevel']  # log level: choose info for less verbose output
         except KeyError:
@@ -152,7 +153,8 @@ class Fitter(object):
         max_rows_tag = False
         self.electrode_polarization = electrode_polarization
         self.protocol = protocol
-        open('outfile.yaml', 'w')  # create output file
+        if self.write_output is True:
+            open('outfile.yaml', 'w')  # create output file
         for filename in os.listdir(self.directory):
             filename = os.fsdecode(filename)
             if filename.endswith(self.excludeEnding):
@@ -235,8 +237,9 @@ class Fitter(object):
         for key in values:
             values[key] = float(values[key])  # conversion into python native type
         data = {str(filename): values}
-        outfile = open('outfile.yaml', 'a')  # append to the already existing file, or create it, if ther is no file
-        yaml.dump(data, outfile)
+        if self.write_output is True:
+            outfile = open('outfile.yaml', 'a')  # append to the already existing file, or create it, if ther is no file
+            yaml.dump(data, outfile)
 
     def prepare_txt(self):
         """
@@ -481,7 +484,8 @@ class Fitter(object):
         max_rows_tag = False
         self.electrode_polarization = electrode_polarization
         self.lnsigma = lnsigma
-        open('outfile.yaml', 'w')  # create output file
+        if self.write_output is True:
+            open('outfile.yaml', 'w')  # create output file
         for filename in os.listdir(self.directory):
             filename = os.fsdecode(filename)
             if filename.endswith(self.excludeEnding):
