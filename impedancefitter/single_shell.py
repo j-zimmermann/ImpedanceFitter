@@ -23,7 +23,7 @@ from .utils import Z_CPE, compare_to_data
 from scipy.constants import epsilon_0 as e0
 
 
-def single_shell_model(omega, constants, em, km, kcp, kmed, emed):
+def single_shell_model(omega, constants, em, km, kcp, ecp, kmed, emed):
     r"""
     Equations for the single-shell-model( :math:`\nu_1` is calculated like in the double-shell-model):
 
@@ -74,7 +74,8 @@ def single_shell_residual(params, omega, data, constants):
     kcp = params['kcp'].value
     kmed = params['kmed'].value
     emed = params['emed'].value
-    Z_fit = single_shell_model(omega, constants, em, km, kcp, kmed, emed)
+    ecp = params['ecp'].value
+    Z_fit = single_shell_model(omega, constants, em, km, kcp, ecp, kmed, emed)
     if 'k' in params and 'alpha' in params:
         k = params['k'].value
         alpha = params['alpha'].value
@@ -122,6 +123,7 @@ def get_single_shell_impedance(omega, result, constants):
     popt = np.fromiter([result.params['em'],
                         result.params['km'],
                         result.params['kcp'],
+                        result.params['ecp'],
                         result.params['kmed'],
                         result.params['emed'],
                         ],
