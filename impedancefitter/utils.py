@@ -134,7 +134,13 @@ def set_parameters_from_yaml(params, modelName):
             del bufdict['alpha']
             del bufdict['k']
     for key in bufdict:
-        params.add(key, value=float(bufdict[key]['value']), min=float(bufdict[key]['min']), max=float(bufdict[key]['max']), vary=bool(bufdict[key]['vary']))
+        params.add(key, value=float(bufdict[key]['value']))
+        if 'min' in bufdict[key]:
+            params[key].set(min=float(bufdict[key]['min']))
+        if 'max' in bufdict[key]:
+            params[key].set(max=float(bufdict[key]['max']))
+        if 'vary' in bufdict[key]:
+            params[key].set(vary=bool(bufdict[key]['vary']))
     return params
 
 
