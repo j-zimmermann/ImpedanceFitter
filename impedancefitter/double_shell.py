@@ -22,7 +22,7 @@ from scipy.constants import epsilon_0 as e0
 from .utils import compare_to_data, Z_CPE
 
 
-def double_shell_model(omega, constants, km, em, kcp, ene, kne, knp, kmed, emed):
+def double_shell_model(omega, constants, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed):
     r"""
     Equations for the double-shell-model:
 
@@ -61,8 +61,6 @@ def double_shell_model(omega, constants, km, em, kcp, ene, kne, knp, kmed, emed)
             \nu_\mathrm{3} = \left(1-\frac{d_\mathrm{n}}{R_\mathrm{n}}\right)^3
 
     """
-    ecp = constants['ecp']
-    enp = constants['enp']
     p = constants['p']
     c0 = constants['c0']
     cf = constants['cf']
@@ -98,13 +96,15 @@ def double_shell_residual(params, omega, data, constants):
     km = params['km'].value
     em = params['em'].value
     kcp = params['kcp'].value
+    ecp = params['ecp'].value
     ene = params['ene'].value
     kne = params['kne'].value
     knp = params['knp'].value
+    enp = params['enp'].value
     kmed = params['kmed'].value
     emed = params['emed'].value
 
-    Z_fit = double_shell_model(omega, constants, km, em, kcp, ene, kne, knp, kmed, emed)
+    Z_fit = double_shell_model(omega, constants, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed)
     if 'k' in params and 'alpha' in params:
         k = params['k'].value
         alpha = params['alpha'].value
@@ -124,11 +124,13 @@ def plot_double_shell(omega, Z, result, filename, constants):
     popt = np.fromiter([result.params['km'],
                         result.params['em'],
                         result.params['kcp'],
+                        result.params['ecp'],
                         result.params['ene'],
                         result.params['kne'],
                         result.params['knp'],
+                        result.params['enp'],
                         result.params['kmed'],
-                        result.params['emed'],
+                        result.params['emed']
                         ],
                        dtype=np.float)
     Z_fit = double_shell_model(omega, constants, *popt)
@@ -167,11 +169,13 @@ def get_double_shell_impedance(omega, result, constants):
     popt = np.fromiter([result.params['km'],
                         result.params['em'],
                         result.params['kcp'],
+                        result.params['ecp'],
                         result.params['ene'],
                         result.params['kne'],
                         result.params['knp'],
+                        result.params['enp'],
                         result.params['kmed'],
-                        result.params['emed'],
+                        result.params['emed']
                         ],
                        dtype=np.float)
 
