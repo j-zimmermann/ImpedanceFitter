@@ -13,5 +13,5 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
     install_requires=['pyyaml', 'numpy==1.17', 'xlrd==1.2.0',
-                      'openturns==1.13', 'scipy==1.3.1', 'lmfit==0.9.14', 'corner==2.0.1', 'emcee==2.2.1'],
+                      'openturns==1.13', 'scipy==1.3.1', 'lmfit==0.9.14', 'corner==2.0.1', 'emcee==3.0.0'],
 )
