@@ -23,7 +23,7 @@ from .utils import Z_CPE, compare_to_data
 from scipy.constants import epsilon_0 as e0
 
 
-def single_shell_model(omega, constants, em, km, kcp, ecp, kmed, emed):
+def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, cf, dm, Rc):
     r"""
     Equations for the single-shell-model( :math:`\nu_1` is calculated like in the double-shell-model):
 
@@ -44,11 +44,8 @@ def single_shell_model(omega, constants, em, km, kcp, ecp, kmed, emed):
         E_0  = \frac{\varepsilon_\mathrm{cell}^*}{\varepsilon_\mathrm{med}^*}
 
     """
-    ecp = constants['ecp']
-    p = constants['p']
-    c0 = constants['c0']
-    cf = constants['cf']
-    v1 = constants['v1']
+
+    v1 = (1. - dm / Rc)**3
 
     epsi_cp = ecp - 1j * kcp / (e0 * omega)
     epsi_m = em - 1j * km / (e0 * omega)
@@ -65,17 +62,28 @@ def single_shell_model(omega, constants, em, km, kcp, ecp, kmed, emed):
     return Zs
 
 
-def single_shell_residual(params, omega, data, constants):
+def single_shell_residual(params, omega, data):
     '''
     calculates the residual for the single-shell model, using the single_shell_model.
     '''
-    em = params['em'].value
-    km = params['km'].value
-    kcp = params['kcp'].value
-    kmed = params['kmed'].value
-    emed = params['emed'].value
-    ecp = params['ecp'].value
-    Z_fit = single_shell_model(omega, constants, em, km, kcp, ecp, kmed, emed)
+    try:
+        em = params['em'].value
+        km = params['km'].value
+        kcp = params['kcp'].value
+        kmed = params['kmed'].value
+        emed = params['emed'].value
+        ecp = params['ecp'].value
+        p = params['p']
+        c0 = params['c0']
+        cf = params['cf']
+        dm = params['dm']
+        Rc = params['Rc']
+    except KeyError as e:
+        print(str(e))
+        print("You must have forgotten one of the following parameters:\n",
+              "em, km, kcp, kmed, emed, ecp, p, c0, cf, Rc")
+
+    Z_fit = single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, cf, dm, Rc)
     if 'k' in params and 'alpha' in params:
         k = params['k'].value
         alpha = params['alpha'].value
@@ -84,12 +92,12 @@ def single_shell_residual(params, omega, data, constants):
     return residual.view(np.float)
 
 
-def plot_single_shell(omega, Z, result, filename, constants):
+def plot_single_shell(omega, Z, result, filename):
     '''
     plot the real part, imaginary part vs frequency and real vs. imaginary part
     '''
     # calculate fitted Z function
-    Z_fit = get_single_shell_impedance(omega, result, constants)
+    Z_fit = get_single_shell_impedance(omega, result)
 
     # plot real  Impedance part
     plt.figure()
@@ -118,7 +126,7 @@ def plot_single_shell(omega, Z, result, filename, constants):
     plt.show()
 
 
-def get_single_shell_impedance(omega, result, constants):
+def get_single_shell_impedance(omega, result):
     # calculate fitted Z function
     popt = np.fromiter([result.params['em'],
                         result.params['km'],
@@ -126,10 +134,15 @@ def get_single_shell_impedance(omega, result, constants):
                         result.params['ecp'],
                         result.params['kmed'],
                         result.params['emed'],
+                        result.params['p'],
+                        result.params['c0'],
+                        result.params['cf'],
+                        result.params['dm'],
+                        result.params['Rc']
                         ],
                        dtype=np.float)
 
-    Z_s = single_shell_model(omega, constants, *popt)
+    Z_s = single_shell_model(omega, *popt)
     if 'k' in result.params and 'alpha' in result.params:
         Z_s = Z_s + Z_CPE(omega, result.params['k'], result.params['alpha'])
     return Z_s

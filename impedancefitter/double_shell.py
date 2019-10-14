@@ -22,7 +22,7 @@ from scipy.constants import epsilon_0 as e0
 from .utils import compare_to_data, Z_CPE
 
 
-def double_shell_model(omega, constants, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed):
+def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, cf, dm, Rc, dn, Rn):
     r"""
     Equations for the double-shell-model:
 
@@ -61,12 +61,9 @@ def double_shell_model(omega, constants, km, em, kcp, ecp, ene, kne, knp, enp, k
             \nu_\mathrm{3} = \left(1-\frac{d_\mathrm{n}}{R_\mathrm{n}}\right)^3
 
     """
-    p = constants['p']
-    c0 = constants['c0']
-    cf = constants['cf']
-    v1 = constants['v1']
-    v2 = constants['v2']
-    v3 = constants['v3']
+    v1 = (1. - dm / Rc)**3
+    v2 = (Rn / (Rc - dm))**3
+    v3 = (1. - dn / Rn)**3
 
     epsi_m = em + km / (1j * omega * e0)
     epsi_cp = ecp + kcp / (1j * omega * e0)
@@ -89,7 +86,7 @@ def double_shell_model(omega, constants, km, em, kcp, ecp, ene, kne, knp, enp, k
     return Zs
 
 
-def double_shell_residual(params, omega, data, constants):
+def double_shell_residual(params, omega, data):
     '''
     data is Z
     '''
@@ -103,8 +100,15 @@ def double_shell_residual(params, omega, data, constants):
     enp = params['enp'].value
     kmed = params['kmed'].value
     emed = params['emed'].value
+    p = params['p'].value
+    c0 = params['c0'].value
+    cf = params['cf'].value
+    dm = params['dm'].value
+    Rc = params['Rc'].value
+    dn = params['dn'].value
+    Rn = params['Rn'].value
 
-    Z_fit = double_shell_model(omega, constants, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed)
+    Z_fit = double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, cf, dm, Rc, dn, Rn)
     if 'k' in params and 'alpha' in params:
         k = params['k'].value
         alpha = params['alpha'].value
@@ -116,7 +120,7 @@ def double_shell_residual(params, omega, data, constants):
     return residual.view(np.float)
 
 
-def plot_double_shell(omega, Z, result, filename, constants):
+def plot_double_shell(omega, Z, result, filename):
     '''
     plot the real and imaginary part of the impedance vs. the frequency and
     real vs. imaginary part
@@ -130,10 +134,17 @@ def plot_double_shell(omega, Z, result, filename, constants):
                         result.params['knp'],
                         result.params['enp'],
                         result.params['kmed'],
-                        result.params['emed']
+                        result.params['emed'],
+                        result.params['p'],
+                        result.params['c0'],
+                        result.params['cf'],
+                        result.params['dm'],
+                        result.params['Rc'],
+                        result.params['dn'],
+                        result.params['Rn']
                         ],
                        dtype=np.float)
-    Z_fit = double_shell_model(omega, constants, *popt)
+    Z_fit = double_shell_model(omega, *popt)
     if 'k' in result.params and 'alpha' in result.params:
         Z_fit = Z_fit + Z_CPE(omega, result.params['k'], result.params['alpha'])
 
@@ -164,7 +175,7 @@ def plot_double_shell(omega, Z, result, filename, constants):
     plt.show()
 
 
-def get_double_shell_impedance(omega, result, constants):
+def get_double_shell_impedance(omega, result):
     # calculate fitted Z function
     popt = np.fromiter([result.params['km'],
                         result.params['em'],
@@ -175,11 +186,18 @@ def get_double_shell_impedance(omega, result, constants):
                         result.params['knp'],
                         result.params['enp'],
                         result.params['kmed'],
-                        result.params['emed']
+                        result.params['emed'],
+                        result.params['p'],
+                        result.params['c0'],
+                        result.params['cf'],
+                        result.params['dm'],
+                        result.params['Rc'],
+                        result.params['dn'],
+                        result.params['Rn']
                         ],
                        dtype=np.float)
 
-    Z_s = double_shell_model(omega, constants, *popt)
+    Z_s = double_shell_model(omega, *popt)
     if 'k' in result.params and 'alpha' in result.params:
         Z_s = Z_s + Z_CPE(omega, result.params['k'], result.params['alpha'])
     return Z_s

@@ -112,27 +112,40 @@ def plot_dielectric_properties(omega, cole_cole_output, suspension_output):
     plt.show()
 
 
-def set_parameters_from_yaml(params, modelName):
+def set_parameters(params, modelName, parameterdict):
     """
-    for suspension model: if wanted one could create an own file
+    for suspension model: if wanted one could create an own file,
+    otherwise the value from the cole-cole model are taken.
     """
-    if(modelName == 'single_shell'):
-        single_shell_input = open('single_shell_input.yaml', 'r')
-        bufdict = yaml.safe_load(single_shell_input)
-    if(modelName == 'double_shell'):
-        double_shell_input = open('double_shell_input.yaml', 'r')
-        bufdict = yaml.safe_load(double_shell_input)
-    if(modelName == 'cole_cole' or modelName == 'suspension'):
-        cole_cole_input = open('cole_cole_input.yaml', 'r')
-        bufdict = yaml.safe_load(cole_cole_input)
-    if(modelName == 'suspension'):
+
+    if parameterdict is None:
         try:
-            suspension_input = open('suspension_input.yaml', 'r')
-            bufdict = yaml.safe_load(suspension_input)
-        except FileNotFoundError:
-            # remove values from cole_cole model that are not needed
-            del bufdict['alpha']
-            del bufdict['k']
+            infile = open(modelName + '_input.yaml', 'r')
+            bufdict = yaml.safe_load(infile)
+        except FileNotFoundError as e:
+            if(modelName == 'suspension'):
+                infile = open('cole_cole_input.yaml', 'r')
+                bufdict = yaml.safe_load(infile)
+                del bufdict['alpha']
+                del bufdict['k']
+                pass
+            else:
+                print(str(e))
+                print("Please provide a yaml-input file.")
+                raise
+    else:
+        try:
+            bufdict = parameterdict[modelName]
+        except KeyError:
+            if(modelName == 'suspension'):
+                bufdict = parameterdict['cole_cole']
+                del bufdict['alpha']
+                del bufdict['k']
+                pass
+            else:
+                print("Your parameterdict lacks an entry for the model: " + modelName)
+                raise
+
     for key in bufdict:
         params.add(key, value=float(bufdict[key]['value']))
         if 'min' in bufdict[key]:
@@ -142,24 +155,3 @@ def set_parameters_from_yaml(params, modelName):
         if 'vary' in bufdict[key]:
             params[key].set(vary=bool(bufdict[key]['vary']))
     return params
-
-
-def load_constants_from_yaml(model=None):
-    constants_file = open('constants.yaml', 'r')
-    constants = yaml.safe_load(constants_file)
-    constants['Rn'] = eval(constants['Rn'])
-    return process_constants(constants, model)
-
-
-def process_constants(constants, model=None):
-    for c in constants:
-        if not isinstance(constants[c], float):
-            constants[c] = float(constants[c])
-    if model == 'SingleShell' or model == 'DoubleShell':
-        constants['v1'] = (1. - constants['dm'] / constants['Rc'])**3
-    if model == 'DoubleShell':
-            constants['v2'] = (constants['Rn'] / (constants['Rc'] - constants['dm']))**3
-            constants['v3'] = (1. - constants['dn'] / constants['Rn'])**3
-    for c in constants:
-        logger.info("Constant {} has value {}.".format(c, constants[c]))
-    return constants

@@ -33,7 +33,7 @@ def suspension_model(omega, c0, cf, el, tau, a, kdc, eh):
     return Z_fit
 
 
-def suspension_residual(params, omega, data, c0, cf):
+def suspension_residual(params, omega, data):
     """
     use the plain suspension model and calculate the residual (the difference between data and fitted values)
     """
@@ -42,6 +42,8 @@ def suspension_residual(params, omega, data, c0, cf):
     a = params['a'].value
     kdc = params['conductivity'].value
     eh = params['eh'].value
+    c0 = params['c0'].value
+    cf = params['cf'].value
     Z_fit = suspension_model(omega, c0, cf, el, tau, a, kdc, eh)
     residual = (data - Z_fit)
     return residual.view(np.float)
@@ -80,7 +82,7 @@ def cole_cole_model(omega, c0, cf, k, el, tau, a, alpha, kdc, eh):
     return Z_fit
 
 
-def cole_cole_residual(params, omega, data, c0, cf):
+def cole_cole_residual(params, omega, data):
     """
     compute difference between data and model.
     """
@@ -91,18 +93,28 @@ def cole_cole_residual(params, omega, data, c0, cf):
     alpha = params['alpha'].value
     kdc = params['conductivity'].value
     eh = params['eh'].value
+    c0 = params['c0'].value
+    cf = params['cf'].value
     Z_fit = cole_cole_model(omega, c0, cf, k, el, tau, a, alpha, kdc, eh)
     residual = (data - Z_fit)
     return residual.view(np.float)
 
 
-def plot_cole_cole(omega, Z, result, filename, c0, cf):
+def plot_cole_cole(omega, Z, result, filename):
     """
     plot results of cole-cole model and compare fit to data.
     """
-    popt = np.fromiter(result.params.valuesdict().values(), dtype=np.float)
-    Z_fit = cole_cole_model(omega, c0, cf, *popt)
-
+    popt = np.fromiter([result.params['c0'],
+                       result.params['cf'],
+                       result.params['k'],
+                       result.params['el'],
+                       result.params['tau'],
+                       result.params['a'],
+                       result.params['alpha'],
+                       result.params['conductivity'],
+                       result.params['eh']],
+                       dtype=np.float)
+    Z_fit = cole_cole_model(omega, *popt)
     plt.figure()
     plt.suptitle("Cole-Cole fit plot\n" + str(filename), y=1.05)
     # plot real  Impedance part

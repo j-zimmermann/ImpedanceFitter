@@ -27,7 +27,7 @@ import pandas as pd
 from .single_shell import plot_single_shell, single_shell_residual
 from .double_shell import plot_double_shell, double_shell_residual
 from .cole_cole import plot_cole_cole, cole_cole_residual, suspension_residual
-from .utils import set_parameters_from_yaml, plot_dielectric_properties, load_constants_from_yaml, process_constants
+from .utils import set_parameters, plot_dielectric_properties
 
 # create logger
 logger = logging.getLogger('impedancefitter-logger')
@@ -46,8 +46,8 @@ class Fitter(object):
 
     directory: {string, optional, path to data directory}
         provide directory if you run code from directory different to data directory
-    constants: {dict, optional, needed constants}
-        provide constants if you do not want to use a yaml file (for instance in parallel UQ runs).
+    parameters: {dict, optional, needed parameters}
+        provide parameters if you do not want to use a yaml file (for instance in parallel UQ runs).
 
     Kwargs
     ------
@@ -82,7 +82,7 @@ class Fitter(object):
         Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
     """
 
-    def __init__(self, directory=None, constants=None, write_output=True, **kwargs):
+    def __init__(self, directory=None, parameters=None, write_output=True, **kwargs):
         self.model = kwargs['model']
         self.solvername = kwargs['solvername']
         self.inputformat = kwargs['inputformat']
@@ -126,16 +126,9 @@ class Fitter(object):
             ch.setLevel(logging.DEBUG)
             logger.addHandler(ch)
 
-        self.constants = constants
-        # load constants
-        if self.constants is None:
-            self._load_constants()
-        else:
-            assert(isinstance(constants, dict)), "You need to provide an input dictionary!"
-            self.constants = process_constants(constants, self.model)
-
-    def _load_constants(self):
-        self.constants = load_constants_from_yaml(model=self.model)
+        if parameters is not None:
+            assert(isinstance(parameters, dict)), "You need to provide an input dictionary!"
+        self.parameters = parameters
 
     def main(self, protocol=None, electrode_polarization=True):
         """
@@ -288,8 +281,7 @@ class Fitter(object):
             self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
             if self.LogLevel == 'DEBUG':
                 suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
-            if self.LogLevel == 'DEBUG':
-                plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename, self.constants['c0'], self.constants['cf'])
+                plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename)
                 plot_dielectric_properties(self.omega, self.cole_cole_output, suspension_output)
             k_fit = self.cole_cole_output.params.valuesdict()['k']
             alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
@@ -308,9 +300,9 @@ class Fitter(object):
             fit_output = double_shell_output
         if self.LogLevel == 'DEBUG':
             if self.model == 'SingleShell':
-                plot_single_shell(self.omega, self.Z, single_shell_output, filename, self.constants)
+                plot_single_shell(self.omega, self.Z, single_shell_output, filename)
             else:
-                plot_double_shell(self.omega, self.Z, double_shell_output, filename, self.constants)
+                plot_double_shell(self.omega, self.Z, double_shell_output, filename)
         return fit_output
 
     def select_and_solve(self, solvername, residual, params, args):
@@ -333,9 +325,9 @@ class Fitter(object):
         logger.debug('fit data to pure suspension model')
         logger.debug('#################################')
         params = Parameters()
-        params = set_parameters_from_yaml(params, 'suspension')
+        params = set_parameters(params, 'suspension', self.parameters)
         result = None
-        result = self.select_and_solve(self.solvername, suspension_residual, params, (omega, Z, self.constants['c0'], self.constants['cf']))
+        result = self.select_and_solve(self.solvername, suspension_residual, params, (omega, Z))
         logger.info(lmfit.fit_report(result))
         logger.info(result.params.pretty_print())
         return result
@@ -355,7 +347,7 @@ class Fitter(object):
         logger.debug('fit data to cole-cole model to account for electrode polarisation')
         logger.debug('#################################################################')
         params = Parameters()
-        params = set_parameters_from_yaml(params, 'cole_cole')
+        params = set_parameters(params, 'cole_cole', self.parameters)
         result = None
         iters = 1
         if self.protocol == "Iterative":
@@ -366,7 +358,7 @@ class Fitter(object):
                 # fix these two parameters, conductivity and eh
                 params['conductivity'].set(vary=False, value=result.params['conductivity'].value)
                 params['eh'].set(vary=False, value=result.params['eh'].value)
-            result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(omega, Z, self.constants['c0'], self.constants['cf']))
+            result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(omega, Z))
             logger.info(lmfit.fit_report(result))
             if self.solvername != "ampgo":
                 logger.info(result.message)
@@ -384,7 +376,7 @@ class Fitter(object):
         See also: :func:`impedancefitter.single_shell.single_shell_model`
         '''
         params = Parameters()
-        params = set_parameters_from_yaml(params, 'single_shell')
+        params = set_parameters(params, 'single_shell', self.parameters)
         if self.electrode_polarization is True:
             params.add('k', vary=False, value=k_fit)
             params.add('alpha', vary=False, value=alpha_fit)
@@ -401,7 +393,7 @@ class Fitter(object):
                 params['kmed'].set(vary=False, value=result.params.valuesdict()['kmed'])
                 if self.electrode_polarization is not True:
                     params['emed'].set(vary=False, value=result.params.valuesdict()['emed'])
-            result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, Z, self.constants))
+            result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, Z))
             logger.info(lmfit.fit_report(result))
             if self.solvername != "ampgo":
                 logger.info(result.message)
@@ -438,7 +430,7 @@ class Fitter(object):
             params.add('k', vary=False, value=k_fit)
             params.add('alpha', vary=False, value=alpha_fit)
             params.add('emed', vary=False, value=emed_fit)
-        params = set_parameters_from_yaml(params, 'double_shell')
+        params = set_parameters(params, 'double_shell', self.parameters)
         assert ('emed' in params), "You need to provide emed if you don't use electrode_polarization correction!"
 
         result = None
@@ -456,7 +448,7 @@ class Fitter(object):
                 params['em'].set(vary=False, value=result.params.valuesdict()['em'])
             if i == 3:
                 params['kcp'].set(vary=False, value=result.params.valuesdict()['kcp'])
-            result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(omega, Z, self.constants))
+            result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(omega, Z))
             logger.info(lmfit.fit_report(result))
             if self.solvername != "ampgo":
                 logger.info(result.message)
@@ -521,25 +513,25 @@ class Fitter(object):
         params = Parameters()
         cole_cole_params = Parameters()
         if self.electrode_polarization is True:
-            cole_cole_params = set_parameters_from_yaml(params, 'cole_cole')
+            cole_cole_params = set_parameters(params, 'cole_cole', self.parameters)
             if 'eh' in cole_cole_params:
                 cole_cole_params['emed'] = cole_cole_params['eh']
         if self.lnsigma is not None:
             params.add('__lnsigma', value=self.lnsigma['value'], min=self.lnsigma['min'], max=self.lnsigma['max'])
         if self.model == 'SingleShell':
-            params = set_parameters_from_yaml(params, 'single_shell')
+            params = set_parameters(params, 'single_shell', self.parameters)
             params = params + cole_cole_params
-            result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(self.omega, self.Z, self.constants))
+            result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(self.omega, self.Z))
         else:
-            params = set_parameters_from_yaml(params, 'double_shell')
+            params = set_parameters(params, 'double_shell', self.parameters)
             params = params + cole_cole_params
-            result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(self.omega, self.Z, self.constants))
+            result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(self.omega, self.Z))
         logger.info(lmfit.fit_report(result))
         logger.debug((result.params.pretty_print()))
 
         if self.LogLevel == 'DEBUG':
             if self.model == 'SingleShell':
-                plot_single_shell(self.omega, self.Z, result, filename, self.constants)
+                plot_single_shell(self.omega, self.Z, result, filename)
             else:
-                plot_double_shell(self.omega, self.Z, result, filename, self.constants)
+                plot_double_shell(self.omega, self.Z, result, filename)
         return result
