@@ -107,7 +107,7 @@ def plot_cole_cole(omega, Z, result, filename):
     popt = np.fromiter([result.params['c0'],
                        result.params['cf'],
                        result.params['k'],
-                       result.params['el'],
+                       result.params['epsi_l'],
                        result.params['tau'],
                        result.params['a'],
                        result.params['alpha'],
