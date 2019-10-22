@@ -63,6 +63,7 @@ def compare_to_data(omega, Z, Z_fit, filename, subplot=None):
     plt.ylabel('rel. difference [%] to data')
     plt.plot(omega, 100. * np.abs((Z.real - Z_fit.real) / Z.real), 'g', label='rel .difference real part')
     plt.plot(omega, 100. * np.abs((Z.imag - Z_fit.imag) / Z.imag), 'r', label='rel. difference imag part')
+    plt.plot(omega, 100. * np.abs((Z - Z_fit) / Z), 'b', label='rel. difference absolute value')
     plt.legend()
 
 
@@ -139,8 +140,10 @@ def set_parameters(params, modelName, parameterdict):
         except KeyError:
             if(modelName == 'suspension'):
                 bufdict = parameterdict['cole_cole']
-                del bufdict['alpha']
-                del bufdict['k']
+                if 'alpha' in bufdict:
+                    del bufdict['alpha']
+                if 'k' in bufdict:
+                    del bufdict['k']
                 pass
             else:
                 print("Your parameterdict lacks an entry for the model: " + modelName)

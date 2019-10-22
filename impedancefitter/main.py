@@ -24,6 +24,7 @@ from lmfit import minimize, Parameters
 import lmfit
 import yaml
 import pandas as pd
+from copy import deepcopy
 from .single_shell import plot_single_shell, single_shell_residual
 from .double_shell import plot_double_shell, double_shell_residual
 from .cole_cole import plot_cole_cole, cole_cole_residual, suspension_residual
@@ -130,6 +131,24 @@ class Fitter(object):
             assert(isinstance(parameters, dict)), "You need to provide an input dictionary!"
         self.parameters = parameters
 
+    def initialize_parameters(self):
+        if self.electrode_polarization is True or self.model == 'ColeCole':
+            self.cole_cole_parameters = Parameters()
+            self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters)
+            if self.electrode_polarization is False:
+                del self.cole_cole_parameters['alpha']
+                del self.cole_cole_parameters['k']
+            if self.LogLevel == 'DEBUG':
+                self.suspension_parameters = Parameters()
+                self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
+
+        if self.model == 'SingleShell':
+            self.single_shell_parameters = Parameters()
+            self.single_shell_parameters = set_parameters(self.single_shell_parameters, 'single_shell', self.parameters)
+        elif self.model == 'DoubleShell':
+            self.double_shell_parameters = Parameters()
+            self.double_shell_parameters = set_parameters(self.double_shell_parameters, 'double_shell', self.parameters)
+
     def main(self, protocol=None, electrode_polarization=True):
         """
         Main function that iterates through all data sets provided.
@@ -145,6 +164,7 @@ class Fitter(object):
         """
         max_rows_tag = False
         self.electrode_polarization = electrode_polarization
+        self.initialize_parameters()
         self.protocol = protocol
         if self.write_output is True:
             open('outfile.yaml', 'w')  # create output file
@@ -152,7 +172,7 @@ class Fitter(object):
             filename = os.fsdecode(filename)
             if filename.endswith(self.excludeEnding):
                 logger.info("Skipped file {} due to excluded ending.".format(filename))
-                break
+                continue
             if self.inputformat == 'TXT' and filename.endswith(".TXT"):
                 self.prepare_txt()
                 if max_rows_tag is False:  # all files have the same number of datarows, this only has to be determined once
@@ -277,25 +297,28 @@ class Fitter(object):
         """
         fit the data to the cole_cole_model first (compensation of the electrode polarization) and then to the defined model.
         """
-        if self.electrode_polarization is True:
+        if self.electrode_polarization is True or self.model == 'ColeCole':
             self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
             if self.LogLevel == 'DEBUG':
                 suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
                 plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename)
                 plot_dielectric_properties(self.omega, self.cole_cole_output, suspension_output)
-            k_fit = self.cole_cole_output.params.valuesdict()['k']
-            alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
+            if self.electrode_polarization is True:
+                k_fit = self.cole_cole_output.params.valuesdict()['k']
+                alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
             emed = self.cole_cole_output.params.valuesdict()['eh']
         else:
             k_fit = None
             alpha_fit = None
             emed = None
+        if self.model == 'ColeCole':
+            return self.cole_cole_output
         # now we need to know k and alpha only
         # fit data to cell model
         if self.model == 'SingleShell':
             single_shell_output = self.fit_to_single_shell(self.omega, self.Z, k_fit, alpha_fit, emed)
             fit_output = single_shell_output
-        else:
+        elif self.model == 'DoubleShell':
             double_shell_output = self.fit_to_double_shell(self.omega, self.Z, k_fit, alpha_fit, emed)
             fit_output = double_shell_output
         if self.LogLevel == 'DEBUG':
@@ -324,8 +347,7 @@ class Fitter(object):
         logger.debug('#################################')
         logger.debug('fit data to pure suspension model')
         logger.debug('#################################')
-        params = Parameters()
-        params = set_parameters(params, 'suspension', self.parameters)
+        params = deepcopy(self.suspension_parameters)
         result = None
         result = self.select_and_solve(self.solvername, suspension_residual, params, (omega, Z))
         logger.info(lmfit.fit_report(result))
@@ -346,8 +368,7 @@ class Fitter(object):
         logger.debug('#################################################################')
         logger.debug('fit data to cole-cole model to account for electrode polarisation')
         logger.debug('#################################################################')
-        params = Parameters()
-        params = set_parameters(params, 'cole_cole', self.parameters)
+        params = deepcopy(self.cole_cole_parameters)
         result = None
         iters = 1
         if self.protocol == "Iterative":
@@ -375,8 +396,7 @@ class Fitter(object):
         Attention!!! if no electrode_polarization correction is needed, emed must be in the input dict!!!
         See also: :func:`impedancefitter.single_shell.single_shell_model`
         '''
-        params = Parameters()
-        params = set_parameters(params, 'single_shell', self.parameters)
+        params = deepcopy(self.single_shell_parameters)
         if self.electrode_polarization is True:
             params.add('k', vary=False, value=k_fit)
             params.add('alpha', vary=False, value=alpha_fit)
@@ -425,12 +445,11 @@ class Fitter(object):
         logger.debug('##############################')
         logger.debug('fit data to double shell model')
         logger.debug('##############################')
-        params = Parameters()
+        params = deepcopy(self.double_shell_parameters)
         if self.electrode_polarization is True:
             params.add('k', vary=False, value=k_fit)
             params.add('alpha', vary=False, value=alpha_fit)
             params.add('emed', vary=False, value=emed_fit)
-        params = set_parameters(params, 'double_shell', self.parameters)
         assert ('emed' in params), "You need to provide emed if you don't use electrode_polarization correction!"
 
         result = None
@@ -459,8 +478,9 @@ class Fitter(object):
 
     def emcee_plot(self, res):
         import corner
+        truths = [res.params[p].value for p in res.var_names]
         plot = corner.corner(res.flatchain, labels=res.var_names,
-                             truths=list(res.params.valuesdict().values()))
+                             truths=truths)
         return plot
 
     def emcee_main(self, electrode_polarization=True, lnsigma=None):
@@ -482,7 +502,7 @@ class Fitter(object):
             filename = os.fsdecode(filename)
             if filename.endswith(self.excludeEnding):
                 logger.info("Skipped file {} due to excluded ending.".format(filename))
-                break
+                continue
             if self.inputformat == 'TXT' and filename.endswith(".TXT"):
                 self.prepare_txt()
                 if max_rows_tag is False:  # all files have the same number of datarows, this only has to be determined once
@@ -512,7 +532,7 @@ class Fitter(object):
         """
         params = Parameters()
         cole_cole_params = Parameters()
-        if self.electrode_polarization is True:
+        if self.electrode_polarization is True and self.model != 'ColeCole':
             cole_cole_params = set_parameters(params, 'cole_cole', self.parameters)
             if 'eh' in cole_cole_params:
                 cole_cole_params['emed'] = cole_cole_params['eh']
@@ -522,16 +542,24 @@ class Fitter(object):
             params = set_parameters(params, 'single_shell', self.parameters)
             params = params + cole_cole_params
             result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(self.omega, self.Z))
-        else:
+        elif self.model == 'DoubleShell':
             params = set_parameters(params, 'double_shell', self.parameters)
             params = params + cole_cole_params
             result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(self.omega, self.Z))
+        elif self.model == 'ColeCole':
+            params = set_parameters(params, 'cole_cole', self.parameters)
+            if self.electrode_polarization is False:
+                del params['alpha']
+                del params['k']
+            result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(self.omega, self.Z))
         logger.info(lmfit.fit_report(result))
         logger.debug((result.params.pretty_print()))
 
         if self.LogLevel == 'DEBUG':
             if self.model == 'SingleShell':
                 plot_single_shell(self.omega, self.Z, result, filename)
-            else:
+            elif self.model == 'DoubleShell':
                 plot_double_shell(self.omega, self.Z, result, filename)
+            elif self.model == 'ColeCole':
+                plot_cole_cole(self.omega, self.Z, result, filename)
         return result

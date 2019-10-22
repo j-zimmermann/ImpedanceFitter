@@ -45,11 +45,11 @@ def suspension_residual(params, omega, data):
     c0 = params['c0'].value
     cf = params['cf'].value
     Z_fit = suspension_model(omega, c0, cf, el, tau, a, kdc, eh)
-    residual = (data - Z_fit)
+    residual = (data - Z_fit) / data
     return residual.view(np.float)
 
 
-def cole_cole_model(omega, c0, cf, k, el, tau, a, alpha, kdc, eh):
+def cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=None, alpha=None):
     r"""
     function holding the cole_cole_model equations, returning the calculated impedance
     Equations for calculations:
@@ -73,30 +73,33 @@ def cole_cole_model(omega, c0, cf, k, el, tau, a, alpha, kdc, eh):
     find more details in formula 6 and 7 of https://ieeexplore.ieee.org/document/6191683
 
     """
-    Zep_fit = Z_CPE(omega, k, alpha)
     es = e_sus(omega, eh, el, tau, a)
-
     Zs_fit = Z_sus(omega, es, kdc, c0, cf)
-    Z_fit = Zep_fit + Zs_fit
-
-    return Z_fit
+    if k is not None and alpha is not None:
+        Zep_fit = Z_CPE(omega, k, alpha)
+        return Zs_fit + Zep_fit
+    return Zs_fit
 
 
 def cole_cole_residual(params, omega, data):
     """
     compute difference between data and model.
     """
-    k = params['k'].value
     el = params['epsi_l'].value
     tau = params['tau'].value
     a = params['a'].value
-    alpha = params['alpha'].value
     kdc = params['conductivity'].value
     eh = params['eh'].value
     c0 = params['c0'].value
     cf = params['cf'].value
-    Z_fit = cole_cole_model(omega, c0, cf, k, el, tau, a, alpha, kdc, eh)
-    residual = (data - Z_fit)
+    alpha = None
+    k = None
+    if 'alpha' in params:
+        alpha = params['alpha'].value
+    if 'k' in params:
+        k = params['k'].value
+    Z_fit = cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=k, alpha=alpha)
+    residual = (data - Z_fit) / data
     return residual.view(np.float)
 
 
@@ -106,14 +109,14 @@ def plot_cole_cole(omega, Z, result, filename):
     """
     popt = np.fromiter([result.params['c0'],
                        result.params['cf'],
-                       result.params['k'],
                        result.params['epsi_l'],
                        result.params['tau'],
                        result.params['a'],
-                       result.params['alpha'],
                        result.params['conductivity'],
                        result.params['eh']],
                        dtype=np.float)
+    if 'k' in result.params and 'alpha' in result.params:
+        popt = np.append(popt, [result.params['k'], result.params['alpha']])
     Z_fit = cole_cole_model(omega, *popt)
     plt.figure()
     plt.suptitle("Cole-Cole fit plot\n" + str(filename), y=1.05)
