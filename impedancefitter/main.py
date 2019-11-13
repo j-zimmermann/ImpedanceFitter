@@ -129,7 +129,7 @@ class Fitter(object):
 
         if parameters is not None:
             assert(isinstance(parameters, dict)), "You need to provide an input dictionary!"
-        self.parameters = parameters
+        self.parameters = deepcopy(parameters)
 
     def initialize_parameters(self):
         if self.electrode_polarization is True or self.model == 'ColeCole':
