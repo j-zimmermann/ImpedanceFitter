@@ -104,22 +104,29 @@ def plot_single_shell(omega, Z, result, filename):
     plt.suptitle("single shell " + str(filename), y=1.05)
     plt.subplot(221)
     plt.xscale('log')
-    plt.title("Z_real_part")
-    plt.plot(omega, Z_fit.real, '+', label='fitted by Python')
-    plt.plot(omega, Z.real, 'r', label='data')
+    plt.title("Z real part")
+    plt.ylabel(r"$\Re(Z) [\Omega]")
+    plt.xlabel("frequency [Hz]")
+    plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label='fitted')
+    plt.plot(omega / (2. * np.pi), Z.real, 'r', label='data')
     plt.legend()
     # plot imaginaray Impedance part
     plt.subplot(222)
-    plt.title(" Z_imag_part")
+    plt.title("Z imag part")
+    plt.ylabel(r"$\Im(Z) [\Omega]")
+    plt.xlabel("frequency [Hz]")
     plt.xscale('log')
-    plt.plot(omega, Z_fit.imag, '+', label='fitted by Python')
-    plt.plot(omega, Z.imag, 'r', label='data')
+    plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label='fitted')
+    plt.plot(omega / (2. * np.pi), Z.imag, 'r', label='data')
     plt.legend()
     # plot real vs  imaginary Partr
     plt.subplot(223)
     plt.title("real vs imag")
-    plt.plot(Z_fit.real, Z_fit.imag, '+', label="Z_fit")
-    plt.plot(Z.real, Z.imag, 'o', label="Z")
+    plt.xlabel(r"$\Re(Z) [\Omega]")
+    plt.ylabel(r"$\Im(Z) [\Omega]")
+
+    plt.plot(Z_fit.real, Z_fit.imag, '+', label="fit")
+    plt.plot(Z.real, Z.imag, 'o', label="data")
     plt.legend()
     compare_to_data(omega, Z, Z_fit, filename, subplot=224)
     plt.tight_layout()
@@ -127,6 +134,10 @@ def plot_single_shell(omega, Z, result, filename):
 
 
 def get_single_shell_impedance(omega, result):
+    """
+    Provide the angular frequency as well as the result from the fitting procedure.
+    The result object contains a dictionary `params` that is processed.
+    """
     # calculate fitted Z function
     popt = np.fromiter([result.params['em'],
                         result.params['km'],
