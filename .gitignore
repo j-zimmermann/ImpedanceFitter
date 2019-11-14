@@ -2,6 +2,8 @@
 *.log
 *.toc
 *.out
+*.swp
+*.swo
 build/
 _build/
 dist/
