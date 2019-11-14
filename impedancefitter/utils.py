@@ -22,6 +22,7 @@ import numpy as np
 import yaml
 from scipy.constants import epsilon_0 as e0
 import logging
+from collections import Counter
 
 logger = logging.getLogger('impedancefitter-logger')
 
@@ -118,10 +119,12 @@ def plot_dielectric_properties(omega, cole_cole_output, suspension_output):
     plt.show()
 
 
-def set_parameters(params, modelName, parameterdict):
+def set_parameters(params, modelName, parameterdict, ep=False):
     """
     for suspension model: if wanted one could create an own file,
     otherwise the value from the cole-cole model are taken.
+
+    Parameter `ep` is False if no electrode polarization is used.
     """
 
     if parameterdict is None:
@@ -132,9 +135,10 @@ def set_parameters(params, modelName, parameterdict):
             if(modelName == 'suspension'):
                 infile = open('cole_cole_input.yaml', 'r')
                 bufdict = yaml.safe_load(infile)
-                del bufdict['alpha']
-                del bufdict['k']
-                pass
+                if 'alpha' in bufdict:
+                    del bufdict['alpha']
+                if 'k' in bufdict:
+                    del bufdict['k']
             else:
                 print(str(e))
                 print("Please provide a yaml-input file.")
@@ -162,4 +166,28 @@ def set_parameters(params, modelName, parameterdict):
             params[key].set(max=float(bufdict[key]['max']))
         if 'vary' in bufdict[key]:
             params[key].set(vary=bool(bufdict[key]['vary']))
+    return clean_parameters(params, modelName, ep)
+
+
+def clean_parameters(params, modelName, ep):
+    names = parameter_names(modelName, ep)
+    for p in params:
+        if p not in names:
+            del params[p]
+    assert Counter(names) == Counter(params.keys()), "You need to provide the following parameters " + str(names)
     return params
+
+
+def parameter_names(model, ep):
+    if model == 'cole_cole':
+        names = ['c0', 'cf', 'epsi_l', 'tau', 'a', 'conductivity', 'eh']
+    elif model == 'suspension':
+        names = ['c0', 'cf', 'epsi_l', 'tau', 'a', 'conductivity', 'eh']
+    elif model == 'single_shell':
+        names == ['c0', 'cf', 'em', 'km', 'kcp', 'ecp', 'kmed', 'emed', 'p', 'dm', 'Rc']
+    elif model == 'double_shell':
+        names == ['c0', 'cf', 'em', 'km', 'kcp', 'ecp', 'kmed', 'emed',
+                  'p', 'dm', 'Rc', 'ene', 'kne', 'knp', 'enp', 'dn', 'Rn']
+    if ep is True:
+        names.extend(['k', 'alpha'])
+    return names

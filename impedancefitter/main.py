@@ -134,20 +134,17 @@ class Fitter(object):
     def initialize_parameters(self):
         if self.electrode_polarization is True or self.model == 'ColeCole':
             self.cole_cole_parameters = Parameters()
-            self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters)
-            if self.electrode_polarization is False:
-                del self.cole_cole_parameters['alpha']
-                del self.cole_cole_parameters['k']
+            self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization)
             if self.LogLevel == 'DEBUG':
                 self.suspension_parameters = Parameters()
                 self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
 
         if self.model == 'SingleShell':
             self.single_shell_parameters = Parameters()
-            self.single_shell_parameters = set_parameters(self.single_shell_parameters, 'single_shell', self.parameters)
+            self.single_shell_parameters = set_parameters(self.single_shell_parameters, 'single_shell', self.parameters, ep=self.electrode_polarization)
         elif self.model == 'DoubleShell':
             self.double_shell_parameters = Parameters()
-            self.double_shell_parameters = set_parameters(self.double_shell_parameters, 'double_shell', self.parameters)
+            self.double_shell_parameters = set_parameters(self.double_shell_parameters, 'double_shell', self.parameters, ep=self.electrode_polarization)
 
     def main(self, protocol=None, electrode_polarization=True):
         """
@@ -492,6 +489,8 @@ class Fitter(object):
 
         electrode_polarization: True or False
             Switch on whether to account for electrode polarization or not. Currently, only a CPE correction is possible.
+        lnsigma: dict
+            Add lnsigma parameter with custom initial value and bounds to method.
         """
         max_rows_tag = False
         self.electrode_polarization = electrode_polarization
@@ -533,24 +532,21 @@ class Fitter(object):
         params = Parameters()
         cole_cole_params = Parameters()
         if self.electrode_polarization is True and self.model != 'ColeCole':
-            cole_cole_params = set_parameters(params, 'cole_cole', self.parameters)
+            cole_cole_params = set_parameters(params, 'cole_cole', self.parameters, ep=self.electrode_polarization)
             if 'eh' in cole_cole_params:
                 cole_cole_params['emed'] = cole_cole_params['eh']
         if self.lnsigma is not None:
             params.add('__lnsigma', value=self.lnsigma['value'], min=self.lnsigma['min'], max=self.lnsigma['max'])
         if self.model == 'SingleShell':
-            params = set_parameters(params, 'single_shell', self.parameters)
+            params = set_parameters(params, 'single_shell', self.parameters, ep=self.electrode_polarization)
             params = params + cole_cole_params
             result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(self.omega, self.Z))
         elif self.model == 'DoubleShell':
-            params = set_parameters(params, 'double_shell', self.parameters)
+            params = set_parameters(params, 'double_shell', self.parameters, ep=self.electrode_polarization)
             params = params + cole_cole_params
             result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(self.omega, self.Z))
         elif self.model == 'ColeCole':
-            params = set_parameters(params, 'cole_cole', self.parameters)
-            if self.electrode_polarization is False:
-                del params['alpha']
-                del params['k']
+            params = set_parameters(params, 'cole_cole', self.parameters, ep=self.electrode_polarization)
             result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(self.omega, self.Z))
         logger.info(lmfit.fit_report(result))
         logger.debug((result.params.pretty_print()))
