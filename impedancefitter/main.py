@@ -28,7 +28,7 @@ from copy import deepcopy
 from .single_shell import plot_single_shell, single_shell_residual
 from .double_shell import plot_double_shell, double_shell_residual
 from .cole_cole import plot_cole_cole, cole_cole_residual, suspension_residual
-from .utils import set_parameters, plot_dielectric_properties
+from .utils import set_parameters, plot_dielectric_properties, get_labels
 
 # create logger
 logger = logging.getLogger('impedancefitter-logger')
@@ -141,10 +141,10 @@ class Fitter(object):
 
         if self.model == 'SingleShell':
             self.single_shell_parameters = Parameters()
-            self.single_shell_parameters = set_parameters(self.single_shell_parameters, 'single_shell', self.parameters, ep=self.electrode_polarization)
+            self.single_shell_parameters = set_parameters(self.single_shell_parameters, 'single_shell', self.parameters)
         elif self.model == 'DoubleShell':
             self.double_shell_parameters = Parameters()
-            self.double_shell_parameters = set_parameters(self.double_shell_parameters, 'double_shell', self.parameters, ep=self.electrode_polarization)
+            self.double_shell_parameters = set_parameters(self.double_shell_parameters, 'double_shell', self.parameters)
 
     def main(self, protocol=None, electrode_polarization=True):
         """
@@ -476,7 +476,9 @@ class Fitter(object):
     def emcee_plot(self, res):
         import corner
         truths = [res.params[p].value for p in res.var_names]
-        plot = corner.corner(res.flatchain, labels=res.var_names,
+        ifLabels = get_labels()
+        labels = [ifLabels[p] for p in res.var_names]
+        plot = corner.corner(res.flatchain, labels=labels,
                              truths=truths)
         return plot
 
@@ -530,24 +532,18 @@ class Fitter(object):
         fit the data to the cole_cole_model first (compensation of the electrode polarization) and then to the defined model.
         """
         params = Parameters()
-        cole_cole_params = Parameters()
-        if self.electrode_polarization is True and self.model != 'ColeCole':
-            cole_cole_params = set_parameters(params, 'cole_cole', self.parameters, ep=self.electrode_polarization)
-            if 'eh' in cole_cole_params:
-                cole_cole_params['emed'] = cole_cole_params['eh']
-        if self.lnsigma is not None:
-            params.add('__lnsigma', value=self.lnsigma['value'], min=self.lnsigma['min'], max=self.lnsigma['max'])
         if self.model == 'SingleShell':
             params = set_parameters(params, 'single_shell', self.parameters, ep=self.electrode_polarization)
-            params = params + cole_cole_params
             result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(self.omega, self.Z))
         elif self.model == 'DoubleShell':
             params = set_parameters(params, 'double_shell', self.parameters, ep=self.electrode_polarization)
-            params = params + cole_cole_params
             result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(self.omega, self.Z))
         elif self.model == 'ColeCole':
             params = set_parameters(params, 'cole_cole', self.parameters, ep=self.electrode_polarization)
             result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(self.omega, self.Z))
+        # add lnsigma if needed
+        if self.lnsigma is not None:
+            params.add('__lnsigma', value=self.lnsigma['value'], min=self.lnsigma['min'], max=self.lnsigma['max'])
         logger.info(lmfit.fit_report(result))
         logger.debug((result.params.pretty_print()))
 

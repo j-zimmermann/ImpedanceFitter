@@ -24,6 +24,7 @@ from scipy.constants import epsilon_0 as e0
 import logging
 from collections import Counter
 
+
 logger = logging.getLogger('impedancefitter-logger')
 
 
@@ -125,6 +126,8 @@ def set_parameters(params, modelName, parameterdict, ep=False):
     otherwise the value from the cole-cole model are taken.
 
     Parameter `ep` is False if no electrode polarization is used.
+
+    The parameters are returned in a strict order!
     """
 
     if parameterdict is None:
@@ -157,8 +160,8 @@ def set_parameters(params, modelName, parameterdict, ep=False):
             else:
                 print("Your parameterdict lacks an entry for the model: " + modelName)
                 raise
-
-    for key in bufdict:
+    bufdict = clean_parameters(bufdict, modelName, ep)
+    for key in parameter_names(modelName, ep):
         params.add(key, value=float(bufdict[key]['value']))
         if 'min' in bufdict[key]:
             params[key].set(min=float(bufdict[key]['min']))
@@ -166,7 +169,7 @@ def set_parameters(params, modelName, parameterdict, ep=False):
             params[key].set(max=float(bufdict[key]['max']))
         if 'vary' in bufdict[key]:
             params[key].set(vary=bool(bufdict[key]['vary']))
-    return clean_parameters(params, modelName, ep)
+    return params
 
 
 def clean_parameters(params, modelName, ep):
@@ -179,6 +182,11 @@ def clean_parameters(params, modelName, ep):
 
 
 def parameter_names(model, ep):
+    """
+    Get the order of parameters for a certain model.
+
+    Takes model as a string and ep as a bool (switch electrode polarisation on or off).
+    """
     if model == 'cole_cole':
         names = ['c0', 'cf', 'epsi_l', 'tau', 'a', 'conductivity', 'eh']
     elif model == 'suspension':
@@ -191,3 +199,32 @@ def parameter_names(model, ep):
     if ep is True:
         names.extend(['k', 'alpha'])
     return names
+
+
+def get_labels():
+    labels = {
+        'c0': r'$C_0$',
+        'cf': r'$C_\mathrm{f}',
+        'em': r'$\varepsilon_\mathrm{m}$',
+        'km': r'$\varepsilon_\mathrm{m}$',
+        'kcp': r'$\varepsilon_\mathrm{cp}$',
+        'ecp': r'$\varepsilon_\mathrm{cp}$',
+        'kmed': r'$\varepsilon_\mathrm{med}$',
+        'emed': r'$\sigma_\mathrm{med}$',
+        'p': r'$p$',
+        'dm': r'$d_\mathrm{m}$',
+        'Rc': r'$R_\mathrm{c}$',
+        'ene': r'$\varepsilon_\mathrm{ne}$',
+        'kne': r'$\varepsilon_\mathrm{ne}$',
+        'knp': r'$\varepsilon_\mathrm{np}$',
+        'enp': r'$\varepsilon_\mathrm{np}$',
+        'dn': r'$d_\mathrm{n}$',
+        'Rn': r'$R_\mathrm{n}$',
+        'k': r'$\kappa$',
+        'epsi_l': r'$\varepsilon_\mathrm{l}$',
+        'tau': r'$\tau$',
+        'a': r'$a$',
+        'alpha': r'$\alpha$',
+        '__lnsigma': r'$\ln\sigma$'
+        }
+    return labels

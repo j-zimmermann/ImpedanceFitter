@@ -20,3 +20,4 @@ from .main import Fitter
 from .postprocess import PostProcess
 from .single_shell import get_single_shell_impedance
 from .double_shell import get_double_shell_impedance
+from .utils import parameter_names, get_labels

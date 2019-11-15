@@ -154,7 +154,7 @@ def plot_double_shell(omega, Z, result, filename):
     plt.subplot(221)
     plt.xscale('log')
     plt.title("Z real part")
-    plt.ylabel(r"$\Re(Z) [\Omega]")
+    plt.ylabel(r"$\Re(Z) [\Omega]$")
     plt.xlabel("frequency [Hz]")
 
     plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label='fitted')
@@ -164,7 +164,7 @@ def plot_double_shell(omega, Z, result, filename):
     plt.subplot(222)
     plt.title("Z imag part")
     plt.xscale('log')
-    plt.ylabel(r"$\Im(Z) [\Omega]")
+    plt.ylabel(r"$\Im(Z) [\Omega]$")
     plt.xlabel("frequency [Hz]")
     plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label='fitted')
     plt.plot(omega / (2. * np.pi), Z.imag, 'r', label='data')
@@ -172,8 +172,8 @@ def plot_double_shell(omega, Z, result, filename):
     # plot real vs  imaginary Partr
     plt.subplot(223)
     plt.title("real vs imag")
-    plt.xlabel(r"$\Re(Z) [\Omega]")
-    plt.ylabel(r"$\Im(Z) [\Omega]")
+    plt.xlabel(r"$\Re(Z) [\Omega]$")
+    plt.ylabel(r"$\Im(Z) [\Omega]$")
     plt.plot(Z_fit.real, Z_fit.imag, '+', label="fit")
     plt.plot(Z.real, Z.imag, 'o', label="data")
     plt.legend()
