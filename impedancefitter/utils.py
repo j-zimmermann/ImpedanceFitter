@@ -171,7 +171,7 @@ def set_parameters(params, modelName, parameterdict, ep=False):
 
 def clean_parameters(params, modelName, ep):
     names = parameter_names(modelName, ep)
-    for p in params:
+    for p in list(params.keys()):
         if p not in names:
             del params[p]
     assert Counter(names) == Counter(params.keys()), "You need to provide the following parameters " + str(names)
@@ -184,10 +184,10 @@ def parameter_names(model, ep):
     elif model == 'suspension':
         names = ['c0', 'cf', 'epsi_l', 'tau', 'a', 'conductivity', 'eh']
     elif model == 'single_shell':
-        names == ['c0', 'cf', 'em', 'km', 'kcp', 'ecp', 'kmed', 'emed', 'p', 'dm', 'Rc']
+        names = ['c0', 'cf', 'em', 'km', 'kcp', 'ecp', 'kmed', 'emed', 'p', 'dm', 'Rc']
     elif model == 'double_shell':
-        names == ['c0', 'cf', 'em', 'km', 'kcp', 'ecp', 'kmed', 'emed',
-                  'p', 'dm', 'Rc', 'ene', 'kne', 'knp', 'enp', 'dn', 'Rn']
+        names = ['c0', 'cf', 'em', 'km', 'kcp', 'ecp', 'kmed', 'emed',
+                 'p', 'dm', 'Rc', 'ene', 'kne', 'knp', 'enp', 'dn', 'Rn']
     if ep is True:
         names.extend(['k', 'alpha'])
     return names
