@@ -225,6 +225,8 @@ def get_labels():
         'tau': r'$\tau$',
         'a': r'$a$',
         'alpha': r'$\alpha$',
+        'conductivity': r'$\sigma_\mathrm{DC}$',
+        'eh': r'$\varepsilon_\mathrm{h}$',
         '__lnsigma': r'$\ln\sigma$'
         }
     return labels
