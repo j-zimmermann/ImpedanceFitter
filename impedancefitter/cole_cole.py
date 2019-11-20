@@ -20,7 +20,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .utils import Z_CPE, e_sus, Z_sus, compare_to_data
+from .utils import Z_in, Z_CPE, e_sus, Z_sus, compare_to_data
 
 
 def suspension_model(omega, c0, cf, el, tau, a, kdc, eh):
@@ -49,7 +49,7 @@ def suspension_residual(params, omega, data):
     return residual.view(np.float)
 
 
-def cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=None, alpha=None):
+def cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=None, alpha=None, L=None):
     r"""
     function holding the cole_cole_model equations, returning the calculated impedance
     Equations for calculations:
@@ -77,7 +77,10 @@ def cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=None, alpha=None):
     Zs_fit = Z_sus(omega, es, kdc, c0, cf)
     if k is not None and alpha is not None:
         Zep_fit = Z_CPE(omega, k, alpha)
-        return Zs_fit + Zep_fit
+        Zs_fit = Zs_fit + Zep_fit
+    if L is not None:
+        Zin_fit = Z_in(omega, L)
+        Zs_fit = Zs_fit + Zin_fit
     return Zs_fit
 
 
@@ -94,11 +97,14 @@ def cole_cole_residual(params, omega, data):
     cf = params['cf'].value
     alpha = None
     k = None
+    L = None
     if 'alpha' in params:
         alpha = params['alpha'].value
     if 'k' in params:
         k = params['k'].value
-    Z_fit = cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=k, alpha=alpha)
+    if 'L' in params:
+        L = params['L'].value
+    Z_fit = cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=k, alpha=alpha, L=L)
     residual = (data - Z_fit) / data
     return residual.view(np.float)
 
@@ -117,6 +123,9 @@ def plot_cole_cole(omega, Z, result, filename):
                        dtype=np.float)
     if 'k' in result.params and 'alpha' in result.params:
         popt = np.append(popt, [result.params['k'], result.params['alpha']])
+    if 'L' in result.params:
+        print("Plotting with L")
+        popt = np.append(popt, [result.params['L']])
     Z_fit = cole_cole_model(omega, *popt)
     plt.figure()
     plt.suptitle("Cole-Cole fit plot\n" + str(filename), y=1.05)

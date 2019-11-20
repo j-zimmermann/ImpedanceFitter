@@ -134,7 +134,7 @@ class Fitter(object):
     def initialize_parameters(self):
         if self.electrode_polarization is True or self.model == 'ColeCole':
             self.cole_cole_parameters = Parameters()
-            self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization)
+            self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity)
             if self.LogLevel == 'DEBUG':
                 self.suspension_parameters = Parameters()
                 self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
@@ -146,7 +146,7 @@ class Fitter(object):
             self.double_shell_parameters = Parameters()
             self.double_shell_parameters = set_parameters(self.double_shell_parameters, 'double_shell', self.parameters)
 
-    def main(self, protocol=None, electrode_polarization=True):
+    def main(self, protocol=None, electrode_polarization=True, inductivity=False):
         """
         Main function that iterates through all data sets provided.
 
@@ -161,6 +161,7 @@ class Fitter(object):
         """
         max_rows_tag = False
         self.electrode_polarization = electrode_polarization
+        self.inductivity = inductivity
         self.initialize_parameters()
         self.protocol = protocol
         if self.write_output is True:
@@ -482,7 +483,7 @@ class Fitter(object):
                              truths=truths)
         return plot
 
-    def emcee_main(self, electrode_polarization=True, lnsigma=None):
+    def emcee_main(self, electrode_polarization=True, lnsigma=None, inductivity=False):
         """
         Main function that iterates through all data sets provided.
 
@@ -496,6 +497,7 @@ class Fitter(object):
         """
         max_rows_tag = False
         self.electrode_polarization = electrode_polarization
+        self.inductivity = inductivity
         self.lnsigma = lnsigma
         if self.write_output is True:
             open('outfile.yaml', 'w')  # create output file
@@ -539,7 +541,7 @@ class Fitter(object):
             params = set_parameters(params, 'double_shell', self.parameters, ep=self.electrode_polarization)
             result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(self.omega, self.Z))
         elif self.model == 'ColeCole':
-            params = set_parameters(params, 'cole_cole', self.parameters, ep=self.electrode_polarization)
+            params = set_parameters(params, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity)
             result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(self.omega, self.Z))
         # add lnsigma if needed
         if self.lnsigma is not None:

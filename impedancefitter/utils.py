@@ -28,6 +28,13 @@ from collections import Counter
 logger = logging.getLogger('impedancefitter-logger')
 
 
+def Z_in(omega, L):
+    """
+    Lead inductance
+    """
+    return 1j * omega * L
+
+
 def Z_CPE(omega, k, alpha):
     """
     CPE impedance
@@ -120,7 +127,7 @@ def plot_dielectric_properties(omega, cole_cole_output, suspension_output):
     plt.show()
 
 
-def set_parameters(params, modelName, parameterdict, ep=False):
+def set_parameters(params, modelName, parameterdict, ep=False, ind=False):
     """
     for suspension model: if wanted one could create an own file,
     otherwise the value from the cole-cole model are taken.
@@ -160,8 +167,8 @@ def set_parameters(params, modelName, parameterdict, ep=False):
             else:
                 print("Your parameterdict lacks an entry for the model: " + modelName)
                 raise
-    bufdict = clean_parameters(bufdict, modelName, ep)
-    for key in parameter_names(modelName, ep):
+    bufdict = clean_parameters(bufdict, modelName, ep, ind)
+    for key in parameter_names(modelName, ep, ind=ind):
         params.add(key, value=float(bufdict[key]['value']))
         if 'min' in bufdict[key]:
             params[key].set(min=float(bufdict[key]['min']))
@@ -172,8 +179,8 @@ def set_parameters(params, modelName, parameterdict, ep=False):
     return params
 
 
-def clean_parameters(params, modelName, ep):
-    names = parameter_names(modelName, ep)
+def clean_parameters(params, modelName, ep, ind):
+    names = parameter_names(modelName, ep, ind)
     for p in list(params.keys()):
         if p not in names:
             del params[p]
@@ -181,7 +188,7 @@ def clean_parameters(params, modelName, ep):
     return params
 
 
-def parameter_names(model, ep):
+def parameter_names(model, ep, ind=False):
     """
     Get the order of parameters for a certain model.
 
@@ -198,6 +205,8 @@ def parameter_names(model, ep):
                  'p', 'dm', 'Rc', 'ene', 'kne', 'knp', 'enp', 'dn', 'Rn']
     if ep is True:
         names.extend(['k', 'alpha'])
+    if ind is True:
+        names.extend(['L'])
     return names
 
 
@@ -206,17 +215,17 @@ def get_labels():
         'c0': r'$C_0$',
         'cf': r'$C_\mathrm{f}',
         'em': r'$\varepsilon_\mathrm{m}$',
-        'km': r'$\varepsilon_\mathrm{m}$',
-        'kcp': r'$\varepsilon_\mathrm{cp}$',
+        'km': r'$\sigma_\mathrm{m}$',
+        'kcp': r'$\sigma_\mathrm{cp}$',
         'ecp': r'$\varepsilon_\mathrm{cp}$',
-        'kmed': r'$\varepsilon_\mathrm{med}$',
-        'emed': r'$\sigma_\mathrm{med}$',
+        'kmed': r'$\sigma_\mathrm{med}$',
+        'emed': r'$\varepsilon_\mathrm{med}$',
         'p': r'$p$',
         'dm': r'$d_\mathrm{m}$',
         'Rc': r'$R_\mathrm{c}$',
         'ene': r'$\varepsilon_\mathrm{ne}$',
-        'kne': r'$\varepsilon_\mathrm{ne}$',
-        'knp': r'$\varepsilon_\mathrm{np}$',
+        'kne': r'$\sigma_\mathrm{ne}$',
+        'knp': r'$\sigma_\mathrm{np}$',
         'enp': r'$\varepsilon_\mathrm{np}$',
         'dn': r'$d_\mathrm{n}$',
         'Rn': r'$R_\mathrm{n}$',
@@ -227,6 +236,7 @@ def get_labels():
         'alpha': r'$\alpha$',
         'conductivity': r'$\sigma_\mathrm{DC}$',
         'eh': r'$\varepsilon_\mathrm{h}$',
-        '__lnsigma': r'$\ln\sigma$'
+        '__lnsigma': r'$\ln\sigma$',
+        'L': r'$L$'
         }
     return labels
