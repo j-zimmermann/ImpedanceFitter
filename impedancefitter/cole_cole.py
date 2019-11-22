@@ -20,7 +20,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .utils import Z_in, Z_CPE, e_sus, Z_sus, compare_to_data
+from .utils import Z_in, Z_CPE, e_sus, Z_sus, compare_to_data, Z_loss
 
 
 def suspension_model(omega, c0, cf, el, tau, a, kdc, eh):
@@ -49,7 +49,7 @@ def suspension_residual(params, omega, data):
     return residual.view(np.float)
 
 
-def cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=None, alpha=None, L=None):
+def cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=None, alpha=None, L=None, C=None, R=None):
     r"""
     function holding the cole_cole_model equations, returning the calculated impedance
     Equations for calculations:
@@ -79,7 +79,10 @@ def cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=None, alpha=None, L=No
         Zep_fit = Z_CPE(omega, k, alpha)
         Zs_fit = Zs_fit + Zep_fit
     if L is not None:
-        Zin_fit = Z_in(omega, L)
+        if C is None:
+            Zin_fit = Z_in(omega, L, R)
+        elif C is not None and R is not None:
+            Zin_fit = Z_loss(omega, L, C, R)
         Zs_fit = Zs_fit + Zin_fit
     return Zs_fit
 
@@ -98,13 +101,19 @@ def cole_cole_residual(params, omega, data):
     alpha = None
     k = None
     L = None
+    C = None
+    R = None
     if 'alpha' in params:
         alpha = params['alpha'].value
     if 'k' in params:
         k = params['k'].value
     if 'L' in params:
         L = params['L'].value
-    Z_fit = cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=k, alpha=alpha, L=L)
+    if 'C' in params:
+        C = params['C'].value
+    if 'R' in params:
+        R = params['R'].value
+    Z_fit = cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=k, alpha=alpha, L=L, C=C, R=R)
     residual = (data - Z_fit) / data
     return residual.view(np.float)
 
@@ -113,20 +122,7 @@ def plot_cole_cole(omega, Z, result, filename):
     """
     plot results of cole-cole model and compare fit to data.
     """
-    popt = np.fromiter([result.params['c0'],
-                       result.params['cf'],
-                       result.params['epsi_l'],
-                       result.params['tau'],
-                       result.params['a'],
-                       result.params['conductivity'],
-                       result.params['eh']],
-                       dtype=np.float)
-    if 'k' in result.params and 'alpha' in result.params:
-        popt = np.append(popt, [result.params['k'], result.params['alpha']])
-    if 'L' in result.params:
-        print("Plotting with L")
-        popt = np.append(popt, [result.params['L']])
-    Z_fit = cole_cole_model(omega, *popt)
+    Z_fit = get_cole_cole_impedance(omega, result)
     plt.figure()
     plt.suptitle("Cole-Cole fit plot\n" + str(filename), y=1.05)
     # plot real  Impedance part
@@ -158,3 +154,31 @@ def plot_cole_cole(omega, Z, result, filename):
     compare_to_data(omega, Z, Z_fit, filename, subplot=224)
     plt.tight_layout()
     plt.show()
+
+
+def get_cole_cole_impedance(omega, result):
+    """
+    Provide the angular frequency as well as the result from the fitting procedure.
+    The result object contains a dictionary `params` that is processed.
+    """
+    # calculate fitted Z function
+    popt = np.fromiter([result.params['c0'],
+                       result.params['cf'],
+                       result.params['epsi_l'],
+                       result.params['tau'],
+                       result.params['a'],
+                       result.params['conductivity'],
+                       result.params['eh']],
+                       dtype=np.float)
+    kwargs = {}
+    if 'k' in result.params and 'alpha' in result.params:
+        kwargs['k'] = result.params['k']
+        kwargs['alpha'] = result.params['alpha']
+    if 'L' in result.params:
+        kwargs['L'] = result.params['L']
+    if 'C' in result.params:
+        kwargs['C'] = result.params['C']
+    if 'R' in result.params:
+        kwargs['R'] = result.params['R']
+    Z_s = cole_cole_model(omega, *popt, **kwargs)
+    return Z_s

@@ -28,11 +28,20 @@ from collections import Counter
 logger = logging.getLogger('impedancefitter-logger')
 
 
-def Z_in(omega, L):
+def Z_loss(omega, L, C, R):
+    """
+    impedance for high loss materials
+    """
+    Y = 1. / R + 1. / (1j * omega * L) + 1j * omega * C
+    Z = 1. / Y
+    return Z
+
+
+def Z_in(omega, L, R):
     """
     Lead inductance
     """
-    return 1j * omega * L
+    return R + 1j * omega * L
 
 
 def Z_CPE(omega, k, alpha):
@@ -127,7 +136,7 @@ def plot_dielectric_properties(omega, cole_cole_output, suspension_output):
     plt.show()
 
 
-def set_parameters(params, modelName, parameterdict, ep=False, ind=False):
+def set_parameters(params, modelName, parameterdict, ep=False, ind=False, loss=False):
     """
     for suspension model: if wanted one could create an own file,
     otherwise the value from the cole-cole model are taken.
@@ -167,8 +176,8 @@ def set_parameters(params, modelName, parameterdict, ep=False, ind=False):
             else:
                 print("Your parameterdict lacks an entry for the model: " + modelName)
                 raise
-    bufdict = clean_parameters(bufdict, modelName, ep, ind)
-    for key in parameter_names(modelName, ep, ind=ind):
+    bufdict = clean_parameters(bufdict, modelName, ep, ind, loss)
+    for key in parameter_names(modelName, ep, ind=ind, loss=loss):
         params.add(key, value=float(bufdict[key]['value']))
         if 'min' in bufdict[key]:
             params[key].set(min=float(bufdict[key]['min']))
@@ -179,8 +188,8 @@ def set_parameters(params, modelName, parameterdict, ep=False, ind=False):
     return params
 
 
-def clean_parameters(params, modelName, ep, ind):
-    names = parameter_names(modelName, ep, ind)
+def clean_parameters(params, modelName, ep, ind, loss):
+    names = parameter_names(modelName, ep, ind, loss)
     for p in list(params.keys()):
         if p not in names:
             del params[p]
@@ -188,7 +197,7 @@ def clean_parameters(params, modelName, ep, ind):
     return params
 
 
-def parameter_names(model, ep, ind=False):
+def parameter_names(model, ep, ind=False, loss=False):
     """
     Get the order of parameters for a certain model.
 
@@ -206,7 +215,9 @@ def parameter_names(model, ep, ind=False):
     if ep is True:
         names.extend(['k', 'alpha'])
     if ind is True:
-        names.extend(['L'])
+        names.extend(['L', 'R'])
+    if loss is True:
+        names.extend(['L', 'C', 'R'])
     return names
 
 
@@ -237,6 +248,8 @@ def get_labels():
         'conductivity': r'$\sigma_\mathrm{DC}$',
         'eh': r'$\varepsilon_\mathrm{h}$',
         '__lnsigma': r'$\ln\sigma$',
-        'L': r'$L$'
+        'L': r'$L$',
+        'C': r'$C$',
+        'R': r'$R$'
         }
     return labels

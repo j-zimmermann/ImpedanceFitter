@@ -134,7 +134,7 @@ class Fitter(object):
     def initialize_parameters(self):
         if self.electrode_polarization is True or self.model == 'ColeCole':
             self.cole_cole_parameters = Parameters()
-            self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity)
+            self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
             if self.LogLevel == 'DEBUG':
                 self.suspension_parameters = Parameters()
                 self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
@@ -146,7 +146,7 @@ class Fitter(object):
             self.double_shell_parameters = Parameters()
             self.double_shell_parameters = set_parameters(self.double_shell_parameters, 'double_shell', self.parameters)
 
-    def main(self, protocol=None, electrode_polarization=True, inductivity=False):
+    def main(self, protocol=None, electrode_polarization=True, inductivity=False, high_loss=False):
         """
         Main function that iterates through all data sets provided.
 
@@ -162,6 +162,7 @@ class Fitter(object):
         max_rows_tag = False
         self.electrode_polarization = electrode_polarization
         self.inductivity = inductivity
+        self.high_loss = high_loss
         self.initialize_parameters()
         self.protocol = protocol
         if self.write_output is True:
@@ -483,7 +484,7 @@ class Fitter(object):
                              truths=truths)
         return plot
 
-    def emcee_main(self, electrode_polarization=True, lnsigma=None, inductivity=False):
+    def emcee_main(self, electrode_polarization=True, lnsigma=None, inductivity=False, high_loss=False):
         """
         Main function that iterates through all data sets provided.
 
@@ -498,6 +499,7 @@ class Fitter(object):
         max_rows_tag = False
         self.electrode_polarization = electrode_polarization
         self.inductivity = inductivity
+        self.high_loss = high_loss
         self.lnsigma = lnsigma
         if self.write_output is True:
             open('outfile.yaml', 'w')  # create output file
@@ -529,6 +531,10 @@ class Fitter(object):
                 if self.LogLevel == 'DEBUG':
                     self.emcee_plot(self.fittedValues)
 
+    def add_lnsigma(self, params):
+        if self.lnsigma is not None:
+            params.add('__lnsigma', value=self.lnsigma['value'], min=self.lnsigma['min'], max=self.lnsigma['max'])
+
     def fit_emcee_models(self, filename):
         """
         fit the data to the cole_cole_model first (compensation of the electrode polarization) and then to the defined model.
@@ -536,16 +542,16 @@ class Fitter(object):
         params = Parameters()
         if self.model == 'SingleShell':
             params = set_parameters(params, 'single_shell', self.parameters, ep=self.electrode_polarization)
+            self.add_lnsigma(params)
             result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(self.omega, self.Z))
         elif self.model == 'DoubleShell':
             params = set_parameters(params, 'double_shell', self.parameters, ep=self.electrode_polarization)
+            self.add_lnsigma(params)
             result = self.select_and_solve(self.solvername, double_shell_residual, params, args=(self.omega, self.Z))
         elif self.model == 'ColeCole':
-            params = set_parameters(params, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity)
+            params = set_parameters(params, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
+            self.add_lnsigma(params)
             result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(self.omega, self.Z))
-        # add lnsigma if needed
-        if self.lnsigma is not None:
-            params.add('__lnsigma', value=self.lnsigma['value'], min=self.lnsigma['min'], max=self.lnsigma['max'])
         logger.info(lmfit.fit_report(result))
         logger.debug((result.params.pretty_print()))
 
