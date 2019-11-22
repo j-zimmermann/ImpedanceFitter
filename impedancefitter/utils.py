@@ -55,7 +55,7 @@ def Z_sus(omega, es, kdc, c0, cf):
     """
     Accounts for air capacitance and stray capacitance.
     """
-    return 1. / (1j * es * omega * c0 + 1j * (kdc * c0) / e0 + 1j * omega * cf)
+    return 1. / (1j * es * omega * c0 + (kdc * c0) / e0 + 1j * omega * cf)
 
 
 def e_sus(omega, eh, el, tau, a):  # this is only valid for the cole_cole_fit and suspension_fit
