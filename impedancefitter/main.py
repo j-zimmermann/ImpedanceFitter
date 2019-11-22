@@ -49,6 +49,10 @@ class Fitter(object):
         provide directory if you run code from directory different to data directory
     parameters: {dict, optional, needed parameters}
         provide parameters if you do not want to use a yaml file (for instance in parallel UQ runs).
+    write_output: {bool, optional}
+        decide if you want to dump output to file
+    compare_CPE: {bool, optional}
+        decide if you want to compare to case without CPE
 
     Kwargs
     ------
@@ -83,11 +87,12 @@ class Fitter(object):
         Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
     """
 
-    def __init__(self, directory=None, parameters=None, write_output=True, **kwargs):
+    def __init__(self, directory=None, parameters=None, write_output=True, compare_CPE=False, **kwargs):
         self.model = kwargs['model']
         self.solvername = kwargs['solvername']
         self.inputformat = kwargs['inputformat']
         self.write_output = write_output
+        self.compare_CPE = compare_CPE
         try:
             self.LogLevel = kwargs['LogLevel']  # log level: choose info for less verbose output
         except KeyError:
@@ -299,8 +304,9 @@ class Fitter(object):
         if self.electrode_polarization is True or self.model == 'ColeCole':
             self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
             if self.LogLevel == 'DEBUG':
-                suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
                 plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename)
+            if self.compare_CPE is True:
+                suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
                 plot_dielectric_properties(self.omega, self.cole_cole_output, suspension_output)
             if self.electrode_polarization is True:
                 k_fit = self.cole_cole_output.params.valuesdict()['k']
