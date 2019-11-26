@@ -62,7 +62,7 @@ def e_sus(omega, eh, el, tau, a):  # this is only valid for the cole_cole_fit an
     """
     complex permitivity of suspension
     """
-    return eh + (el - eh) / (1. + (1j * omega * tau) ** (a))
+    return eh + (el - eh) / (1. + np.power((1j * omega * tau), a))
 
 
 def compare_to_data(omega, Z, Z_fit, filename, subplot=None):
@@ -205,6 +205,8 @@ def parameter_names(model, ep, ind=False, loss=False):
     """
     if model == 'cole_cole':
         names = ['c0', 'cf', 'epsi_l', 'tau', 'a', 'conductivity', 'eh']
+    elif model == 'rc':
+        names = ['c0', 'cf', 'conductivity', 'eps']
     elif model == 'suspension':
         names = ['c0', 'cf', 'epsi_l', 'tau', 'a', 'conductivity', 'eh']
     elif model == 'single_shell':
@@ -250,6 +252,7 @@ def get_labels():
         '__lnsigma': r'$\ln\sigma$',
         'L': r'$L$',
         'C': r'$C$',
-        'R': r'$R$'
+        'R': r'$R$',
+        'eps': r'$\varepsilon_\mathrm{r}$'
         }
     return labels

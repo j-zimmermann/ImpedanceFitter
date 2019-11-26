@@ -28,6 +28,7 @@ from copy import deepcopy
 from .single_shell import plot_single_shell, single_shell_residual
 from .double_shell import plot_double_shell, double_shell_residual
 from .cole_cole import plot_cole_cole, cole_cole_residual, suspension_residual
+from .rc import plot_rc, rc_residual
 from .utils import set_parameters, plot_dielectric_properties, get_labels
 
 # create logger
@@ -137,17 +138,31 @@ class Fitter(object):
         self.parameters = deepcopy(parameters)
 
     def initialize_parameters(self):
-        if self.electrode_polarization is True or self.model == 'ColeCole':
+        if self.model == 'ColeCole':
             self.cole_cole_parameters = Parameters()
             self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
             if self.LogLevel == 'DEBUG':
                 self.suspension_parameters = Parameters()
                 self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
-
-        if self.model == 'SingleShell':
+        elif self.model == 'RC':
+            self.rc_parameters = Parameters()
+            self.rc_parameters = set_parameters(self.rc_parameters, 'rc', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
+        elif self.model == 'SingleShell':
+            if self.electrode_polarization is True:
+                self.cole_cole_parameters = Parameters()
+                self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
+                if self.LogLevel == 'DEBUG':
+                    self.suspension_parameters = Parameters()
+                    self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
             self.single_shell_parameters = Parameters()
             self.single_shell_parameters = set_parameters(self.single_shell_parameters, 'single_shell', self.parameters)
         elif self.model == 'DoubleShell':
+            if self.electrode_polarization is True:
+                self.cole_cole_parameters = Parameters()
+                self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
+                if self.LogLevel == 'DEBUG':
+                    self.suspension_parameters = Parameters()
+                    self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
             self.double_shell_parameters = Parameters()
             self.double_shell_parameters = set_parameters(self.double_shell_parameters, 'double_shell', self.parameters)
 
@@ -301,36 +316,41 @@ class Fitter(object):
         """
         fit the data to the cole_cole_model first (compensation of the electrode polarization) and then to the defined model.
         """
-        if self.electrode_polarization is True or self.model == 'ColeCole':
-            self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
-            if self.LogLevel == 'DEBUG':
-                plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename)
-            if self.compare_CPE is True:
-                suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
-                plot_dielectric_properties(self.omega, self.cole_cole_output, suspension_output)
-            if self.electrode_polarization is True:
-                k_fit = self.cole_cole_output.params.valuesdict()['k']
-                alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
-            emed = self.cole_cole_output.params.valuesdict()['eh']
-        else:
-            k_fit = None
-            alpha_fit = None
-            emed = None
-        if self.model == 'ColeCole':
-            return self.cole_cole_output
+        if self.model == 'RC':
+            fit_output = self.fit_to_rc(self.omega, self.Z)
+        elif self.model == 'ColeCole':
+            fit_output = self.fit_to_cole_cole(self.omega, self.Z)
         # now we need to know k and alpha only
         # fit data to cell model
+        if self.model == 'SingleShell' or self.model == 'DoubleShell':
+            if self.electrode_polarization is True:
+                self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
+                if self.LogLevel == 'DEBUG':
+                    plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename)
+                if self.compare_CPE is True:
+                    suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
+                    plot_dielectric_properties(self.omega, self.cole_cole_output, suspension_output)
+                if self.electrode_polarization is True:
+                    k_fit = self.cole_cole_output.params.valuesdict()['k']
+                    alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
+                emed = self.cole_cole_output.params.valuesdict()['eh']
+            else:
+                k_fit = None
+                alpha_fit = None
+                emed = None
         if self.model == 'SingleShell':
-            single_shell_output = self.fit_to_single_shell(self.omega, self.Z, k_fit, alpha_fit, emed)
-            fit_output = single_shell_output
+            fit_output = self.fit_to_single_shell(self.omega, self.Z, k_fit, alpha_fit, emed)
         elif self.model == 'DoubleShell':
-            double_shell_output = self.fit_to_double_shell(self.omega, self.Z, k_fit, alpha_fit, emed)
-            fit_output = double_shell_output
+            fit_output = self.fit_to_double_shell(self.omega, self.Z, k_fit, alpha_fit, emed)
         if self.LogLevel == 'DEBUG':
             if self.model == 'SingleShell':
-                plot_single_shell(self.omega, self.Z, single_shell_output, filename)
-            else:
-                plot_double_shell(self.omega, self.Z, double_shell_output, filename)
+                plot_single_shell(self.omega, self.Z, fit_output, filename)
+            elif self.model == 'DoubleShell':
+                plot_double_shell(self.omega, self.Z, fit_output, filename)
+            elif self.model == 'RC':
+                plot_rc(self.omega, self.Z, fit_output, filename)
+            elif self.model == 'ColeCole':
+                plot_cole_cole(self.omega, self.Z, fit_output, filename)
         return fit_output
 
     def select_and_solve(self, solvername, residual, params, args):
@@ -340,6 +360,29 @@ class Fitter(object):
         self.solver_kwargs['method'] = solvername
         self.solver_kwargs['args'] = args
         return minimize(residual, params, **self.solver_kwargs)
+
+    #######################################################################
+    #  rc_section
+    def fit_to_rc(self, omega, Z):
+        '''
+        Fit data to RC model.
+        '''
+        logger.debug('####################')
+        logger.debug('fit data to RC model')
+        logger.debug('####################')
+        params = deepcopy(self.rc_parameters)
+        result = None
+        iters = 1
+        for i in range(iters):
+            logger.info("###########\nFitting round {}\n###########".format(i + 1))
+            result = self.select_and_solve(self.solvername, rc_residual, params, args=(omega, Z))
+            logger.info(lmfit.fit_report(result))
+            if self.solvername != "ampgo":
+                logger.info(result.message)
+            else:
+                logger.info(result.ampgo_msg)
+            logger.debug(result.params.pretty_print())
+        return result
 
     #######################################################################
     # suspension model section
@@ -558,6 +601,10 @@ class Fitter(object):
             params = set_parameters(params, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
             self.add_lnsigma(params)
             result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(self.omega, self.Z))
+        elif self.model == 'RC':
+            params = set_parameters(params, 'rc', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
+            self.add_lnsigma(params)
+            result = self.select_and_solve(self.solvername, rc_residual, params, args=(self.omega, self.Z))
         logger.info(lmfit.fit_report(result))
         logger.debug((result.params.pretty_print()))
 
@@ -568,4 +615,6 @@ class Fitter(object):
                 plot_double_shell(self.omega, self.Z, result, filename)
             elif self.model == 'ColeCole':
                 plot_cole_cole(self.omega, self.Z, result, filename)
+            elif self.model == 'RC':
+                plot_rc(self.omega, self.Z, result, filename)
         return result
