@@ -15,6 +15,28 @@ After the fit to one of the models has finished, the calculated values get writt
 
 The following parameters need to be provided in yaml-files:
 
+Units
+-----
+
+Usually, SI units are used.
+However, some parameters have a very small numerical value.
+In this case, different units are used. 
+These parameters are:
+
++-------------------------+------------------+---------+
+| Parameter               | Name in Script   | Unit    |
++=========================+==================+=========+
+| :math:`c_0`             | c0               | pF      |
++-------------------------+------------------+---------+
+| :math:`c_\mathrm{f}`    | cf               | pF      |
++-------------------------+------------------+---------+
+| :math:`C`               | C                | pF      |
++-------------------------+------------------+---------+
+| :math:`L`               | L                | nH      |
++-------------------------+------------------+---------+
+| :math:`\tau`            | tau              | ps      |
++-------------------------+------------------+---------+
+
 
 constants.yaml (or alternatively as input dict)
 -----------------------------------------------

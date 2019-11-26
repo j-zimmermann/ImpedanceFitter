@@ -101,8 +101,8 @@ def double_shell_residual(params, omega, data):
     kmed = params['kmed'].value
     emed = params['emed'].value
     p = params['p'].value
-    c0 = params['c0'].value
-    cf = params['cf'].value
+    c0 = params['c0'].value * 1e-12  # use pF as unit
+    cf = params['cf'].value * 1e-12  # use pF as unit
     dm = params['dm'].value
     Rc = params['Rc'].value
     dn = params['dn'].value
@@ -136,8 +136,8 @@ def plot_double_shell(omega, Z, result, filename):
                         result.params['kmed'],
                         result.params['emed'],
                         result.params['p'],
-                        result.params['c0'],
-                        result.params['cf'],
+                        result.params['c0'] * 1e-12,  # use pF as unit
+                        result.params['cf'] * 1e-12,  # use pF as unit
                         result.params['dm'],
                         result.params['Rc'],
                         result.params['dn'],
@@ -199,8 +199,8 @@ def get_double_shell_impedance(omega, result):
                         result.params['kmed'],
                         result.params['emed'],
                         result.params['p'],
-                        result.params['c0'],
-                        result.params['cf'],
+                        result.params['c0'] * 1e-12,  # use pF as unit
+                        result.params['cf'] * 1e-12,  # use pF as unit
                         result.params['dm'],
                         result.params['Rc'],
                         result.params['dn'],

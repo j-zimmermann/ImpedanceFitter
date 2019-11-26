@@ -36,14 +36,15 @@ def suspension_model(omega, c0, cf, el, tau, a, kdc, eh):
 def suspension_residual(params, omega, data):
     """
     use the plain suspension model and calculate the residual (the difference between data and fitted values)
+    Attention: `c0` and `cf` in terms of pF, `tau` in ps
     """
     el = params['epsi_l'].value
-    tau = params['tau'].value
+    tau = params['tau'].value * 1e-12  # use ps as unit
     a = params['a'].value
     kdc = params['conductivity'].value
     eh = params['eh'].value
-    c0 = params['c0'].value
-    cf = params['cf'].value
+    c0 = params['c0'].value * 1e-12  # use pF as unit
+    cf = params['cf'].value * 1e-12  # use pF as unit
     Z_fit = suspension_model(omega, c0, cf, el, tau, a, kdc, eh)
     residual = (data - Z_fit) / data
     return residual.view(np.float)
@@ -90,14 +91,15 @@ def cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=None, alpha=None, L=No
 def cole_cole_residual(params, omega, data):
     """
     compute difference between data and model.
+    Attention: `c0` and `cf` in terms of pF, `tau` in ps
     """
     el = params['epsi_l'].value
-    tau = params['tau'].value
+    tau = params['tau'].value * 1e-12  # use ps as unit
     a = params['a'].value
     kdc = params['conductivity'].value
     eh = params['eh'].value
-    c0 = params['c0'].value
-    cf = params['cf'].value
+    c0 = params['c0'].value * 1e-12  # use pF as unit
+    cf = params['cf'].value * 1e-12  # use pF as unit
     alpha = None
     k = None
     L = None
@@ -162,10 +164,10 @@ def get_cole_cole_impedance(omega, result):
     The result object contains a dictionary `params` that is processed.
     """
     # calculate fitted Z function
-    popt = np.fromiter([result.params['c0'],
-                       result.params['cf'],
+    popt = np.fromiter([result.params['c0'] * 1e-12,  # use pF as unit
+                       result.params['cf'] * 1e-12,  # use pF as unit
                        result.params['epsi_l'],
-                       result.params['tau'],
+                       result.params['tau'] * 1e-12,  # use ps as unit
                        result.params['a'],
                        result.params['conductivity'],
                        result.params['eh']],

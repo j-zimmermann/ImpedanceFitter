@@ -102,13 +102,13 @@ def plot_dielectric_properties(omega, cole_cole_output, suspension_output):
     '''
     eh = suspension_output.params.valuesdict()['eh']
     el = suspension_output.params.valuesdict()['epsi_l']
-    tau = suspension_output.params.valuesdict()['tau']
+    tau = suspension_output.params.valuesdict()['tau'] * 1e-12  # use ps as unit
     a = suspension_output.params.valuesdict()['a']
     eps_fit = e_sus(omega, eh, el, tau, a)
     eps_r_fit, cond_fit = return_diel_properties(omega, eps_fit)
     eh = cole_cole_output.params.valuesdict()['eh']
     el = cole_cole_output.params.valuesdict()['epsi_l']
-    tau = cole_cole_output.params.valuesdict()['tau']
+    tau = cole_cole_output.params.valuesdict()['tau'] * 1e-12  # use ps as unit
     a = cole_cole_output.params.valuesdict()['a']
     eps_fit_corrected = e_sus(omega, eh, el, tau, a)
     eps_r_fit_corr, cond_fit_corr = return_diel_properties(omega, eps_fit_corrected)

@@ -88,16 +88,18 @@ class Fitter(object):
         Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
     """
 
-    def __init__(self, directory=None, parameters=None, write_output=True, compare_CPE=False, **kwargs):
+    def __init__(self, directory=None, parameters=None, write_output=True, compare_CPE=False, fileList=None, **kwargs):
         self.model = kwargs['model']
         self.solvername = kwargs['solvername']
         self.inputformat = kwargs['inputformat']
         self.write_output = write_output
         self.compare_CPE = compare_CPE
+        self.fileList = fileList
         try:
             self.LogLevel = kwargs['LogLevel']  # log level: choose info for less verbose output
         except KeyError:
             self.LogLevel = 'INFO'
+            pass
         try:
             self.minimumFrequency = kwargs['minimumFrequency']
         except KeyError:
@@ -122,6 +124,7 @@ class Fitter(object):
             self.data_sets = kwargs['data_sets']
         except KeyError:
             self.data_sets = None
+            pass
         if directory is None:
             directory = os.getcwd()
         self.directory = directory + '/'
@@ -187,7 +190,9 @@ class Fitter(object):
         self.protocol = protocol
         if self.write_output is True:
             open('outfile.yaml', 'w')  # create output file
-        for filename in os.listdir(self.directory):
+        if self.fileList is None:
+            self.fileList = os.listdir(self.directory)
+        for filename in self.fileList:
             filename = os.fsdecode(filename)
             if filename.endswith(self.excludeEnding):
                 logger.info("Skipped file {} due to excluded ending.".format(filename))
@@ -202,6 +207,15 @@ class Fitter(object):
                 self.process_fitting_results(filename)
             elif self.inputformat == 'XLSX' and filename.endswith(".xlsx"):
                 self.readin_Data_from_xlsx(filename)
+                iters = len(self.zarray)
+                if self.data_sets is not None:
+                    iters = self.data_sets
+                for i in range(iters):
+                    self.Z = self.zarray[i]
+                    self.fittedValues = self.process_data_from_file(filename)
+                    self.process_fitting_results(filename + ' Row' + str(i))
+            elif self.inputformat == 'CSV' and filename.endswith(".csv"):
+                self.readin_Data_from_csv(filename)
                 iters = len(self.zarray)
                 if self.data_sets is not None:
                     iters = self.data_sets
@@ -230,6 +244,44 @@ class Fitter(object):
         """
         logger.info('going to process excel file: ' + self.directory + filename)
         EIS = pd.read_excel(self.directory + filename)
+        values = EIS.values
+        # filter values,  so that only  the ones in a certain range get taken.
+        filteredvalues = np.empty((0, values.shape[1]))
+        shift = [0.0, 0.0]
+        if self.minimumFrequency is None:
+            self.minimumFrequency = values[0, 0] - 10.  # to make checks work
+            shift[0] = 10.
+        if self.maximumFrequency is None:
+            shift[1] = 10.
+            self.maximumFrequency = values[-1, 0] + 10.  # to make checks work
+        logger.debug("minimumFrequency is {}".format(self.minimumFrequency + shift[0]))
+        logger.debug("maximumFrequency is {}".format(self.maximumFrequency - shift[1]))
+
+        for i in range(values.shape[0]):
+            if(values[i, 0] > self.minimumFrequency):
+                if(values[i, 0] < self.maximumFrequency):
+                    bufdict = values[i]
+                    bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
+                    filteredvalues = np.append(filteredvalues, bufdict, axis=0)
+                else:
+                    break
+        values = filteredvalues
+
+        f = values[:, 0]
+        self.omega = 2. * np.pi * f
+        # construct complex-valued array from float data
+        self.zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
+
+        for i in range(np.int((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
+            self.zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
+
+    def readin_Data_from_csv(self, filename):
+        """
+        read in data that is structured like: frequency, real part of impedance, imaginary part of impedance
+        there may be many different sets of impedance data
+        """
+        logger.info('going to process csv file: ' + self.directory + filename)
+        EIS = pd.read_csv(self.directory + filename)
         values = EIS.values
         # filter values,  so that only  the ones in a certain range get taken.
         filteredvalues = np.empty((0, values.shape[1]))
@@ -552,7 +604,9 @@ class Fitter(object):
         self.lnsigma = lnsigma
         if self.write_output is True:
             open('outfile.yaml', 'w')  # create output file
-        for filename in os.listdir(self.directory):
+        if self.fileList is None:
+            self.fileList = os.listdir(self.directory)
+        for filename in self.fileList:
             filename = os.fsdecode(filename)
             if filename.endswith(self.excludeEnding):
                 logger.info("Skipped file {} due to excluded ending.".format(filename))
@@ -577,8 +631,19 @@ class Fitter(object):
                     self.Z = self.zarray[i]
                     self.fittedValues = self.fit_emcee_models(filename)
                     self.process_fitting_results(filename + ' Row' + str(i))
-                if self.LogLevel == 'DEBUG':
-                    self.emcee_plot(self.fittedValues)
+                    if self.LogLevel == 'DEBUG':
+                        self.emcee_plot(self.fittedValues)
+            elif self.inputformat == 'CSV' and filename.endswith(".csv"):
+                self.readin_Data_from_csv(filename)
+                iters = len(self.zarray)
+                if self.data_sets is not None:
+                    iters = self.data_sets
+                for i in range(iters):
+                    self.Z = self.zarray[i]
+                    self.fittedValues = self.fit_emcee_models(filename)
+                    self.process_fitting_results(filename + ' Row' + str(i))
+                    if self.LogLevel == 'DEBUG':
+                        self.emcee_plot(self.fittedValues)
 
     def add_lnsigma(self, params):
         if self.lnsigma is not None:

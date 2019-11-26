@@ -50,8 +50,8 @@ def rc_residual(params, omega, data):
     """
     kdc = params['conductivity'].value
     eps = params['eps'].value
-    c0 = params['c0'].value
-    cf = params['cf'].value
+    c0 = params['c0'].value * 1e-12  # use pF as unit
+    cf = params['cf'].value * 1e-12  # use pF as unit
     alpha = None
     k = None
     L = None
@@ -62,9 +62,9 @@ def rc_residual(params, omega, data):
     if 'k' in params:
         k = params['k'].value
     if 'L' in params:
-        L = params['L'].value
+        L = params['L'].value * 1e-9  # use nH as units
     if 'C' in params:
-        C = params['C'].value
+        C = params['C'].value * 1e-12  # use pF as units
     if 'R' in params:
         R = params['R'].value
     Z_fit = rc_model(omega, c0, cf, kdc, eps, k=k, alpha=alpha, L=L, C=C, R=R)
@@ -114,10 +114,12 @@ def get_rc_impedance(omega, result):
     """
     Provide the angular frequency as well as the result from the fitting procedure.
     The result object contains a dictionary `params` that is processed.
+
+    Attention: `c0` and `cf` have to be given in pF!!!
     """
     # calculate fitted Z function
-    popt = np.fromiter([result.params['c0'],
-                       result.params['cf'],
+    popt = np.fromiter([result.params['c0'] * 1e-12,  # use pF as unit
+                       result.params['cf'] * 1e-12,  # use pF as unit
                        result.params['conductivity'],
                        result.params['eps']],
                        dtype=np.float)
