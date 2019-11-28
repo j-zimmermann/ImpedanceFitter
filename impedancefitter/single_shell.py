@@ -74,8 +74,8 @@ def single_shell_residual(params, omega, data):
         emed = params['emed'].value
         ecp = params['ecp'].value
         p = params['p']
-        c0 = params['c0']
-        cf = params['cf']
+        c0 = params['c0'] * 1e-12  # use pF as unit
+        cf = params['cf'] * 1e-12  # use pF as unit
         dm = params['dm']
         Rc = params['Rc']
     except KeyError as e:
@@ -146,8 +146,8 @@ def get_single_shell_impedance(omega, result):
                         result.params['kmed'],
                         result.params['emed'],
                         result.params['p'],
-                        result.params['c0'],
-                        result.params['cf'],
+                        result.params['c0'] * 1e-12,  # use pF as unit
+                        result.params['cf'] * 1e-12,  # use pF as unit
                         result.params['dm'],
                         result.params['Rc']
                         ],
