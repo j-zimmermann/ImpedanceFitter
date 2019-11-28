@@ -385,15 +385,13 @@ class Fitter(object):
                 if self.electrode_polarization is True:
                     k_fit = self.cole_cole_output.params.valuesdict()['k']
                     alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
-                emed = self.cole_cole_output.params.valuesdict()['eh']
             else:
                 k_fit = None
                 alpha_fit = None
-                emed = None
         if self.model == 'SingleShell':
-            fit_output = self.fit_to_single_shell(self.omega, self.Z, k_fit, alpha_fit, emed)
+            fit_output = self.fit_to_single_shell(self.omega, self.Z, k_fit, alpha_fit)
         elif self.model == 'DoubleShell':
-            fit_output = self.fit_to_double_shell(self.omega, self.Z, k_fit, alpha_fit, emed)
+            fit_output = self.fit_to_double_shell(self.omega, self.Z, k_fit, alpha_fit)
         if self.LogLevel == 'DEBUG':
             if self.model == 'SingleShell':
                 plot_single_shell(self.omega, self.Z, fit_output, filename)
@@ -490,18 +488,16 @@ class Fitter(object):
 
     #################################################################
     # single_shell_section
-    def fit_to_single_shell(self, omega, Z, k_fit, alpha_fit, emed_fit):
+    def fit_to_single_shell(self, omega, Z, k_fit, alpha_fit):
         '''
         if :attr:`protocol` is `Iterative`, the conductivity of the medium is determined in the first run and then fixed.
-        Attention!!! if no electrode_polarization correction is needed, emed must be in the input dict!!!
         See also: :func:`impedancefitter.single_shell.single_shell_model`
         '''
         params = deepcopy(self.single_shell_parameters)
         if self.electrode_polarization is True:
             params.add('k', vary=False, value=k_fit)
             params.add('alpha', vary=False, value=alpha_fit)
-            params.add('emed', vary=False, value=emed_fit)
-        assert ('emed' in params), "You need to provide emed if you don't use electrode_polarization correction!"
+        assert ('emed' in params), "You need to provide emed!"
         result = None
         iters = 1
         if self.protocol == "Iterative":
@@ -509,10 +505,9 @@ class Fitter(object):
         for i in range(iters):  # we have two iterations
             logger.info("###########\nFitting round {}\n###########".format(i + 1))
             if i == 1:
-                # fix conductivity
+                # fix permittivity and conductivity
                 params['kmed'].set(vary=False, value=result.params.valuesdict()['kmed'])
-                if self.electrode_polarization is not True:
-                    params['emed'].set(vary=False, value=result.params.valuesdict()['emed'])
+                params['emed'].set(vary=False, value=result.params.valuesdict()['emed'])
             result = self.select_and_solve(self.solvername, single_shell_residual, params, args=(omega, Z))
             logger.info(lmfit.fit_report(result))
             if self.solvername != "ampgo":
@@ -524,9 +519,9 @@ class Fitter(object):
 
     ################################################################
     # double_shell_section
-    def fit_to_double_shell(self, omega, Z, k_fit, alpha_fit, emed_fit):
+    def fit_to_double_shell(self, omega, Z, k_fit, alpha_fit):
         r"""
-        k_fit, alpha_fit and emed_fit are the determined values in the cole-cole-fit
+        k_fit and alpha_fit are the determined values in the cole-cole-fit
 
         If :attr:`protocol` is equal to `Iterative`, the following procedure is applied:
 
@@ -549,8 +544,7 @@ class Fitter(object):
         if self.electrode_polarization is True:
             params.add('k', vary=False, value=k_fit)
             params.add('alpha', vary=False, value=alpha_fit)
-            params.add('emed', vary=False, value=emed_fit)
-        assert ('emed' in params), "You need to provide emed if you don't use electrode_polarization correction!"
+        assert ('emed' in params), "You need to provide emed!"
 
         result = None
         iters = 1
@@ -560,8 +554,7 @@ class Fitter(object):
             logger.info("###########\nFitting round {}\n###########".format(i + 1))
             if i == 1:
                 params['kmed'].set(vary=False, value=result.params.valuesdict()['kmed'])
-                if self.electrode_polarization is not True:
-                    params['emed'].set(vary=False, value=result.params.valuesdict()['emed'])
+                params['emed'].set(vary=False, value=result.params.valuesdict()['emed'])
             if i == 2:
                 params['km'].set(vary=False, value=result.params.valuesdict()['km'])
                 params['em'].set(vary=False, value=result.params.valuesdict()['em'])
