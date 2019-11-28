@@ -128,9 +128,9 @@ def get_rc_impedance(omega, result):
         kwargs['k'] = result.params['k']
         kwargs['alpha'] = result.params['alpha']
     if 'L' in result.params:
-        kwargs['L'] = result.params['L']
+        kwargs['L'] = result.params['L'] * 1e-9
     if 'C' in result.params:
-        kwargs['C'] = result.params['C']
+        kwargs['C'] = result.params['C'] * 1e-12
     if 'R' in result.params:
         kwargs['R'] = result.params['R']
     Z_s = rc_model(omega, *popt, **kwargs)
