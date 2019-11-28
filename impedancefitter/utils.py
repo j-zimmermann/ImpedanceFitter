@@ -226,7 +226,7 @@ def parameter_names(model, ep, ind=False, loss=False):
 def get_labels():
     labels = {
         'c0': r'$C_0$',
-        'cf': r'$C_\mathrm{f}',
+        'cf': r'$C_\mathrm{f}$',
         'em': r'$\varepsilon_\mathrm{m}$',
         'km': r'$\sigma_\mathrm{m}$',
         'kcp': r'$\sigma_\mathrm{cp}$',
