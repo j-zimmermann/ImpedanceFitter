@@ -124,7 +124,7 @@ def plot_cole_cole(omega, Z, result, filename):
     """
     plot results of cole-cole model and compare fit to data.
     """
-    Z_fit = get_cole_cole_impedance(omega, result)
+    Z_fit = get_cole_cole_impedance(omega, result.params)
     plt.figure()
     plt.suptitle("Cole-Cole fit plot\n" + str(filename), y=1.05)
     # plot real  Impedance part
@@ -158,29 +158,29 @@ def plot_cole_cole(omega, Z, result, filename):
     plt.show()
 
 
-def get_cole_cole_impedance(omega, result):
+def get_cole_cole_impedance(omega, params):
     """
-    Provide the angular frequency as well as the result from the fitting procedure.
-    The result object contains a dictionary `params` that is processed.
+    Provide the angular frequency as well as the resulting parameters from the fitting procedure.
+    The dictionary `params` is processed.
     """
     # calculate fitted Z function
-    popt = np.fromiter([result.params['c0'] * 1e-12,  # use pF as unit
-                       result.params['cf'] * 1e-12,  # use pF as unit
-                       result.params['epsi_l'],
-                       result.params['tau'] * 1e-12,  # use ps as unit
-                       result.params['a'],
-                       result.params['conductivity'],
-                       result.params['eh']],
+    popt = np.fromiter([params['c0'] * 1e-12,  # use pF as unit
+                       params['cf'] * 1e-12,  # use pF as unit
+                       params['epsi_l'],
+                       params['tau'] * 1e-12,  # use ps as unit
+                       params['a'],
+                       params['conductivity'],
+                       params['eh']],
                        dtype=np.float)
     kwargs = {}
-    if 'k' in result.params and 'alpha' in result.params:
-        kwargs['k'] = result.params['k']
-        kwargs['alpha'] = result.params['alpha']
-    if 'L' in result.params:
-        kwargs['L'] = result.params['L']
-    if 'C' in result.params:
-        kwargs['C'] = result.params['C']
-    if 'R' in result.params:
-        kwargs['R'] = result.params['R']
+    if 'k' in params and 'alpha' in params:
+        kwargs['k'] = params['k']
+        kwargs['alpha'] = params['alpha']
+    if 'L' in params:
+        kwargs['L'] = params['L']
+    if 'C' in params:
+        kwargs['C'] = params['C']
+    if 'R' in params:
+        kwargs['R'] = params['R']
     Z_s = cole_cole_model(omega, *popt, **kwargs)
     return Z_s

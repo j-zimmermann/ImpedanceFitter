@@ -125,29 +125,7 @@ def plot_double_shell(omega, Z, result, filename):
     plot the real and imaginary part of the impedance vs. the frequency and
     real vs. imaginary part
     '''
-    popt = np.fromiter([result.params['km'],
-                        result.params['em'],
-                        result.params['kcp'],
-                        result.params['ecp'],
-                        result.params['ene'],
-                        result.params['kne'],
-                        result.params['knp'],
-                        result.params['enp'],
-                        result.params['kmed'],
-                        result.params['emed'],
-                        result.params['p'],
-                        result.params['c0'] * 1e-12,  # use pF as unit
-                        result.params['cf'] * 1e-12,  # use pF as unit
-                        result.params['dm'],
-                        result.params['Rc'],
-                        result.params['dn'],
-                        result.params['Rn']
-                        ],
-                       dtype=np.float)
-    Z_fit = double_shell_model(omega, *popt)
-    if 'k' in result.params and 'alpha' in result.params:
-        Z_fit = Z_fit + Z_CPE(omega, result.params['k'], result.params['alpha'])
-
+    Z_fit = get_double_shell_impedance(omega, result.params)
     # plot real  Impedance part
     plt.figure()
     plt.suptitle("double shell " + str(filename), y=1.05)
@@ -182,33 +160,33 @@ def plot_double_shell(omega, Z, result, filename):
     plt.show()
 
 
-def get_double_shell_impedance(omega, result):
+def get_double_shell_impedance(omega, params):
     """
     Provide the angular frequency as well as the result from the fitting procedure.
-    The result object contains a dictionary `params` that is processed.
+    The dictionary `params` is processed.
     """
     # calculate fitted Z function
-    popt = np.fromiter([result.params['km'],
-                        result.params['em'],
-                        result.params['kcp'],
-                        result.params['ecp'],
-                        result.params['ene'],
-                        result.params['kne'],
-                        result.params['knp'],
-                        result.params['enp'],
-                        result.params['kmed'],
-                        result.params['emed'],
-                        result.params['p'],
-                        result.params['c0'] * 1e-12,  # use pF as unit
-                        result.params['cf'] * 1e-12,  # use pF as unit
-                        result.params['dm'],
-                        result.params['Rc'],
-                        result.params['dn'],
-                        result.params['Rn']
+    popt = np.fromiter([params['km'],
+                        params['em'],
+                        params['kcp'],
+                        params['ecp'],
+                        params['ene'],
+                        params['kne'],
+                        params['knp'],
+                        params['enp'],
+                        params['kmed'],
+                        params['emed'],
+                        params['p'],
+                        params['c0'] * 1e-12,  # use pF as unit
+                        params['cf'] * 1e-12,  # use pF as unit
+                        params['dm'],
+                        params['Rc'],
+                        params['dn'],
+                        params['Rn']
                         ],
                        dtype=np.float)
 
     Z_s = double_shell_model(omega, *popt)
-    if 'k' in result.params and 'alpha' in result.params:
-        Z_s = Z_s + Z_CPE(omega, result.params['k'], result.params['alpha'])
+    if 'k' in params and 'alpha' in params:
+        Z_s = Z_s + Z_CPE(omega, params['k'], params['alpha'])
     return Z_s

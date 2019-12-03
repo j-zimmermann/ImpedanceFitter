@@ -97,7 +97,7 @@ def plot_single_shell(omega, Z, result, filename):
     plot the real part, imaginary part vs frequency and real vs. imaginary part
     '''
     # calculate fitted Z function
-    Z_fit = get_single_shell_impedance(omega, result)
+    Z_fit = get_single_shell_impedance(omega, result.params)
 
     # plot real  Impedance part
     plt.figure()
@@ -133,27 +133,27 @@ def plot_single_shell(omega, Z, result, filename):
     plt.show()
 
 
-def get_single_shell_impedance(omega, result):
+def get_single_shell_impedance(omega, params):
     """
     Provide the angular frequency as well as the result from the fitting procedure.
-    The result object contains a dictionary `params` that is processed.
+    The dictionary `params` is processed.
     """
     # calculate fitted Z function
-    popt = np.fromiter([result.params['em'],
-                        result.params['km'],
-                        result.params['kcp'],
-                        result.params['ecp'],
-                        result.params['kmed'],
-                        result.params['emed'],
-                        result.params['p'],
-                        result.params['c0'] * 1e-12,  # use pF as unit
-                        result.params['cf'] * 1e-12,  # use pF as unit
-                        result.params['dm'],
-                        result.params['Rc']
+    popt = np.fromiter([params['em'],
+                        params['km'],
+                        params['kcp'],
+                        params['ecp'],
+                        params['kmed'],
+                        params['emed'],
+                        params['p'],
+                        params['c0'] * 1e-12,  # use pF as unit
+                        params['cf'] * 1e-12,  # use pF as unit
+                        params['dm'],
+                        params['Rc']
                         ],
                        dtype=np.float)
 
     Z_s = single_shell_model(omega, *popt)
-    if 'k' in result.params and 'alpha' in result.params:
-        Z_s = Z_s + Z_CPE(omega, result.params['k'], result.params['alpha'])
+    if 'k' in params and 'alpha' in params:
+        Z_s = Z_s + Z_CPE(omega, params['k'], params['alpha'])
     return Z_s
