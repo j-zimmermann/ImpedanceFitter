@@ -153,7 +153,7 @@ class Fitter(object):
         elif self.model == 'SingleShell':
             if self.electrode_polarization_fit is True:
                 self.cole_cole_parameters = Parameters()
-                self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
+                self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization_fit, ind=self.inductivity, loss=self.high_loss)
                 if self.LogLevel == 'DEBUG':
                     self.suspension_parameters = Parameters()
                     self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
@@ -162,7 +162,7 @@ class Fitter(object):
         elif self.model == 'DoubleShell':
             if self.electrode_polarization_fit is True:
                 self.cole_cole_parameters = Parameters()
-                self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
+                self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization_fit, ind=self.inductivity, loss=self.high_loss)
                 if self.LogLevel == 'DEBUG':
                     self.suspension_parameters = Parameters()
                     self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
@@ -381,14 +381,13 @@ class Fitter(object):
         if self.model == 'SingleShell' or self.model == 'DoubleShell':
             if self.electrode_polarization_fit is True:
                 self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
+                k_fit = self.cole_cole_output.params.valuesdict()['k']
+                alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
                 if self.LogLevel == 'DEBUG':
                     plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename)
                 if self.compare_CPE is True:
                     suspension_output = self.fit_to_suspension_model(self.omega, self.Z)
                     plot_dielectric_properties(self.omega, self.cole_cole_output, suspension_output)
-                if self.electrode_polarization is True:
-                    k_fit = self.cole_cole_output.params.valuesdict()['k']
-                    alpha_fit = self.cole_cole_output.params.valuesdict()['alpha']
             else:
                 k_fit = None
                 alpha_fit = None
