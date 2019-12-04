@@ -151,25 +151,25 @@ class Fitter(object):
             self.rc_parameters = Parameters()
             self.rc_parameters = set_parameters(self.rc_parameters, 'rc', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
         elif self.model == 'SingleShell':
-            if self.electrode_polarization is True:
+            if self.electrode_polarization_fit is True:
                 self.cole_cole_parameters = Parameters()
                 self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
                 if self.LogLevel == 'DEBUG':
                     self.suspension_parameters = Parameters()
                     self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
             self.single_shell_parameters = Parameters()
-            self.single_shell_parameters = set_parameters(self.single_shell_parameters, 'single_shell', self.parameters)
+            self.single_shell_parameters = set_parameters(self.single_shell_parameters, 'single_shell', self.parameters, ep=self.electrode_polarization)
         elif self.model == 'DoubleShell':
-            if self.electrode_polarization is True:
+            if self.electrode_polarization_fit is True:
                 self.cole_cole_parameters = Parameters()
                 self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
                 if self.LogLevel == 'DEBUG':
                     self.suspension_parameters = Parameters()
                     self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
             self.double_shell_parameters = Parameters()
-            self.double_shell_parameters = set_parameters(self.double_shell_parameters, 'double_shell', self.parameters)
+            self.double_shell_parameters = set_parameters(self.double_shell_parameters, 'double_shell', self.parameters, ep=self.electrode_polarization)
 
-    def main(self, protocol=None, electrode_polarization=True, inductivity=False, high_loss=False):
+    def main(self, protocol=None, electrode_polarization_fit=False, electrode_polarization=False, inductivity=False, high_loss=False):
         """
         Main function that iterates through all data sets provided.
 
@@ -179,11 +179,15 @@ class Fitter(object):
         protocol: None or string
             Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
 
+        electrode_polarization_fit: True or False
+            Switch on whether to account for electrode polarization or not. Currently, only a CPE correction is possible. If True, a Cole-Cole model is used for fitting.
+
         electrode_polarization: True or False
             Switch on whether to account for electrode polarization or not. Currently, only a CPE correction is possible.
         """
         max_rows_tag = False
         self.electrode_polarization = electrode_polarization
+        self.electrode_polarization_fit = electrode_polarization_fit
         self.inductivity = inductivity
         self.high_loss = high_loss
         self.initialize_parameters()
@@ -375,7 +379,7 @@ class Fitter(object):
         # now we need to know k and alpha only
         # fit data to cell model
         if self.model == 'SingleShell' or self.model == 'DoubleShell':
-            if self.electrode_polarization is True:
+            if self.electrode_polarization_fit is True:
                 self.cole_cole_output = self.fit_to_cole_cole(self.omega, self.Z)
                 if self.LogLevel == 'DEBUG':
                     plot_cole_cole(self.omega, self.Z, self.cole_cole_output, filename)
@@ -494,7 +498,7 @@ class Fitter(object):
         See also: :func:`impedancefitter.single_shell.single_shell_model`
         '''
         params = deepcopy(self.single_shell_parameters)
-        if self.electrode_polarization is True:
+        if self.electrode_polarization_fit is True:
             params.add('k', vary=False, value=k_fit)
             params.add('alpha', vary=False, value=alpha_fit)
         assert ('emed' in params), "You need to provide emed!"
@@ -541,7 +545,7 @@ class Fitter(object):
         logger.debug('fit data to double shell model')
         logger.debug('##############################')
         params = deepcopy(self.double_shell_parameters)
-        if self.electrode_polarization is True:
+        if self.electrode_polarization_fit is True:
             params.add('k', vary=False, value=k_fit)
             params.add('alpha', vary=False, value=alpha_fit)
         assert ('emed' in params), "You need to provide emed!"
