@@ -116,7 +116,7 @@ def double_shell_residual(params, omega, data):
 
     # define the objective function
     # optimize for impedance
-    residual = (data - Z_fit) / data
+    residual = (data - Z_fit)
     return residual.view(np.float)
 
 

@@ -68,7 +68,7 @@ def rc_residual(params, omega, data):
     if 'R' in params:
         R = params['R'].value
     Z_fit = rc_model(omega, c0, cf, kdc, eps, k=k, alpha=alpha, L=L, C=C, R=R)
-    residual = (data - Z_fit) / data
+    residual = (data - Z_fit)
     return residual.view(np.float)
 
 

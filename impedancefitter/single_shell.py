@@ -88,7 +88,7 @@ def single_shell_residual(params, omega, data):
         k = params['k'].value
         alpha = params['alpha'].value
         Z_fit = Z_fit + Z_CPE(omega, k, alpha)  # including EP
-    residual = (data - Z_fit) / data
+    residual = (data - Z_fit)
     return residual.view(np.float)
 
 

@@ -46,7 +46,7 @@ def suspension_residual(params, omega, data):
     c0 = params['c0'].value * 1e-12  # use pF as unit
     cf = params['cf'].value * 1e-12  # use pF as unit
     Z_fit = suspension_model(omega, c0, cf, el, tau, a, kdc, eh)
-    residual = (data - Z_fit) / data
+    residual = (data - Z_fit)
     return residual.view(np.float)
 
 
@@ -116,7 +116,7 @@ def cole_cole_residual(params, omega, data):
     if 'R' in params:
         R = params['R'].value
     Z_fit = cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=k, alpha=alpha, L=L, C=C, R=R)
-    residual = (data - Z_fit) / data
+    residual = (data - Z_fit)
     return residual.view(np.float)
 
 
