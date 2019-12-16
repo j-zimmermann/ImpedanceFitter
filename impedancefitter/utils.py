@@ -185,6 +185,9 @@ def set_parameters(params, modelName, parameterdict, ep=False, ind=False, loss=F
             params[key].set(max=float(bufdict[key]['max']))
         if 'vary' in bufdict[key]:
             params[key].set(vary=bool(bufdict[key]['vary']))
+        if 'expr' in bufdict[key]:
+            params[key].set(expr=str(bufdict[key]['vary']))
+
     return params
 
 
