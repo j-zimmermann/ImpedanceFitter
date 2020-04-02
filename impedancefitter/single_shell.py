@@ -19,7 +19,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from .utils import Z_CPE, compare_to_data
+from .elements import Z_CPE
+from .utils import compare_to_data
 from scipy.constants import epsilon_0 as e0
 
 

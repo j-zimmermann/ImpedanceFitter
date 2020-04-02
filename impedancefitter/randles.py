@@ -20,21 +20,37 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .elements import Z_in, Z_CPE, Z_loss
+from .elements import Z_CPE, Z_in, Z_loss
 from .utils import compare_to_data
-from scipy.constants import epsilon_0 as e0
 
+def Z_randles(omega, R0, Rs, Aw, C0,  L=None, C=None, R=None):
+    r"""
+    function holding the Randles equation with capacitor in parallel to resistor in series with Warburg element
+    and another resistor in series.
+    It returns the calculated impedance
+    Equations for calculations:
 
-def rc_model(omega, c0, cf, kdc, eps, k=None, alpha=None, L=None, C=None, R=None):
+    impedance of resistor and Warburg element:
+
+    .. math::
+
+        Z_\mathrm{RW} = R_0 + A_\mathrm{W} \frac{1 - j}{\sqrt{\omega}}
+
+    impedance of capacitor:
+
+    .. math::
+    
+        Z_C = (j \omega C_0)^{-1}
+    
+    .. math::
+
+        Z_\mathrm{fit} = R_s + \frac{Z_C Z_\mathrm{RW}}{Z_C + Z_\mathrm{RW}}
+
     """
-    Simple RC model
-    """
-    Rd = e0 / (kdc * c0)
-    Cd = eps * c0
-    C = Cd + cf
-    Zs_fit = Rd / (1. + 1j * omega * C * Rd)
-    if k is not None and alpha is not None:
-        Zep_fit = Z_CPE(omega, k, alpha)
+    Z_RW = R0 + Aw * (1. - 1j) / np.sqrt(omega)
+    Z_C = 1. / (1j * omega * C0)
+    Z_par = Z_RW  * Z_C / (Z_RW +  Z_C)
+    Zs_fit = Rs + Z_par 
         Zs_fit = Zs_fit + Zep_fit
     if L is not None:
         if C is None:
@@ -45,41 +61,56 @@ def rc_model(omega, c0, cf, kdc, eps, k=None, alpha=None, L=None, C=None, R=None
     return Zs_fit
 
 
-def rc_residual(params, omega, data):
+def Z_randles_CPE(omega, R0, Rs, Aw, k, alpha, L=None, C=None, R=None):
+    Z_RW = R0 + Aw * (1. - 1j) / np.sqrt(omega)
+    Z_CPE = Z_CPE(omega, k, alpha)
+    Z_par = Z_RW  * Z_CPE / (Z_RW +  Z_CPE)
+    Zs_fit = Rs + Z_par 
+    if L is not None:
+        if C is None:
+            Zin_fit = Z_in(omega, L, R)
+        elif C is not None and R is not None:
+            Zin_fit = Z_loss(omega, L, C, R)
+        Zs_fit = Zs_fit + Zin_fit
+    return Zs_fit
+
+
+def randles_residual(params, omega, data, cpe=False):
     """
-    use the plain suspension model and calculate the residual (the difference between data and fitted values)
+    compute difference between data and model.
     """
-    kdc = params['conductivity'].value
-    eps = params['eps'].value
-    c0 = params['c0'].value * 1e-12  # use pF as unit
-    cf = params['cf'].value * 1e-12  # use pF as unit
-    alpha = None
-    k = None
+    R0 = params['R0'].value
+    Rs = params['Rs'].value
+    Aw = params['Aw'].value
+    
     L = None
     C = None
     R = None
-    if 'alpha' in params:
-        alpha = params['alpha'].value
-    if 'k' in params:
-        k = params['k'].value
     if 'L' in params:
-        L = params['L'].value * 1e-9  # use nH as units
+        L = params['L'].value
     if 'C' in params:
-        C = params['C'].value * 1e-12  # use pF as units
+        C = params['C'].value
     if 'R' in params:
         R = params['R'].value
-    Z_fit = rc_model(omega, c0, cf, kdc, eps, k=k, alpha=alpha, L=L, C=C, R=R)
+
+    if cpe:
+        alpha = params['alpha'].value
+        k = params['k'].value
+        Z_fit = Z_randles_CPE(omega, R0, Rs, Aw, k, alpha, L=L, C=C, R=R)
+    else:
+        C0 = params['C0'].value
+        Z_fit = Z_randles(omega, R0, Rs, Aw, C0, L=L, C=C, R=R)
+
     residual = (data - Z_fit)
     return residual.view(np.float)
 
-
-def plot_rc(omega, Z, result, filename):
+def plot_randles(omega, Z, result, filename, cpe=False):
     """
-    plot results of cole-cole model and compare fit to data.
+    plot results of randles model and compare fit to data.
     """
-    Z_fit = get_rc_impedance(omega, result.params)
+    Z_fit = get_randles_impedance(omega, result.params, cpe=cpe)
     plt.figure()
-    plt.suptitle("RC fit plot\n" + str(filename), y=1.05)
+    plt.suptitle("Randles fit plot\n" + str(filename), y=1.05)
     # plot real  Impedance part
     plt.subplot(221)
     plt.xscale('log')
@@ -111,28 +142,33 @@ def plot_rc(omega, Z, result, filename):
     plt.show()
 
 
-def get_rc_impedance(omega, params):
+def get_randles_impedance(omega, params, cpe=False):
     """
-    Provide the angular frequency as well as the result from the fitting procedure.
+    Provide the angular frequency as well as the resulting parameters from the fitting procedure.
     The dictionary `params` is processed.
-
-    Attention: `c0` and `cf` have to be given in pF!!!
     """
     # calculate fitted Z function
-    popt = np.fromiter([params['c0'] * 1e-12,  # use pF as unit
-                       params['cf'] * 1e-12,  # use pF as unit
-                       params['conductivity'],
-                       params['eps']],
+    tmp = np.fromiter([params['R0'], 
+                       params['Rs'],
+                       params['Aw']],
                        dtype=np.float)
+    if cpe:
+        popt = np.append(tmp, params['k'], params['alpha'])
+    else:
+        popt = np.append(tmp, params['C0'])
+
+
     kwargs = {}
-    if 'k' in params and 'alpha' in params:
-        kwargs['k'] = params['k']
-        kwargs['alpha'] = params['alpha']
     if 'L' in params:
-        kwargs['L'] = params['L'] * 1e-9
+        kwargs['L'] = params['L']
     if 'C' in params:
-        kwargs['C'] = params['C'] * 1e-12
+        kwargs['C'] = params['C']
     if 'R' in params:
         kwargs['R'] = params['R']
-    Z_s = rc_model(omega, *popt, **kwargs)
+
+    if cpe:
+        Z_s = Z_randles_CPE(omega, *popt, **kwargs)
+    else
+        Z_s = Z_randles(omega, *popt, **kwargs)
     return Z_s
+

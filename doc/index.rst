@@ -12,6 +12,8 @@ Welcome to ImpedanceFitter's documentation!
 
    main 
    utils
+   readin
+   elements
    cole_cole
    single_shell
    double_shell

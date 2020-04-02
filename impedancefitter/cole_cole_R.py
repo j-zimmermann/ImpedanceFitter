@@ -20,19 +20,34 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .elements import Z_in, Z_CPE, Z_loss
 from .utils import compare_to_data
-from scipy.constants import epsilon_0 as e0
+from .elements import Z_CPE, Z_loss, Z_in
 
 
-def rc_model(omega, c0, cf, kdc, eps, k=None, alpha=None, L=None, C=None, R=None):
+def cole_cole_R_model(omega, cf, Rinf, R0, tau, a, k=None, alpha=None, L=None, C=None, R=None):
+    r"""
+    function holding the cole_cole_model equations, returning the calculated impedance
+    Equations for calculations:
+
+    .. math::
+
+         Z_\mathrm{ep} = k^{-1} \* j\*\omega^{-\alpha}
+
+    .. math::
+
+        \Z_\mathrm{Cole} = R_\infty + \frac{R_0-R_\infty}{1+(j\*\omega\*\tau)^a}
+
+    .. math::
+
+        Z_\mathrm{fit} = Z_\mathrm{Cole} + Z_\mathrm{ep}
+
     """
-    Simple RC model
-    """
-    Rd = e0 / (kdc * c0)
-    Cd = eps * c0
-    C = Cd + cf
-    Zs_fit = Rd / (1. + 1j * omega * C * Rd)
+    Zs_fit = Rinf + (R0 - Rinf) / (1. + 1j * omega * tau)**a
+    # add influence of stray capacitance if it is greater than 0
+    if not np.isclose(cf, 0.0):
+        # attention!! use pf as units!
+        cf *= 1e-12
+        Zs_fit += 1. / (1j * omega * cf)
     if k is not None and alpha is not None:
         Zep_fit = Z_CPE(omega, k, alpha)
         Zs_fit = Zs_fit + Zep_fit
@@ -45,14 +60,16 @@ def rc_model(omega, c0, cf, kdc, eps, k=None, alpha=None, L=None, C=None, R=None
     return Zs_fit
 
 
-def rc_residual(params, omega, data):
+def cole_cole_R_residual(params, omega, data):
     """
-    use the plain suspension model and calculate the residual (the difference between data and fitted values)
+    compute difference between data and model.
+    Attention: `c0` and `cf` in terms of pF, `tau` in ps
     """
-    kdc = params['conductivity'].value
-    eps = params['eps'].value
-    c0 = params['c0'].value * 1e-12  # use pF as unit
-    cf = params['cf'].value * 1e-12  # use pF as unit
+    Rinf = params['Rinf'].value
+    tau = params['tau'].value * 1e-12  # use ps as unit
+    a = params['a'].value
+    R0 = params['R0'].value
+    cf = params['cf'].value
     alpha = None
     k = None
     L = None
@@ -63,23 +80,23 @@ def rc_residual(params, omega, data):
     if 'k' in params:
         k = params['k'].value
     if 'L' in params:
-        L = params['L'].value * 1e-9  # use nH as units
+        L = params['L'].value
     if 'C' in params:
-        C = params['C'].value * 1e-12  # use pF as units
+        C = params['C'].value
     if 'R' in params:
         R = params['R'].value
-    Z_fit = rc_model(omega, c0, cf, kdc, eps, k=k, alpha=alpha, L=L, C=C, R=R)
+    Z_fit = cole_cole_R_model(omega, cf, Rinf, R0, tau, a, k=k, alpha=alpha, L=L, C=C, R=R)
     residual = (data - Z_fit)
     return residual.view(np.float)
 
 
-def plot_rc(omega, Z, result, filename):
+def plot_cole_cole_R(omega, Z, result, filename):
     """
     plot results of cole-cole model and compare fit to data.
     """
-    Z_fit = get_rc_impedance(omega, result.params)
+    Z_fit = get_cole_cole_R_impedance(omega, result.params)
     plt.figure()
-    plt.suptitle("RC fit plot\n" + str(filename), y=1.05)
+    plt.suptitle("Cole-Cole fit plot\n" + str(filename), y=1.05)
     # plot real  Impedance part
     plt.subplot(221)
     plt.xscale('log')
@@ -111,28 +128,27 @@ def plot_rc(omega, Z, result, filename):
     plt.show()
 
 
-def get_rc_impedance(omega, params):
+def get_cole_cole_R_impedance(omega, params):
     """
-    Provide the angular frequency as well as the result from the fitting procedure.
+    Provide the angular frequency as well as the resulting parameters from the fitting procedure.
     The dictionary `params` is processed.
-
-    Attention: `c0` and `cf` have to be given in pF!!!
     """
     # calculate fitted Z function
-    popt = np.fromiter([params['c0'] * 1e-12,  # use pF as unit
-                       params['cf'] * 1e-12,  # use pF as unit
-                       params['conductivity'],
-                       params['eps']],
+    popt = np.fromiter([params['cf'],
+                        params['Rinf'],
+                        params['R0'],
+                        params['tau'] * 1e-12,  # use ps as unit
+                        params['a']],
                        dtype=np.float)
     kwargs = {}
     if 'k' in params and 'alpha' in params:
         kwargs['k'] = params['k']
         kwargs['alpha'] = params['alpha']
     if 'L' in params:
-        kwargs['L'] = params['L'] * 1e-9
+        kwargs['L'] = params['L']
     if 'C' in params:
-        kwargs['C'] = params['C'] * 1e-12
+        kwargs['C'] = params['C']
     if 'R' in params:
         kwargs['R'] = params['R']
-    Z_s = rc_model(omega, *popt, **kwargs)
+    Z_s = cole_cole_R_model(omega, *popt, **kwargs)
     return Z_s

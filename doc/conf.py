@@ -32,9 +32,10 @@
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
-    'sphinx.ext.todo',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode']
+              'sphinx.ext.todo',
+              'sphinx.ext.mathjax',
+              'sphinx.ext.viewcode',
+              'numpydoc']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -50,7 +51,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'ImpedanceFitter'
-copyright = '2019, Julius Zimmermann, Leonard Thiele'
+copyright = """2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de,
+               2018, 2019, 2020 Julius Zimmermann"""
 author = 'Julius Zimmermann, Leonard Thiele'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -167,6 +169,3 @@ texinfo_documents = [
      author, 'ImpedanceFitter', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-

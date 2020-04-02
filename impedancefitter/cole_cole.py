@@ -20,7 +20,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .utils import Z_in, Z_CPE, e_sus, Z_sus, compare_to_data, Z_loss
+from .elements import Z_in, Z_CPE, e_sus, Z_sus, Z_loss
+from .utils import compare_to_data
 
 
 def suspension_model(omega, c0, cf, el, tau, a, kdc, eh):

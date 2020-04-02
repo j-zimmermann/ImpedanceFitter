@@ -22,17 +22,14 @@ import numpy as np
 
 from .elements import Z_in, Z_CPE, Z_loss
 from .utils import compare_to_data
-from scipy.constants import epsilon_0 as e0
 
 
-def rc_model(omega, c0, cf, kdc, eps, k=None, alpha=None, L=None, C=None, R=None):
+def RC_model(omega, cf, Rd, Cd, k=None, alpha=None, L=None, C=None, R=None):
     """
     Simple RC model
     """
-    Rd = e0 / (kdc * c0)
-    Cd = eps * c0
-    C = Cd + cf
-    Zs_fit = Rd / (1. + 1j * omega * C * Rd)
+    Cfit = Cd + cf
+    Zs_fit = Rd / (1. + 1j * omega * Cfit * Rd)
     if k is not None and alpha is not None:
         Zep_fit = Z_CPE(omega, k, alpha)
         Zs_fit = Zs_fit + Zep_fit
@@ -45,13 +42,12 @@ def rc_model(omega, c0, cf, kdc, eps, k=None, alpha=None, L=None, C=None, R=None
     return Zs_fit
 
 
-def rc_residual(params, omega, data):
+def RC_residual(params, omega, data):
     """
     use the plain suspension model and calculate the residual (the difference between data and fitted values)
     """
-    kdc = params['conductivity'].value
-    eps = params['eps'].value
-    c0 = params['c0'].value * 1e-12  # use pF as unit
+    Rd = params['Rd'].value
+    Cd = params['Cd'].value
     cf = params['cf'].value * 1e-12  # use pF as unit
     alpha = None
     k = None
@@ -68,16 +64,16 @@ def rc_residual(params, omega, data):
         C = params['C'].value * 1e-12  # use pF as units
     if 'R' in params:
         R = params['R'].value
-    Z_fit = rc_model(omega, c0, cf, kdc, eps, k=k, alpha=alpha, L=L, C=C, R=R)
+    Z_fit = RC_model(omega, cf, Rd, Cd, k=k, alpha=alpha, L=L, C=C, R=R)
     residual = (data - Z_fit)
     return residual.view(np.float)
 
 
-def plot_rc(omega, Z, result, filename):
+def plot_RC(omega, Z, result, filename):
     """
     plot results of cole-cole model and compare fit to data.
     """
-    Z_fit = get_rc_impedance(omega, result.params)
+    Z_fit = get_RC_impedance(omega, result.params)
     plt.figure()
     plt.suptitle("RC fit plot\n" + str(filename), y=1.05)
     # plot real  Impedance part
@@ -111,7 +107,7 @@ def plot_rc(omega, Z, result, filename):
     plt.show()
 
 
-def get_rc_impedance(omega, params):
+def get_RC_impedance(omega, params):
     """
     Provide the angular frequency as well as the result from the fitting procedure.
     The dictionary `params` is processed.
@@ -119,10 +115,9 @@ def get_rc_impedance(omega, params):
     Attention: `c0` and `cf` have to be given in pF!!!
     """
     # calculate fitted Z function
-    popt = np.fromiter([params['c0'] * 1e-12,  # use pF as unit
-                       params['cf'] * 1e-12,  # use pF as unit
-                       params['conductivity'],
-                       params['eps']],
+    popt = np.fromiter([params['cf'] * 1e-12,  # use pF as unit
+                       params['Rd'],
+                       params['Cd']],
                        dtype=np.float)
     kwargs = {}
     if 'k' in params and 'alpha' in params:
@@ -134,5 +129,5 @@ def get_rc_impedance(omega, params):
         kwargs['C'] = params['C'] * 1e-12
     if 'R' in params:
         kwargs['R'] = params['R']
-    Z_s = rc_model(omega, *popt, **kwargs)
+    Z_s = RC_model(omega, *popt, **kwargs)
     return Z_s

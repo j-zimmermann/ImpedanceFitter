@@ -23,12 +23,13 @@ import numpy as np
 from lmfit import minimize, Parameters
 import lmfit
 import yaml
-import pandas as pd
 from copy import deepcopy
 from .single_shell import plot_single_shell, single_shell_residual
 from .double_shell import plot_double_shell, double_shell_residual
 from .cole_cole import plot_cole_cole, cole_cole_residual, suspension_residual
+from .cole_cole_R import plot_cole_cole_R, cole_cole_R_residual
 from .rc import plot_rc, rc_residual
+from .RC import plot_RC, RC_residual
 from .utils import set_parameters, plot_dielectric_properties, get_labels
 
 # create logger
@@ -76,6 +77,8 @@ class Fitter(object):
         Contains infos for the solver. find possible kwargs in the lmfit documentation.
     data_sets: {int, optional}
         Use only a certain number of data sets instead of all in directory.
+    current_threshold: {float, optional}
+        use only for data from E4980AL LCR meter to check current
 
     Attributes
     ----------
@@ -127,6 +130,11 @@ class Fitter(object):
             pass
         if directory is None:
             directory = os.getcwd()
+        if 'current_threshold' in kwargs:
+            self.current_threshold = kwargs['current_threshold']
+        else:
+            self.current_threshold = None
+
         self.directory = directory + '/'
         logger.setLevel(self.LogLevel)
 
@@ -147,9 +155,21 @@ class Fitter(object):
             if self.LogLevel == 'DEBUG':
                 self.suspension_parameters = Parameters()
                 self.suspension_parameters = set_parameters(self.suspension_parameters, 'suspension', self.parameters)
+        elif self.model == 'ColeColeR':
+            self.cole_cole_parameters = Parameters()
+            self.cole_cole_parameters = set_parameters(self.cole_cole_parameters, 'cole_cole_r', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
+        elif self.model == 'Randles':
+            self.randles_parameters = Parameters()
+            self.randles_parameters = set_parameters(self.randles_parameters, 'randles', self.parameters, ep=False, ind=self.inductivity, loss=self.high_loss)
+        elif self.model == 'Randles_CPE':
+            self.randles_parameters = Parameters()
+            self.randles_parameters = set_parameters(self.randles_parameters, 'randles_cpe', self.parameters, ep=False, ind=self.inductivity, loss=self.high_loss)
         elif self.model == 'RC':
             self.rc_parameters = Parameters()
             self.rc_parameters = set_parameters(self.rc_parameters, 'rc', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
+        elif self.model == 'RC_full':
+            self.RC_parameters = Parameters()
+            self.RC_parameters = set_parameters(self.RC_parameters, 'RC', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
         elif self.model == 'SingleShell':
             if self.electrode_polarization_fit is True:
                 self.cole_cole_parameters = Parameters()
@@ -227,95 +247,15 @@ class Fitter(object):
                     self.Z = self.zarray[i]
                     self.fittedValues = self.process_data_from_file(filename)
                     self.process_fitting_results(filename + ' Row' + str(i))
-
-    def get_max_rows(self, filename):
-        '''
-        determines the number of actual data rows in TXT files.
-        '''
-        txt_file = open(self.directory + filename)
-        for num, line in enumerate(txt_file, 1):
-            if self.trace_b in line:
-                max_rows = num - self.skiprows_txt - self.skiprows_trace
-                break
-        txt_file.close()
-        logger.debug('number of rows per trace is: ' + str(max_rows))
-        return max_rows
-
-    def readin_Data_from_xlsx(self, filename):
-        """
-        read in data that is structured like: frequency, real part of impedance, imaginary part of impedance
-        there may be many different sets of impedance data
-        """
-        logger.info('going to process excel file: ' + self.directory + filename)
-        EIS = pd.read_excel(self.directory + filename)
-        values = EIS.values
-        # filter values,  so that only  the ones in a certain range get taken.
-        filteredvalues = np.empty((0, values.shape[1]))
-        shift = [0.0, 0.0]
-        if self.minimumFrequency is None:
-            self.minimumFrequency = values[0, 0] - 10.  # to make checks work
-            shift[0] = 10.
-        if self.maximumFrequency is None:
-            shift[1] = 10.
-            self.maximumFrequency = values[-1, 0] + 10.  # to make checks work
-        logger.debug("minimumFrequency is {}".format(self.minimumFrequency + shift[0]))
-        logger.debug("maximumFrequency is {}".format(self.maximumFrequency - shift[1]))
-
-        for i in range(values.shape[0]):
-            if(values[i, 0] > self.minimumFrequency):
-                if(values[i, 0] < self.maximumFrequency):
-                    bufdict = values[i]
-                    bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
-                    filteredvalues = np.append(filteredvalues, bufdict, axis=0)
-                else:
-                    break
-        values = filteredvalues
-
-        f = values[:, 0]
-        self.omega = 2. * np.pi * f
-        # construct complex-valued array from float data
-        self.zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
-
-        for i in range(np.int((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
-            self.zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
-
-    def readin_Data_from_csv(self, filename):
-        """
-        read in data that is structured like: frequency, real part of impedance, imaginary part of impedance
-        there may be many different sets of impedance data
-        """
-        logger.info('going to process csv file: ' + self.directory + filename)
-        EIS = pd.read_csv(self.directory + filename)
-        values = EIS.values
-        # filter values,  so that only  the ones in a certain range get taken.
-        filteredvalues = np.empty((0, values.shape[1]))
-        shift = [0.0, 0.0]
-        if self.minimumFrequency is None:
-            self.minimumFrequency = values[0, 0] - 10.  # to make checks work
-            shift[0] = 10.
-        if self.maximumFrequency is None:
-            shift[1] = 10.
-            self.maximumFrequency = values[-1, 0] + 10.  # to make checks work
-        logger.debug("minimumFrequency is {}".format(self.minimumFrequency + shift[0]))
-        logger.debug("maximumFrequency is {}".format(self.maximumFrequency - shift[1]))
-
-        for i in range(values.shape[0]):
-            if(values[i, 0] > self.minimumFrequency):
-                if(values[i, 0] < self.maximumFrequency):
-                    bufdict = values[i]
-                    bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
-                    filteredvalues = np.append(filteredvalues, bufdict, axis=0)
-                else:
-                    break
-        values = filteredvalues
-
-        f = values[:, 0]
-        self.omega = 2. * np.pi * f
-        # construct complex-valued array from float data
-        self.zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
-
-        for i in range(np.int((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
-            self.zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
+            elif self.inputformat == 'CSV_E4980AL' and filename.endswith(".csv"):
+                self.readin_Data_from_csv_E4980AL(filename)
+                iters = len(self.zarray)
+                if self.data_sets is not None:
+                    iters = self.data_sets
+                for i in range(iters):
+                    self.Z = self.zarray[i]
+                    self.fittedValues = self.process_data_from_file(filename)
+                    self.process_fitting_results(filename)
 
     def process_fitting_results(self, filename):
         '''
@@ -324,10 +264,10 @@ class Fitter(object):
         values = dict(self.fittedValues.params.valuesdict())
         for key in values:
             values[key] = float(values[key])  # conversion into python native type
-        data = {str(filename): values}
+        self.data = {str(filename): values}
         if self.write_output is True:
             outfile = open('outfile.yaml', 'a')  # append to the already existing file, or create it, if ther is no file
-            yaml.dump(data, outfile)
+            yaml.dump(self.data, outfile)
 
     def prepare_txt(self):
         """
@@ -374,8 +314,12 @@ class Fitter(object):
         """
         if self.model == 'RC':
             fit_output = self.fit_to_rc(self.omega, self.Z)
+        elif self.model == 'RC_full':
+            fit_output = self.fit_to_RC(self.omega, self.Z)
         elif self.model == 'ColeCole':
             fit_output = self.fit_to_cole_cole(self.omega, self.Z)
+        elif self.model == 'ColeColeR':
+            fit_output = self.fit_to_cole_cole_r(self.omega, self.Z)
         # now we need to know k and alpha only
         # fit data to cell model
         if self.model == 'SingleShell' or self.model == 'DoubleShell':
@@ -402,8 +346,12 @@ class Fitter(object):
                 plot_double_shell(self.omega, self.Z, fit_output, filename)
             elif self.model == 'RC':
                 plot_rc(self.omega, self.Z, fit_output, filename)
+            elif self.model == 'RC_full':
+                plot_RC(self.omega, self.Z, fit_output, filename)
             elif self.model == 'ColeCole':
                 plot_cole_cole(self.omega, self.Z, fit_output, filename)
+            elif self.model == 'ColeColeR':
+                plot_cole_cole_R(self.omega, self.Z, fit_output, filename)
         return fit_output
 
     def select_and_solve(self, solvername, residual, params, args):
@@ -429,6 +377,27 @@ class Fitter(object):
         for i in range(iters):
             logger.info("###########\nFitting round {}\n###########".format(i + 1))
             result = self.select_and_solve(self.solvername, rc_residual, params, args=(omega, Z))
+            logger.info(lmfit.fit_report(result))
+            if self.solvername != "ampgo":
+                logger.info(result.message)
+            else:
+                logger.info(result.ampgo_msg)
+            logger.debug(result.params.pretty_print())
+        return result
+
+    def fit_to_RC(self, omega, Z):
+        '''
+        Fit data to full RC model without known c0.
+        '''
+        logger.debug('#########################')
+        logger.debug('fit data to full RC model')
+        logger.debug('#########################')
+        params = deepcopy(self.RC_parameters)
+        result = None
+        iters = 1
+        for i in range(iters):
+            logger.info("###########\nFitting round {}\n###########".format(i + 1))
+            result = self.select_and_solve(self.solvername, RC_residual, params, args=(omega, Z))
             logger.info(lmfit.fit_report(result))
             if self.solvername != "ampgo":
                 logger.info(result.message)
@@ -481,6 +450,30 @@ class Fitter(object):
                 params['conductivity'].set(vary=False, value=result.params['conductivity'].value)
                 params['eh'].set(vary=False, value=result.params['eh'].value)
             result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(omega, Z))
+            logger.info(lmfit.fit_report(result))
+            if self.solvername != "ampgo":
+                logger.info(result.message)
+            else:
+                logger.info(result.ampgo_msg)
+            logger.debug(result.params.pretty_print())
+        return result
+
+    def fit_to_cole_cole_r(self, omega, Z):
+        '''
+        Fit data to cole-cole model.
+
+        The initial parameters and boundaries for the variables are read from the .yaml file in the directory of the python script.
+        see also: :func:`impedancefitter.cole_cole.cole_cole_model`
+        '''
+        logger.debug('###################################################')
+        logger.debug('fit data to cole-cole model in resistor formulation')
+        logger.debug('###################################################')
+        params = deepcopy(self.cole_cole_parameters)
+        result = None
+        iters = 1
+        for i in range(iters):
+            logger.info("###########\nFitting round {}\n###########".format(i + 1))
+            result = self.select_and_solve(self.solvername, cole_cole_R_residual, params, args=(omega, Z))
             logger.info(lmfit.fit_report(result))
             if self.solvername != "ampgo":
                 logger.info(result.message)
@@ -640,6 +633,17 @@ class Fitter(object):
                     self.process_fitting_results(filename + ' Row' + str(i))
                     if self.LogLevel == 'DEBUG':
                         self.emcee_plot(self.fittedValues)
+            elif self.inputformat == 'CSV_E4980AL' and filename.endswith(".csv"):
+                self.readin_Data_from_csv_E4980AL(filename)
+                iters = len(self.zarray)
+                if self.data_sets is not None:
+                    iters = self.data_sets
+                for i in range(iters):
+                    self.Z = self.zarray[i]
+                    self.fittedValues = self.fit_emcee_models(filename)
+                    self.process_fitting_results(filename)
+                    if self.LogLevel == 'DEBUG':
+                        self.emcee_plot(self.fittedValues)
 
     def add_lnsigma(self, params):
         if self.lnsigma is not None:
@@ -662,10 +666,18 @@ class Fitter(object):
             params = set_parameters(params, 'cole_cole', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
             self.add_lnsigma(params)
             result = self.select_and_solve(self.solvername, cole_cole_residual, params, args=(self.omega, self.Z))
+        elif self.model == 'ColeColeR':
+            params = set_parameters(params, 'cole_cole_r', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
+            self.add_lnsigma(params)
+            result = self.select_and_solve(self.solvername, cole_cole_R_residual, params, args=(self.omega, self.Z))
         elif self.model == 'RC':
             params = set_parameters(params, 'rc', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
             self.add_lnsigma(params)
             result = self.select_and_solve(self.solvername, rc_residual, params, args=(self.omega, self.Z))
+        elif self.model == 'RC_full':
+            params = set_parameters(params, 'RC', self.parameters, ep=self.electrode_polarization, ind=self.inductivity, loss=self.high_loss)
+            self.add_lnsigma(params)
+            result = self.select_and_solve(self.solvername, RC_residual, params, args=(self.omega, self.Z))
         logger.info(lmfit.fit_report(result))
         logger.debug((result.params.pretty_print()))
 
@@ -676,6 +688,10 @@ class Fitter(object):
                 plot_double_shell(self.omega, self.Z, result, filename)
             elif self.model == 'ColeCole':
                 plot_cole_cole(self.omega, self.Z, result, filename)
+            elif self.model == 'ColeColeR':
+                plot_cole_cole_R(self.omega, self.Z, result, filename)
             elif self.model == 'RC':
                 plot_rc(self.omega, self.Z, result, filename)
+            elif self.model == 'RC_full':
+                plot_RC(self.omega, self.Z, result, filename)
         return result

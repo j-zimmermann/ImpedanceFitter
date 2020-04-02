@@ -1,7 +1,7 @@
 #    The ImpedanceFitter is a package that provides means to fit impedance spectra to theoretical models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -22,4 +22,4 @@ from .single_shell import get_single_shell_impedance
 from .double_shell import get_double_shell_impedance
 from .cole_cole import get_cole_cole_impedance
 from .rc import get_rc_impedance
-from .utils import parameter_names, get_labels
+from .utils import parameter_names, get_labels, available_models, model_information

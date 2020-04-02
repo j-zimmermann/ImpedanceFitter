@@ -19,7 +19,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.constants import epsilon_0 as e0
-from .utils import compare_to_data, Z_CPE
+from .utils import compare_to_data
+from .elements import Z_CPE
 
 
 def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, cf, dm, Rc, dn, Rn):
