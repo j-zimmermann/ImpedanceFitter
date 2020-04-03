@@ -1,7 +1,7 @@
 #    The ImpedanceFitter is a package that provides means to fit impedance spectra to theoretical models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,41 +17,10 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import matplotlib.pyplot as plt
-import numpy as np
-
 from .elements import Z_in, Z_CPE, e_sus, Z_sus, Z_loss
-from .utils import compare_to_data
 
 
-def suspension_model(omega, c0, cf, el, tau, a, kdc, eh):
-    """
-    Simple suspension model using :func:`impedancefitter.utils.Z_sus`
-    """
-    es = e_sus(omega, eh, el, tau, a)
-    Zs_fit = Z_sus(omega, es, kdc, c0, cf)
-    Z_fit = Zs_fit
-    return Z_fit
-
-
-def suspension_residual(params, omega, data):
-    """
-    use the plain suspension model and calculate the residual (the difference between data and fitted values)
-    Attention: `c0` and `cf` in terms of pF, `tau` in ps
-    """
-    el = params['epsi_l'].value
-    tau = params['tau'].value * 1e-12  # use ps as unit
-    a = params['a'].value
-    kdc = params['conductivity'].value
-    eh = params['eh'].value
-    c0 = params['c0'].value * 1e-12  # use pF as unit
-    cf = params['cf'].value * 1e-12  # use pF as unit
-    Z_fit = suspension_model(omega, c0, cf, el, tau, a, kdc, eh)
-    residual = (data - Z_fit)
-    return residual.view(np.float)
-
-
-def cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=None, alpha=None, L=None, C=None, R=None):
+def cole_cole_model(omega, c0, el, tau, a, kdc, eh, k=None, alpha=None, L=None, C=None, R=None, cf=None):
     r"""
     function holding the cole_cole_model equations, returning the calculated impedance
     Equations for calculations:
@@ -75,8 +44,12 @@ def cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=None, alpha=None, L=No
     find more details in formula 6 and 7 of https://ieeexplore.ieee.org/document/6191683
 
     """
+    tau *= 1e-12  # use ps as unit
+    c0 *= 1e-12  # use pF as unit
+    if cf is not None:
+        cf *= 1e-12  # use pF as unit
     es = e_sus(omega, eh, el, tau, a)
-    Zs_fit = Z_sus(omega, es, kdc, c0, cf)
+    Zs_fit = Z_sus(omega, es, kdc, c0)
     if k is not None and alpha is not None:
         Zep_fit = Z_CPE(omega, k, alpha)
         Zs_fit = Zs_fit + Zep_fit
@@ -87,101 +60,3 @@ def cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=None, alpha=None, L=No
             Zin_fit = Z_loss(omega, L, C, R)
         Zs_fit = Zs_fit + Zin_fit
     return Zs_fit
-
-
-def cole_cole_residual(params, omega, data):
-    """
-    compute difference between data and model.
-    Attention: `c0` and `cf` in terms of pF, `tau` in ps
-    """
-    el = params['epsi_l'].value
-    tau = params['tau'].value * 1e-12  # use ps as unit
-    a = params['a'].value
-    kdc = params['conductivity'].value
-    eh = params['eh'].value
-    c0 = params['c0'].value * 1e-12  # use pF as unit
-    cf = params['cf'].value * 1e-12  # use pF as unit
-    alpha = None
-    k = None
-    L = None
-    C = None
-    R = None
-    if 'alpha' in params:
-        alpha = params['alpha'].value
-    if 'k' in params:
-        k = params['k'].value
-    if 'L' in params:
-        L = params['L'].value
-    if 'C' in params:
-        C = params['C'].value
-    if 'R' in params:
-        R = params['R'].value
-    Z_fit = cole_cole_model(omega, c0, cf, el, tau, a, kdc, eh, k=k, alpha=alpha, L=L, C=C, R=R)
-    residual = (data - Z_fit)
-    return residual.view(np.float)
-
-
-def plot_cole_cole(omega, Z, result, filename):
-    """
-    plot results of cole-cole model and compare fit to data.
-    """
-    Z_fit = get_cole_cole_impedance(omega, result.params)
-    plt.figure()
-    plt.suptitle("Cole-Cole fit plot\n" + str(filename), y=1.05)
-    # plot real  Impedance part
-    plt.subplot(221)
-    plt.xscale('log')
-    plt.title("Z real part")
-    plt.ylabel(r"$\Re(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label='fitted')
-    plt.plot(omega / (2. * np.pi), Z.real, 'r', label='data')
-    plt.legend()
-    # plot imaginaray Impedance part
-    plt.subplot(222)
-    plt.title("Z imaginary part")
-    plt.xscale('log')
-    plt.ylabel(r"$\Im(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label='fitted')
-    plt.plot(omega / (2. * np.pi), Z.imag, 'r', label='data')
-    plt.legend()
-    # plot real vs  imaginary Part
-    plt.subplot(223)
-    plt.title("real vs imag")
-    plt.ylabel(r"$\Im(Z) [\Omega]$")
-    plt.xlabel(r"$\Re(Z) [\Omega]$")
-    plt.plot(Z_fit.real, Z_fit.imag, '+', label="fit")
-    plt.plot(Z.real, Z.imag, 'o', label="data")
-    plt.legend()
-    compare_to_data(omega, Z, Z_fit, filename, subplot=224)
-    plt.tight_layout()
-    plt.show()
-
-
-def get_cole_cole_impedance(omega, params):
-    """
-    Provide the angular frequency as well as the resulting parameters from the fitting procedure.
-    The dictionary `params` is processed.
-    """
-    # calculate fitted Z function
-    popt = np.fromiter([params['c0'] * 1e-12,  # use pF as unit
-                       params['cf'] * 1e-12,  # use pF as unit
-                       params['epsi_l'],
-                       params['tau'] * 1e-12,  # use ps as unit
-                       params['a'],
-                       params['conductivity'],
-                       params['eh']],
-                       dtype=np.float)
-    kwargs = {}
-    if 'k' in params and 'alpha' in params:
-        kwargs['k'] = params['k']
-        kwargs['alpha'] = params['alpha']
-    if 'L' in params:
-        kwargs['L'] = params['L']
-    if 'C' in params:
-        kwargs['C'] = params['C']
-    if 'R' in params:
-        kwargs['R'] = params['R']
-    Z_s = cole_cole_model(omega, *popt, **kwargs)
-    return Z_s

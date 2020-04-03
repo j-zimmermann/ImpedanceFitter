@@ -17,13 +17,11 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 import logging
 from scipy.constants import epsilon_0 as e0
 from collections import Counter
-from lmfit import Parameters
 from .elements import Z_C
 
 logger = logging.getLogger('impedancefitter-logger')
@@ -61,46 +59,6 @@ def add_stray_capacitance(omega, Zdut, cf):
         Zstray = Z_C(omega, cf)
 
     return (Zdut * Zstray) / (Zdut + Zstray)
-
-
-def compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, save=False):
-    '''
-    plots the relative difference of the fitted function to the data
-
-    Parameters
-    ----------
-    omega: double or ndarray of double
-        frequency array
-    Z: complex or array of complex
-        impedance array, experimental data or data to compare to
-    Z_fit: complex or array of complex
-        impedance array, fit result
-    subplot: optional
-        decide whether it is a new figure or a subplot. Default is None (yields new figure). Otherwise it can be an integer to denote the subfigure.
-    title: str, optional
-        title of plot. Default is an empty string.
-    show: bool, optional
-        show figure (default is True). Only has an effect when `subplot` is None.
-    save: bool, optional
-        save figure to pdf (default is False). Name of figure starts with `title`.
-    '''
-    if subplot is None:
-        plt.figure()
-    else:
-        show = False
-        plt.subplot(subplot)
-    plt.xscale('log')
-    plt.title(str(title) + "relative difference to data")
-    plt.xlabel('frequency [Hz]')
-    plt.ylabel('rel. difference to data [%]')
-    plt.plot(omega / (2. * np.pi), 100. * np.abs((Z.real - Z_fit.real) / Z.real), 'g', label='rel .difference real part')
-    plt.plot(omega / (2. * np.pi), 100. * np.abs((Z.imag - Z_fit.imag) / Z.imag), 'r', label='rel. difference imag part')
-    plt.plot(omega / (2. * np.pi), 100. * np.abs((Z - Z_fit) / Z), 'b', label='rel. difference absolute value')
-    plt.legend()
-    if save:
-        plt.savefig(str(title) + "_relative difference to data.pdf")
-    if show:
-        plt.show()
 
 
 def return_diel_properties(omega, Z, c0):
@@ -142,68 +100,16 @@ def return_diel_properties(omega, Z, c0):
     return eps_r, conductivity
 
 
-def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, save=False):
-    '''
-    Parameters
-    ----------
-
-    omega: double or ndarray of double
-        frequency array
-    Z: complex or array of complex
-        impedance array
-    c0: double
-        unit capacitance of device
-    Z_comp: optional
-        complex-valued impedance array. Might be used to compare the properties of two data sets.
-    title: str, optional
-        title of plot. Default is an empty string.
-    show: bool, optional
-        show figure (default is True)
-    save: bool, optional
-        save figure to pdf (default is False). Name of figure starts with `title`.
-
-    '''
-    eps_r, cond_fit = return_diel_properties(omega, Z, c0)
-    if Z_comp is not None:
-        eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
-    plt.figure()
-    plt.suptitle('dielectric properties', y=1.05)
-    plt.subplot(211)
-    plt.title("relative permittivity")
-    plt.ylabel("relative permittivity")
-    plt.xlabel('frequency [Hz]')
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.plot(omega / (2. * np.pi), eps_r, label="Z_1")
-    if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), eps_r2, label="Z_2")
-        plt.legend()
-
-    plt.subplot(212)
-    plt.title("conductivity")
-    plt.ylabel("conductivity [S/m]")
-    plt.xlabel('frequency [Hz]')
-    plt.xscale('log')
-    plt.plot(omega / (2. * np.pi), cond_fit, label="Z_1")
-    if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), cond_fit2, label="Z_2")
-        plt.legend()
-    plt.tight_layout()
-    if save:
-        plt.savefig(str(title) + "_dielectric_properties.pdf")
-    if show:
-        plt.show()
-
-
-def set_parameters(modelName, parameterdict=None, ep_cpe=False, ind=False, loss=False, stray=False):
+def set_parameters(model, parameterdict=None, emcee=False):
     """
     Parameters
     -----------
 
-    modelName: string
-        name of the model. must be one of those listed in :func:`available_models`
+    model: string
+        LMFIT model object.
     parameterdict: optional
         a dictionary containing parameters for model with *min*, *max*, *vary* info for LMFIT.
+        If it is None (default), the parameters are read in from a yaml-file.
     ep_cpe: bool, optional
         switch on electrode polarization correction by CPE
     ind: bool, optional
@@ -212,6 +118,8 @@ def set_parameters(modelName, parameterdict=None, ep_cpe=False, ind=False, loss=
         switch on correction of inductive effects by LCR model for high loss materials
     stray: bool, optional
         switch on stray capacitance
+    emcee: bool, optional
+        if emcee is used, an additional `__lnsigma` parameter will be set
 
 
     Returns:
@@ -220,7 +128,7 @@ def set_parameters(modelName, parameterdict=None, ep_cpe=False, ind=False, loss=
     params: Parameters
         LMFIT `Parameters`.
     """
-
+    modelName = model._name
     if parameterdict is None:
         try:
             infile = open(modelName + '_input.yaml', 'r')
@@ -232,23 +140,23 @@ def set_parameters(modelName, parameterdict=None, ep_cpe=False, ind=False, loss=
             bufdict = parameterdict[modelName]
         except KeyError:
             logger.error("Your parameterdict lacks an entry for the model: " + modelName)
-    # create empty lmfit parameters
-    params = Parameters()
-    bufdict = _clean_parameters(bufdict, modelName, ep_cpe, ind, loss)
-    for key in parameter_names(modelName, ep_cpe=ep_cpe, ind=ind, loss=loss, stray=stray):
-        params.add(key, value=float(bufdict[key]['value']))
+
+    bufdict = _clean_parameters(bufdict, modelName, model.param_names, emcee)
+    for key in model.param_names:
+        kwargs = {}
         if 'min' in bufdict[key]:
-            params[key].set(min=float(bufdict[key]['min']))
+            kwargs['min'] = float(bufdict[key]['min'])
         if 'max' in bufdict[key]:
-            params[key].set(max=float(bufdict[key]['max']))
+            kwargs['max'] = float(bufdict[key]['max'])
         if 'vary' in bufdict[key]:
-            params[key].set(vary=bool(bufdict[key]['vary']))
+            kwargs['vary'] = bool(bufdict[key]['vary'])
         if 'expr' in bufdict[key]:
-            params[key].set(expr=str(bufdict[key]['vary']))
-    return params
+            kwargs['expr'] = str(bufdict[key]['vary'])
+        model.set_param_hint(key, **kwargs)
+    return model.make_params()
 
 
-def _clean_parameters(params, modelName, ep, ind, loss):
+def _clean_parameters(params, modelName, names, emcee):
     """
     clean parameter dicts that are passed to the fitter.
     get rid of parameters that are not needed.
@@ -259,16 +167,22 @@ def _clean_parameters(params, modelName, ep, ind, loss):
         input dictionary
     modelName: string
         name of model corresponding to the ones listed
+    names: list of strings
+        names of model parameters
     """
-    names = parameter_names(modelName, ep, ind, loss)
     for p in list(params.keys()):
         if p not in names:
             del params[p]
+    if emcee and '__lnsigma' not in params:
+        logger.warning("""You did not provide the parameter '__lnsigma'.
+                          It is needed for the emcee of unweighted data (as implemented here).
+                          Use for example the lmfit default:\n
+                          value=np.log(0.1), min=np.log(0.001), max=np.log(2)""")
     assert Counter(names) == Counter(params.keys()), "You need to provide the following parameters " + str(names)
     return params
 
 
-def parameter_names(model, ep_cpe=False, ind=False, loss=False, stray=False):
+def parameter_names(model, ep_cpe=False, ind=False, loss=False, stray=False, emcee=False):
     """
     Get the right order of parameters for a certain model.
     Is needed to pass the parameters properly to each model function call.
@@ -292,23 +206,21 @@ def parameter_names(model, ep_cpe=False, ind=False, loss=False, stray=False):
         List of parameters needed for model
 
     """
-    if model == 'cole_cole':
-        names = ['c0', 'epsi_l', 'tau', 'a', 'conductivity', 'eh']
-    elif model == 'cole_cole_r':
+    if model == 'ColeCole':
+        names = ['c0', 'el', 'tau', 'a', 'kdc', 'eh']
+    elif model == 'ColeColeR':
         names = ['Rinf', 'R0', 'tau', 'a']
-    elif model == 'randles':
+    elif model == 'Randles':
         names = ['Rinf', 'R0', 'tau', 'a']
-    elif model == 'randles_cpe':
+    elif model == 'Randles_CPE':
         names = ['Rinf', 'R0', 'tau', 'a']
-    elif model == 'rc':
-        names = ['c0', 'conductivity', 'eps']
     elif model == 'RC':
+        names = ['c0', 'conductivity', 'eps']
+    elif model == 'RC_full':
         names = ['Rd', 'Cd']
-    elif model == 'suspension':
-        names = ['cf', 'epsi_l', 'tau', 'a', 'conductivity', 'eh']
-    elif model == 'single_shell':
+    elif model == 'SingleShell':
         names = ['c0', 'em', 'km', 'kcp', 'ecp', 'kmed', 'emed', 'p', 'dm', 'Rc']
-    elif model == 'double_shell':
+    elif model == 'DoubleShell':
         names = ['c0', 'em', 'km', 'kcp', 'ecp', 'kmed', 'emed',
                  'p', 'dm', 'Rc', 'ene', 'kne', 'knp', 'enp', 'dn', 'Rn']
     else:
@@ -321,6 +233,8 @@ def parameter_names(model, ep_cpe=False, ind=False, loss=False, stray=False):
         names.extend(['L', 'C', 'R'])
     if stray is True:
         names.extend(['cf'])
+    if emcee is True:
+        names.extend(['__lnsigma'])
     return names
 
 
@@ -354,11 +268,11 @@ def get_labels():
         'dn': r'$d_\mathrm{n}$',
         'Rn': r'$R_\mathrm{n}$',
         'k': r'$\kappa$',
-        'epsi_l': r'$\varepsilon_\mathrm{l}$',
+        'el': r'$\varepsilon_\mathrm{l}$',
         'tau': r'$\tau$',
         'a': r'$a$',
         'alpha': r'$\alpha$',
-        'conductivity': r'$\sigma_\mathrm{DC}$',
+        'kdc': r'$\sigma_\mathrm{DC}$',
         'eh': r'$\varepsilon_\mathrm{h}$',
         '__lnsigma': r'$\ln\sigma$',
         'L': r'$L$',
@@ -373,79 +287,18 @@ def get_labels():
     return labels
 
 
-def plot_results(omega, Z, Z_fit, title, show=True, save=False):
-    """
-    Plot the `result` and compare it to data `Z`.
-    Generates 4 subplots showing the real and imaginary parts over
-    the frequency; a Nyquist plot of real and negative imaginary part
-    and the relative differences of real and imaginary part as well as absolute value of impedance.
-
-    Parameters
-    ----------
-    omega: double or ndarray of double
-        frequency array
-    Z: complex or array of complex
-        impedance array, experimental data or data to compare to
-    Z_fit: complex or array of complex
-        impedance array, fit result
-    title: str
-        title of plot
-    show: bool, optional
-        show figure (default is True)
-    save: bool, optional
-        save figure to pdf (default is False). Name of figure starts with `title`.
-
-    """
-
-    plt.figure()
-    plt.suptitle(title, y=1.05)
-    # plot real part of impedance
-    plt.subplot(221)
-    plt.xscale('log')
-    plt.title("impedance real part")
-    plt.ylabel(r"$\Re(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label='fitted')
-    plt.plot(omega / (2. * np.pi), Z.real, 'r', label='data')
-    plt.legend()
-    # plot imaginary part of impedance
-    plt.subplot(222)
-    plt.title("impedance imaginary part")
-    plt.xscale('log')
-    plt.ylabel(r"$\Im(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label='fitted')
-    plt.plot(omega / (2. * np.pi), Z.imag, 'r', label='data')
-    plt.legend()
-    # plot real vs negative imaginary part
-    plt.subplot(223)
-    plt.title("Nyquist plot")
-    plt.ylabel(r"$-\Im(Z) [\Omega]$")
-    plt.xlabel(r"$\Re(Z) [\Omega]$")
-    plt.plot(Z_fit.real, Z_fit.imag, '+', label="fit")
-    plt.plot(Z.real, Z.imag, 'o', label="data")
-    plt.legend()
-    compare_to_data(omega, Z, Z_fit, title, subplot=224)
-    plt.tight_layout()
-    if save:
-        plt.savefig(str(title) + "_results_overview.pdf")
-    if show:
-        plt.show()
-
-
 def available_models():
     """
     return list of available models
     """
-    models = ['cole_cole',
-              'cole_cole_r',
-              'randles',
-              'randles_cpe',
-              'rc',
+    models = ['ColeCole',
+              'ColeColeR',
+              'Randles',
+              'Randles_CPE',
+              'RC_full',
               'RC',
-              'suspension',
-              'single_shell',
-              'double_shell']
+              'SingleShell',
+              'DoubleShell']
     return models
 
 
@@ -466,24 +319,22 @@ def model_information(model):
         Update documentation here.
 
     """
-    information = {'cole_cole': """ Cole-Cole model as implemented in paper with DOI:10.1063/1.4737121.
+    information = {'ColeCole': """ Cole-Cole model as implemented in paper with DOI:10.1063/1.4737121.
                                     You need to provide the unit capacitance of your device to get the dielectric properties of
                                     the Cole-Cole model. """,
-                   'cole_cole_r': """ Standard Cole-Cole circuit as given in paper with DOI:10.1016/b978-1-4832-3111-2.50008-0.
+                   'ColeColeR': """ Standard Cole-Cole circuit as given in paper with DOI:10.1016/b978-1-4832-3111-2.50008-0.
                                       Implemented in :func:impedancefitter.cole_cole_R.co """,
-                   'randles': """
+                   'Randles': """
                                 """,
-                   'randles_cpe': """
+                   'Randles_CPE': """
                                 """,
-                   'rc': """
+                   'RC_full': """
                    """,
                    'RC': """
                    """,
-                   'suspension': """
+                   'SingleShell': """
                    """,
-                   'single_shell': """
-                   """,
-                   'double_shell': """
+                   'DoubleShell': """
                    """}
 
     if model in information:

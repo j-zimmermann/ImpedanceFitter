@@ -18,8 +18,5 @@
 
 from .main import Fitter
 from .postprocess import PostProcess
-from .single_shell import get_single_shell_impedance
-from .double_shell import get_double_shell_impedance
-from .cole_cole import get_cole_cole_impedance
-from .rc import get_rc_impedance
 from .utils import parameter_names, get_labels, available_models, model_information
+from .plotting import plot_compare_to_data, plot_results, plot_dielectric_properties

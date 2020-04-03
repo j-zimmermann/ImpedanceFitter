@@ -17,14 +17,11 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import numpy as np
-import matplotlib.pyplot as plt
-from .elements import Z_CPE
-from .utils import compare_to_data
+from .elements import Z_CPE, Z_in, Z_loss
 from scipy.constants import epsilon_0 as e0
 
 
-def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, cf, dm, Rc):
+def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, cf, dm, Rc, k=None, alpha=None, L=None, C=None, R=None):
     r"""
     Equations for the single-shell-model( :math:`\nu_1` is calculated like in the double-shell-model):
 
@@ -44,7 +41,11 @@ def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, cf, dm, Rc):
 
         E_0  = \frac{\varepsilon_\mathrm{cell}^*}{\varepsilon_\mathrm{med}^*}
 
+    .. todo::
+        needs to be checked
     """
+    c0 *= 1e-12  # use pF as unit
+    cf *= 1e-12  # use pF as unit
 
     v1 = (1. - dm / Rc)**3
 
@@ -59,102 +60,15 @@ def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, cf, dm, Rc):
     E0 = epsi_cell / epsi_med
     esus = epsi_med * (2. * (1. - p) + (1. + 2. * p) * E0) / ((2. + p) + (1. - p) * E0)
     Ys = 1j * esus * omega * c0 + 1j * omega * cf  # cell suspension admittance spectrum
-    Zs = 1 / Ys
-    return Zs
+    Zs_fit = 1 / Ys
+    if k is not None and alpha is not None:
+        Zep_fit = Z_CPE(omega, k, alpha)
+        Zs_fit = Zs_fit + Zep_fit
+    if L is not None:
+        if C is None:
+            Zin_fit = Z_in(omega, L, R)
+        elif C is not None and R is not None:
+            Zin_fit = Z_loss(omega, L, C, R)
+        Zs_fit = Zs_fit + Zin_fit
 
-
-def single_shell_residual(params, omega, data):
-    '''
-    calculates the residual for the single-shell model, using the single_shell_model.
-    '''
-    try:
-        em = params['em'].value
-        km = params['km'].value
-        kcp = params['kcp'].value
-        kmed = params['kmed'].value
-        emed = params['emed'].value
-        ecp = params['ecp'].value
-        p = params['p']
-        c0 = params['c0'] * 1e-12  # use pF as unit
-        cf = params['cf'] * 1e-12  # use pF as unit
-        dm = params['dm']
-        Rc = params['Rc']
-    except KeyError as e:
-        print(str(e))
-        print("You must have forgotten one of the following parameters:\n",
-              "em, km, kcp, kmed, emed, ecp, p, c0, cf, Rc")
-
-    Z_fit = single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, cf, dm, Rc)
-    if 'k' in params and 'alpha' in params:
-        k = params['k'].value
-        alpha = params['alpha'].value
-        Z_fit = Z_fit + Z_CPE(omega, k, alpha)  # including EP
-    residual = (data - Z_fit)
-    return residual.view(np.float)
-
-
-def plot_single_shell(omega, Z, result, filename):
-    '''
-    plot the real part, imaginary part vs frequency and real vs. imaginary part
-    '''
-    # calculate fitted Z function
-    Z_fit = get_single_shell_impedance(omega, result.params)
-
-    # plot real  Impedance part
-    plt.figure()
-    plt.suptitle("single shell " + str(filename), y=1.05)
-    plt.subplot(221)
-    plt.xscale('log')
-    plt.title("Z real part")
-    plt.ylabel(r"$\Re(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label='fitted')
-    plt.plot(omega / (2. * np.pi), Z.real, 'r', label='data')
-    plt.legend()
-    # plot imaginaray Impedance part
-    plt.subplot(222)
-    plt.title("Z imag part")
-    plt.ylabel(r"$\Im(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-    plt.xscale('log')
-    plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label='fitted')
-    plt.plot(omega / (2. * np.pi), Z.imag, 'r', label='data')
-    plt.legend()
-    # plot real vs  imaginary Partr
-    plt.subplot(223)
-    plt.title("real vs imag")
-    plt.xlabel(r"$\Re(Z) [\Omega]$")
-    plt.ylabel(r"$\Im(Z) [\Omega]$")
-
-    plt.plot(Z_fit.real, Z_fit.imag, '+', label="fit")
-    plt.plot(Z.real, Z.imag, 'o', label="data")
-    plt.legend()
-    compare_to_data(omega, Z, Z_fit, filename, subplot=224)
-    plt.tight_layout()
-    plt.show()
-
-
-def get_single_shell_impedance(omega, params):
-    """
-    Provide the angular frequency as well as the result from the fitting procedure.
-    The dictionary `params` is processed.
-    """
-    # calculate fitted Z function
-    popt = np.fromiter([params['em'],
-                        params['km'],
-                        params['kcp'],
-                        params['ecp'],
-                        params['kmed'],
-                        params['emed'],
-                        params['p'],
-                        params['c0'] * 1e-12,  # use pF as unit
-                        params['cf'] * 1e-12,  # use pF as unit
-                        params['dm'],
-                        params['Rc']
-                        ],
-                       dtype=np.float)
-
-    Z_s = single_shell_model(omega, *popt)
-    if 'k' in params and 'alpha' in params:
-        Z_s = Z_s + Z_CPE(omega, params['k'], params['alpha'])
-    return Z_s
+    return Zs_fit

@@ -16,10 +16,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import matplotlib.pyplot as plt
-import numpy as np
 from scipy.constants import epsilon_0 as e0
-from .utils import compare_to_data
 from .elements import Z_CPE
 
 
@@ -61,7 +58,11 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
 
             \nu_\mathrm{3} = \left(1-\frac{d_\mathrm{n}}{R_\mathrm{n}}\right)^3
 
+    .. todo::
+        needs to be checked
     """
+    c0 *= 1e-12
+    cf *= 1e-12
     v1 = (1. - dm / Rc)**3
     v2 = (Rn / (Rc - dm))**3
     v3 = (1. - dn / Rn)**3
@@ -85,109 +86,3 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
     Ys = 1j * esus * omega * c0 + 1j * omega * cf  # cell suspension admittance spectrum
     Zs = 1 / Ys
     return Zs
-
-
-def double_shell_residual(params, omega, data):
-    '''
-    data is Z
-    '''
-    km = params['km'].value
-    em = params['em'].value
-    kcp = params['kcp'].value
-    ecp = params['ecp'].value
-    ene = params['ene'].value
-    kne = params['kne'].value
-    knp = params['knp'].value
-    enp = params['enp'].value
-    kmed = params['kmed'].value
-    emed = params['emed'].value
-    p = params['p'].value
-    c0 = params['c0'].value * 1e-12  # use pF as unit
-    cf = params['cf'].value * 1e-12  # use pF as unit
-    dm = params['dm'].value
-    Rc = params['Rc'].value
-    dn = params['dn'].value
-    Rn = params['Rn'].value
-
-    Z_fit = double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, cf, dm, Rc, dn, Rn)
-    if 'k' in params and 'alpha' in params:
-        k = params['k'].value
-        alpha = params['alpha'].value
-        Z_fit = Z_fit + Z_CPE(omega, k, alpha)  # including EP
-
-    # define the objective function
-    # optimize for impedance
-    residual = (data - Z_fit)
-    return residual.view(np.float)
-
-
-def plot_double_shell(omega, Z, result, filename):
-    '''
-    plot the real and imaginary part of the impedance vs. the frequency and
-    real vs. imaginary part
-    '''
-    Z_fit = get_double_shell_impedance(omega, result.params)
-    # plot real  Impedance part
-    plt.figure()
-    plt.suptitle("double shell " + str(filename), y=1.05)
-    plt.subplot(221)
-    plt.xscale('log')
-    plt.title("Z real part")
-    plt.ylabel(r"$\Re(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-
-    plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label='fitted')
-    plt.plot(omega / (2. * np.pi), Z.real, 'r', label='data')
-    plt.legend()
-    # plot imaginaray Impedance part
-    plt.subplot(222)
-    plt.title("Z imag part")
-    plt.xscale('log')
-    plt.ylabel(r"$\Im(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label='fitted')
-    plt.plot(omega / (2. * np.pi), Z.imag, 'r', label='data')
-    plt.legend()
-    # plot real vs  imaginary Partr
-    plt.subplot(223)
-    plt.title("real vs imag")
-    plt.xlabel(r"$\Re(Z) [\Omega]$")
-    plt.ylabel(r"$\Im(Z) [\Omega]$")
-    plt.plot(Z_fit.real, Z_fit.imag, '+', label="fit")
-    plt.plot(Z.real, Z.imag, 'o', label="data")
-    plt.legend()
-    compare_to_data(omega, Z, Z_fit, filename, subplot=224)
-    plt.tight_layout()
-    plt.show()
-
-
-def get_double_shell_impedance(omega, params):
-    """
-    Provide the angular frequency as well as the result from the fitting procedure.
-    The dictionary `params` is processed.
-    """
-    # calculate fitted Z function
-    popt = np.fromiter([params['km'],
-                        params['em'],
-                        params['kcp'],
-                        params['ecp'],
-                        params['ene'],
-                        params['kne'],
-                        params['knp'],
-                        params['enp'],
-                        params['kmed'],
-                        params['emed'],
-                        params['p'],
-                        params['c0'] * 1e-12,  # use pF as unit
-                        params['cf'] * 1e-12,  # use pF as unit
-                        params['dm'],
-                        params['Rc'],
-                        params['dn'],
-                        params['Rn']
-                        ],
-                       dtype=np.float)
-
-    Z_s = double_shell_model(omega, *popt)
-    if 'k' in params and 'alpha' in params:
-        Z_s = Z_s + Z_CPE(omega, params['k'], params['alpha'])
-    return Z_s

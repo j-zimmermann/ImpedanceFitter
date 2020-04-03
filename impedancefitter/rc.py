@@ -17,11 +17,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import matplotlib.pyplot as plt
-import numpy as np
-
 from .elements import Z_in, Z_CPE, Z_loss
-from .utils import compare_to_data
 from scipy.constants import epsilon_0 as e0
 
 
@@ -43,96 +39,3 @@ def rc_model(omega, c0, cf, kdc, eps, k=None, alpha=None, L=None, C=None, R=None
             Zin_fit = Z_loss(omega, L, C, R)
         Zs_fit = Zs_fit + Zin_fit
     return Zs_fit
-
-
-def rc_residual(params, omega, data):
-    """
-    use the plain suspension model and calculate the residual (the difference between data and fitted values)
-    """
-    kdc = params['conductivity'].value
-    eps = params['eps'].value
-    c0 = params['c0'].value * 1e-12  # use pF as unit
-    cf = params['cf'].value * 1e-12  # use pF as unit
-    alpha = None
-    k = None
-    L = None
-    C = None
-    R = None
-    if 'alpha' in params:
-        alpha = params['alpha'].value
-    if 'k' in params:
-        k = params['k'].value
-    if 'L' in params:
-        L = params['L'].value * 1e-9  # use nH as units
-    if 'C' in params:
-        C = params['C'].value * 1e-12  # use pF as units
-    if 'R' in params:
-        R = params['R'].value
-    Z_fit = rc_model(omega, c0, cf, kdc, eps, k=k, alpha=alpha, L=L, C=C, R=R)
-    residual = (data - Z_fit)
-    return residual.view(np.float)
-
-
-def plot_rc(omega, Z, result, filename):
-    """
-    plot results of cole-cole model and compare fit to data.
-    """
-    Z_fit = get_rc_impedance(omega, result.params)
-    plt.figure()
-    plt.suptitle("RC fit plot\n" + str(filename), y=1.05)
-    # plot real  Impedance part
-    plt.subplot(221)
-    plt.xscale('log')
-    plt.title("Z real part")
-    plt.ylabel(r"$\Re(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label='fitted')
-    plt.plot(omega / (2. * np.pi), Z.real, 'r', label='data')
-    plt.legend()
-    # plot imaginaray Impedance part
-    plt.subplot(222)
-    plt.title("Z imaginary part")
-    plt.xscale('log')
-    plt.ylabel(r"$\Im(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label='fitted')
-    plt.plot(omega / (2. * np.pi), Z.imag, 'r', label='data')
-    plt.legend()
-    # plot real vs  imaginary Part
-    plt.subplot(223)
-    plt.title("real vs imag")
-    plt.ylabel(r"$\Im(Z) [\Omega]$")
-    plt.xlabel(r"$\Re(Z) [\Omega]$")
-    plt.plot(Z_fit.real, Z_fit.imag, '+', label="fit")
-    plt.plot(Z.real, Z.imag, 'o', label="data")
-    plt.legend()
-    compare_to_data(omega, Z, Z_fit, filename, subplot=224)
-    plt.tight_layout()
-    plt.show()
-
-
-def get_rc_impedance(omega, params):
-    """
-    Provide the angular frequency as well as the result from the fitting procedure.
-    The dictionary `params` is processed.
-
-    Attention: `c0` and `cf` have to be given in pF!!!
-    """
-    # calculate fitted Z function
-    popt = np.fromiter([params['c0'] * 1e-12,  # use pF as unit
-                       params['cf'] * 1e-12,  # use pF as unit
-                       params['conductivity'],
-                       params['eps']],
-                       dtype=np.float)
-    kwargs = {}
-    if 'k' in params and 'alpha' in params:
-        kwargs['k'] = params['k']
-        kwargs['alpha'] = params['alpha']
-    if 'L' in params:
-        kwargs['L'] = params['L'] * 1e-9
-    if 'C' in params:
-        kwargs['C'] = params['C'] * 1e-12
-    if 'R' in params:
-        kwargs['R'] = params['R']
-    Z_s = rc_model(omega, *popt, **kwargs)
-    return Z_s

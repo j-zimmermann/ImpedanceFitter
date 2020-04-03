@@ -178,7 +178,7 @@ def _get_max_rows(filepath, trace_b, skiprows_txt, skiprows_trace):
     return max_rows
 
 
-def readin_Data_from_file(filepath, skiprows_txt, skiprows_trace, trace_b, minimumFrequency=None, maximumFrequency=None):
+def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace, trace_b, minimumFrequency=None, maximumFrequency=None):
     """
     Data from txt files get reads in, returns array with omega and complex-valued impedance Z.
     The TXT files may contain two traces; only one of them is read in.
