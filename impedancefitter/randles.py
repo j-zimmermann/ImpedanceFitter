@@ -17,12 +17,15 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-#import numpy as np
+import numpy as np
+from .utils import add_additions
+from .elements import Z_CPE
+import logging
 
-#from .elements import Z_CPE, Z_in, Z_loss
+logger = logging.getLogger('impedancefitter-logger')
 
-r'''
-def Z_randles(omega, R0, Rs, Aw, C0,  L=None, C=None, R=None):
+
+def Z_randles(omega, R0, Rs, Aw, C0, k=None, alpha=None, L=None, C=None, R=None, cf=None):
     r"""
     function holding the Randles equation with capacitor in parallel to resistor in series with Warburg element
     and another resistor in series.
@@ -38,9 +41,9 @@ def Z_randles(omega, R0, Rs, Aw, C0,  L=None, C=None, R=None):
     impedance of capacitor:
 
     .. math::
-    
+
         Z_C = (j \omega C_0)^{-1}
-    
+
     .. math::
 
         Z_\mathrm{fit} = R_s + \frac{Z_C Z_\mathrm{RW}}{Z_C + Z_\mathrm{RW}}
@@ -48,28 +51,19 @@ def Z_randles(omega, R0, Rs, Aw, C0,  L=None, C=None, R=None):
     """
     Z_RW = R0 + Aw * (1. - 1j) / np.sqrt(omega)
     Z_C = 1. / (1j * omega * C0)
-    Z_par = Z_RW  * Z_C / (Z_RW +  Z_C)
-    Zs_fit = Rs + Z_par 
-        Zs_fit = Zs_fit + Zep_fit
-    if L is not None:
-        if C is None:
-            Zin_fit = Z_in(omega, L, R)
-        elif C is not None and R is not None:
-            Zin_fit = Z_loss(omega, L, C, R)
-        Zs_fit = Zs_fit + Zin_fit
-    return Zs_fit
+    Z_par = Z_RW * Z_C / (Z_RW + Z_C)
+    Zs_fit = Rs + Z_par
+    if k is not None or alpha is not None:
+        logger.warning("""This model cannot be combined with an electrode polarization correction.
+                          The parameters k and alpha will have no effect here.""")
+    Z_fit = add_additions(omega, Zs_fit, None, None, L, C, R, cf)
+    return Z_fit
 
 
-def Z_randles_CPE(omega, R0, Rs, Aw, k, alpha, L=None, C=None, R=None):
+def Z_randles_CPE(omega, R0, Rs, Aw, k, alpha, L=None, C=None, R=None, cf=None):
     Z_RW = R0 + Aw * (1. - 1j) / np.sqrt(omega)
-    Z_CPE = Z_CPE(omega, k, alpha)
-    Z_par = Z_RW  * Z_CPE / (Z_RW +  Z_CPE)
-    Zs_fit = Rs + Z_par 
-    if L is not None:
-        if C is None:
-            Zin_fit = Z_in(omega, L, R)
-        elif C is not None and R is not None:
-            Zin_fit = Z_loss(omega, L, C, R)
-        Zs_fit = Zs_fit + Zin_fit
-    return Zs_fit
-'''
+    Z_cpe = Z_CPE(omega, k, alpha)
+    Z_par = Z_RW * Z_cpe / (Z_RW + Z_cpe)
+    Zs_fit = Rs + Z_par
+    Z_fit = add_additions(omega, Zs_fit, None, None, L, C, R, cf)
+    return Z_fit

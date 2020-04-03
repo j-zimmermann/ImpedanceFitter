@@ -17,11 +17,11 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from .elements import Z_CPE, Z_in, Z_loss
+from .utils import add_additions
 from scipy.constants import epsilon_0 as e0
 
 
-def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, cf, dm, Rc, k=None, alpha=None, L=None, C=None, R=None):
+def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc, k=None, alpha=None, L=None, C=None, R=None, cf=None):
     r"""
     Equations for the single-shell-model( :math:`\nu_1` is calculated like in the double-shell-model):
 
@@ -45,7 +45,6 @@ def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, cf, dm, Rc, k
         needs to be checked
     """
     c0 *= 1e-12  # use pF as unit
-    cf *= 1e-12  # use pF as unit
 
     v1 = (1. - dm / Rc)**3
 
@@ -59,16 +58,8 @@ def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, cf, dm, Rc, k
     # electrode polarization and calculation of Z
     E0 = epsi_cell / epsi_med
     esus = epsi_med * (2. * (1. - p) + (1. + 2. * p) * E0) / ((2. + p) + (1. - p) * E0)
-    Ys = 1j * esus * omega * c0 + 1j * omega * cf  # cell suspension admittance spectrum
+    Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
     Zs_fit = 1 / Ys
-    if k is not None and alpha is not None:
-        Zep_fit = Z_CPE(omega, k, alpha)
-        Zs_fit = Zs_fit + Zep_fit
-    if L is not None:
-        if C is None:
-            Zin_fit = Z_in(omega, L, R)
-        elif C is not None and R is not None:
-            Zin_fit = Z_loss(omega, L, C, R)
-        Zs_fit = Zs_fit + Zin_fit
 
-    return Zs_fit
+    Z_fit = add_additions(omega, Zs_fit, k, alpha, L, C, R, cf)
+    return Z_fit

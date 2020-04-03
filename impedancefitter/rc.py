@@ -17,8 +17,8 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from .elements import Z_in, Z_CPE, Z_loss
 from scipy.constants import epsilon_0 as e0
+from .utils import add_additions
 
 
 def rc_model(omega, c0, cf, kdc, eps, k=None, alpha=None, L=None, C=None, R=None):
@@ -27,15 +27,7 @@ def rc_model(omega, c0, cf, kdc, eps, k=None, alpha=None, L=None, C=None, R=None
     """
     Rd = e0 / (kdc * c0)
     Cd = eps * c0
-    C = Cd + cf
+    C = Cd
     Zs_fit = Rd / (1. + 1j * omega * C * Rd)
-    if k is not None and alpha is not None:
-        Zep_fit = Z_CPE(omega, k, alpha)
-        Zs_fit = Zs_fit + Zep_fit
-    if L is not None:
-        if C is None:
-            Zin_fit = Z_in(omega, L, R)
-        elif C is not None and R is not None:
-            Zin_fit = Z_loss(omega, L, C, R)
-        Zs_fit = Zs_fit + Zin_fit
-    return Zs_fit
+    Z_fit = add_additions(omega, Zs_fit, k, alpha, L, C, R, cf)
+    return Z_fit

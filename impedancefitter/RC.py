@@ -17,22 +17,14 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from .elements import Z_in, Z_CPE, Z_loss
+from .utils import add_additions
 
 
-def RC_model(omega, cf, Rd, Cd, k=None, alpha=None, L=None, C=None, R=None):
+def RC_model(omega, Rd, Cd, k=None, alpha=None, L=None, C=None, R=None, cf=None):
     """
     Simple RC model
     """
-    Cfit = Cd + cf
+    Cfit = Cd
     Zs_fit = Rd / (1. + 1j * omega * Cfit * Rd)
-    if k is not None and alpha is not None:
-        Zep_fit = Z_CPE(omega, k, alpha)
-        Zs_fit = Zs_fit + Zep_fit
-    if L is not None:
-        if C is None:
-            Zin_fit = Z_in(omega, L, R)
-        elif C is not None and R is not None:
-            Zin_fit = Z_loss(omega, L, C, R)
-        Zs_fit = Zs_fit + Zin_fit
-    return Zs_fit
+    Z_fit = add_additions(omega, Zs_fit, k, alpha, L, C, R, cf)
+    return Z_fit

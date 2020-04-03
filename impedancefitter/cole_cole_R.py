@@ -17,12 +17,10 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import numpy as np
-
-from .elements import Z_CPE, Z_loss, Z_in
+from .utils import add_additions
 
 
-def cole_cole_R_model(omega, cf, Rinf, R0, tau, a, k=None, alpha=None, L=None, C=None, R=None):
+def cole_cole_R_model(omega, Rinf, R0, tau, a, k=None, alpha=None, L=None, C=None, R=None, cf=None):
     r"""
     function holding the cole_cole_model equations, returning the calculated impedance
     Equations for calculations:
@@ -42,18 +40,5 @@ def cole_cole_R_model(omega, cf, Rinf, R0, tau, a, k=None, alpha=None, L=None, C
     """
     tau *= 1e-12  # use ps as unit
     Zs_fit = Rinf + (R0 - Rinf) / (1. + 1j * omega * tau)**a
-    # add influence of stray capacitance if it is greater than 0
-    if not np.isclose(cf, 0.0):
-        # attention!! use pf as units!
-        cf *= 1e-12
-        Zs_fit += 1. / (1j * omega * cf)
-    if k is not None and alpha is not None:
-        Zep_fit = Z_CPE(omega, k, alpha)
-        Zs_fit = Zs_fit + Zep_fit
-    if L is not None:
-        if C is None:
-            Zin_fit = Z_in(omega, L, R)
-        elif C is not None and R is not None:
-            Zin_fit = Z_loss(omega, L, C, R)
-        Zs_fit = Zs_fit + Zin_fit
-    return Zs_fit
+    Z_fit = add_additions(omega, Zs_fit, k, alpha, L, C, R, cf)
+    return Z_fit

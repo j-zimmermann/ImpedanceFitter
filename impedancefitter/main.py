@@ -22,7 +22,14 @@ import os
 import lmfit
 import yaml
 from copy import deepcopy
+
 from .cole_cole import cole_cole_model
+from .cole_cole_R import cole_cole_R_model
+from .double_shell import double_shell_model
+from .randles import Z_randles, Z_randles_CPE
+from .rc import rc_model
+from .RC import RC_model
+from .single_shell import single_shell_model
 from .utils import set_parameters, parameter_names
 from .readin import readin_Data_from_TXT_file, readin_Data_from_collection, readin_Data_from_csv_E4980AL
 from .plotting import plot_results
@@ -198,8 +205,25 @@ class Fitter(object):
         return set_parameters(model, parameterdict=self.parameters, emcee=self.emcee_tag)
 
     def initialize_model(self, modelname):
+
         if modelname == 'ColeCole':
             model = cole_cole_model
+        elif modelname == 'ColeColeR':
+            model = cole_cole_R_model
+        elif modelname == 'Randles':
+            model = Z_randles
+        elif modelname == 'Randles_CPE':
+            model = Z_randles_CPE
+        elif modelname == 'RC_full':
+            model = RC_model
+        elif modelname == 'RC':
+            model = rc_model
+        elif modelname == 'SingleShell':
+            model = single_shell_model
+        elif modelname == 'DoubleShell':
+            model = double_shell_model
+        else:
+            raise NotImplementedError("Model not implemented")
 
         param_names = parameter_names(modelname, ep_cpe=self.electrode_polarization, ind=self.inductivity,
                                       loss=self.high_loss, stray=self.stray)
@@ -245,8 +269,13 @@ class Fitter(object):
                 logger.info("Skipped file {} due to excluded ending.".format(filename))
                 continue
             self.read_data(filename)
+
+            iters = 1
+
             # determine number of iterations if more than 1 data set is in file
-            iters = len(self.zarray)
+            if len(self.zarray.shape) > 1:
+                iters = self.zarray.shape[1]
+                logger.debug("Iters:" + str(iters))
             if self.data_sets is not None:
                 iters = self.data_sets
             for i in range(iters):

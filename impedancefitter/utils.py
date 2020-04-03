@@ -22,9 +22,36 @@ import yaml
 import logging
 from scipy.constants import epsilon_0 as e0
 from collections import Counter
-from .elements import Z_C
+from .elements import Z_C, Z_CPE, Z_in, Z_loss
 
 logger = logging.getLogger('impedancefitter-logger')
+
+
+def add_additions(omega, Zs_fit, k, alpha, L, C, R, cf):
+    """
+    .. todo::
+        documentation
+    """
+
+    # add first CPE
+    if k is not None and alpha is not None:
+        Zep_fit = Z_CPE(omega, k, alpha)
+        Zs_fit = Zs_fit + Zep_fit
+
+    # then stray capacitance, which is always in parallel to input
+    # and electrode polarization impedance
+    if cf is not None:
+        Zs_fit = add_stray_capacitance(omega, Zs_fit, cf)
+
+    # then add the influence of the wiring
+    if L is not None:
+        if C is None:
+            Zin_fit = Z_in(omega, L, R)
+        elif C is not None and R is not None:
+            Zin_fit = Z_loss(omega, L, C, R)
+        Zs_fit = Zs_fit + Zin_fit
+
+    return Zs_fit
 
 
 def add_stray_capacitance(omega, Zdut, cf):

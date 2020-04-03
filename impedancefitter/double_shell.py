@@ -17,10 +17,11 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from scipy.constants import epsilon_0 as e0
-from .elements import Z_CPE
+from .utils import add_additions
 
 
-def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, cf, dm, Rc, dn, Rn):
+def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, dm, Rc, dn, Rn,
+                       k=None, alpha=None, L=None, C=None, R=None, cf=None):
     r"""
     Equations for the double-shell-model:
 
@@ -62,7 +63,6 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
         needs to be checked
     """
     c0 *= 1e-12
-    cf *= 1e-12
     v1 = (1. - dm / Rc)**3
     v2 = (Rn / (Rc - dm))**3
     v3 = (1. - dn / Rn)**3
@@ -74,15 +74,16 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
     epsi_med = emed + kmed / (1j * omega * e0)
 
     E3 = epsi_np / epsi_ne
-    E2 = ((epsi_ne / epsi_cp) * (2. * (1. - v3) + (1. + 2. * v3) * E3) /
-          ((2. + v3) + (1. - v3) * E3))  # Eq. 13
-    E1 = ((epsi_cp / epsi_m) * (2. * (1. - v2) + (1. + 2. * v2) * E2) /
-          ((2. + v2) + (1. - v2) * E2))  # Eq. 14
+    E2 = ((epsi_ne / epsi_cp) * (2. * (1. - v3) + (1. + 2. * v3) * E3)
+          / ((2. + v3) + (1. - v3) * E3))  # Eq. 13
+    E1 = ((epsi_cp / epsi_m) * (2. * (1. - v2) + (1. + 2. * v2) * E2)
+          / ((2. + v2) + (1. - v2) * E2))  # Eq. 14
 
-    epsi_cell = (epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1) /
-                 ((2. + v1) + (1. - v1) * E1))  # Eq. 11
+    epsi_cell = (epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1)
+                 / ((2. + v1) + (1. - v1) * E1))  # Eq. 11
     E0 = epsi_cell / epsi_med
     esus = epsi_med * (2. * (1. - p) + (1. + 2. * p) * E0) / ((2. + p) + (1. - p) * E0)
-    Ys = 1j * esus * omega * c0 + 1j * omega * cf  # cell suspension admittance spectrum
+    Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
     Zs = 1 / Ys
-    return Zs
+    Z_fit = add_additions(omega, Zs, k, alpha, L, C, R, cf)
+    return Z_fit
