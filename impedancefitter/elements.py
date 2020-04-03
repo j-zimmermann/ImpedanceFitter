@@ -65,7 +65,7 @@ def Z_CPE(omega, k, alpha):
 
     .. math::
 
-        Z_\mathrm{CPE} = k^{-1} j \omega^{-\alpha}
+        Z_\mathrm{CPE} = k^{-1} (j \omega)^{-\alpha}
 
     Parameters
     -----------
@@ -78,7 +78,7 @@ def Z_CPE(omega, k, alpha):
         CPE phase
 
     """
-    return (1. / k) * 1j * np.power(omega, -alpha)
+    return (1. / k) * np.power(1j * omega, -alpha)
 
 
 def Z_C(omega, C):

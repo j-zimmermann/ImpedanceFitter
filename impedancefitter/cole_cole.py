@@ -18,6 +18,7 @@
 
 
 from .elements import Z_in, Z_CPE, e_sus, Z_sus, Z_loss
+from .utils import add_stray_capacitance
 
 
 def cole_cole_model(omega, c0, el, tau, a, kdc, eh, k=None, alpha=None, L=None, C=None, R=None, cf=None):
@@ -46,8 +47,6 @@ def cole_cole_model(omega, c0, el, tau, a, kdc, eh, k=None, alpha=None, L=None, 
     """
     tau *= 1e-12  # use ps as unit
     c0 *= 1e-12  # use pF as unit
-    if cf is not None:
-        cf *= 1e-12  # use pF as unit
     es = e_sus(omega, eh, el, tau, a)
     Zs_fit = Z_sus(omega, es, kdc, c0)
     if k is not None and alpha is not None:
@@ -59,4 +58,6 @@ def cole_cole_model(omega, c0, el, tau, a, kdc, eh, k=None, alpha=None, L=None, 
         elif C is not None and R is not None:
             Zin_fit = Z_loss(omega, L, C, R)
         Zs_fit = Zs_fit + Zin_fit
+    if cf is not None:
+        Zs_fit = add_stray_capacitance(omega, Zs_fit, cf)
     return Zs_fit

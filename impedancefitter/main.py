@@ -127,6 +127,7 @@ class Fitter(object):
             logger.addHandler(ch)
 
         if parameters is not None:
+            logger.debug("Using provided parameter dictionary.")
             assert(isinstance(parameters, dict)), "You need to provide an input dictionary!"
         self.parameters = deepcopy(parameters)
         if self.inputformat == 'TXT':
@@ -233,7 +234,6 @@ class Fitter(object):
         self.model = self.initialize_model(self.modelname)
         # initialize model parameters
         self.model_parameters = self.initialize_parameters(self.model)
-        print(self.model_parameters)
         self.protocol = protocol
         if self.write_output is True:
             open('outfile.yaml', 'w')  # create output file
@@ -315,17 +315,17 @@ class Fitter(object):
         else:
             return iteration_dict[model]
 
-    def fix_parameters(self, i, model, params, result):
+    def fix_parameters(self, i, modelname, params, result):
         # since first iteration does not count
         idx = i - 1
 
         fix_dict = {'DoubleShell': [["kmed", "emed"], ["km", "em"], ["kcp"]],
                     'SingleShell': [["kmed", "emed"]],
-                    'ColeCole': [["conductivity", "eh"]]}
-        fix_list = fix_dict[model][idx]
+                    'ColeCole': [["kdc", "eh"]]}
+        fix_list = fix_dict[modelname][idx]
         # fix all parameters to value given in result
         for parameter in fix_list:
-            params[parameter].set(vary=False, value=result.params[parameter].value)
+            params[parameter].set(vary=False, value=result.best_values[parameter])
         return params
 
     def fit_data(self, model, parameters):
@@ -338,20 +338,22 @@ class Fitter(object):
         logger.debug('#################################')
         # initiate copy of parameters for iterative run
         params = deepcopy(parameters)
-        # empty result
-        result = None
+        # initiate empty result
+        model_result = None
+
+        iters = 1
         if self.protocol == "Iterative":
             iters = self.model_iterations(self.model._name)
         for i in range(iters):
             logger.info("###########\nFitting round {}\n###########".format(i + 1))
             if i > 0:
-                params = self.fix_parameters(i, model, params, result)
+                params = self.fix_parameters(i, model._name, params, model_result)
             model_result = self.model.fit(self.Z, params, omega=self.omega, method=self.solvername, fit_kws=self.solver_kwargs)
             logger.info(model_result.fit_report())
             if self.solvername != "ampgo":
-                logger.info("Solver message: ", model_result.message)
+                logger.info("Solver message: " + model_result.message)
             else:
-                logger.info("Solver message: ", model_result.ampgo_msg)
+                logger.info("Solver message: " + model_result.ampgo_msg)
         return model_result
 
     def process_data_from_file(self, filename, model, parameters):
@@ -360,7 +362,7 @@ class Fitter(object):
             documentation
         """
         fit_output = self.fit_data(model, parameters)
-        Z_fit = fit_output.best_fit()
+        Z_fit = fit_output.best_fit
         if self.LogLevel == 'DEBUG':
             show = True
         # plots if LogLevel is INFO or DEBUG or figure should be saved

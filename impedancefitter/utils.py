@@ -56,6 +56,7 @@ def add_stray_capacitance(omega, Zdut, cf):
                      Did you maybe forget to enter it in terms of pF?""")
         return Zdut
     else:
+        cf *= 1e-12
         Zstray = Z_C(omega, cf)
 
     return (Zdut * Zstray) / (Zdut + Zstray)
@@ -143,16 +144,7 @@ def set_parameters(model, parameterdict=None, emcee=False):
 
     bufdict = _clean_parameters(bufdict, modelName, model.param_names, emcee)
     for key in model.param_names:
-        kwargs = {}
-        if 'min' in bufdict[key]:
-            kwargs['min'] = float(bufdict[key]['min'])
-        if 'max' in bufdict[key]:
-            kwargs['max'] = float(bufdict[key]['max'])
-        if 'vary' in bufdict[key]:
-            kwargs['vary'] = bool(bufdict[key]['vary'])
-        if 'expr' in bufdict[key]:
-            kwargs['expr'] = str(bufdict[key]['vary'])
-        model.set_param_hint(key, **kwargs)
+        model.set_param_hint(key, **bufdict[key])
     return model.make_params()
 
 

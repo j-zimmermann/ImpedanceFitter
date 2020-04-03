@@ -128,7 +128,7 @@ def plot_results(omega, Z, Z_fit, title, show=True, save=False):
     plt.plot(Z_fit.real, Z_fit.imag, '+', label="fit")
     plt.plot(Z.real, Z.imag, 'o', label="data")
     plt.legend()
-    plot_compare_to_data(omega, Z, Z_fit, title, subplot=224)
+    plot_compare_to_data(omega, Z, Z_fit, subplot=224)
     plt.tight_layout()
     if save:
         plt.savefig(str(title) + "_results_overview.pdf")
