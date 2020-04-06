@@ -20,6 +20,20 @@ from scipy.constants import epsilon_0 as e0
 import numpy as np
 
 
+def Z_L(omega, L):
+    """
+    impedance of an inductor
+
+    Parameters
+    ----------
+    omega: double or array of double
+        list of frequencies
+    L: double
+        inductance
+    """
+    return 1j * omega * L
+
+
 def Z_loss(omega, L, C, R):
     """
     impedance for high loss materials, where LCR are in parallel.
@@ -158,3 +172,19 @@ def Z_w(omega, Aw):
         Warburg coefficient
     """
     return Aw * (1. - 1j) / np.sqrt(omega)
+
+
+def Z_ws(omega, Aw, B):
+    """Warburg short element
+
+    """
+
+    return Aw / np.sqrt(1j * omega) * np.tanh(B * np.sqrt(1j * omega))
+
+
+def Z_wo(omega, Aw, B):
+    """Warburg open element
+
+    """
+
+    return Aw / np.sqrt(1j * omega) / np.tanh(B * np.sqrt(1j * omega))
