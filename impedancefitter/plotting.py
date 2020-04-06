@@ -76,7 +76,7 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
         plt.show()
 
 
-def plot_results(omega, Z, Z_fit, title, show=True, save=False):
+def plot_results(omega, Z, Z_fit, title, show=True, save=False, Z_comp=None):
     """
     Plot the `result` and compare it to data `Z`.
     Generates 4 subplots showing the real and imaginary parts over
@@ -97,6 +97,8 @@ def plot_results(omega, Z, Z_fit, title, show=True, save=False):
         show figure (default is True)
     save: bool, optional
         save figure to pdf (default is False). Name of figure starts with `title`.
+    Z_comp: optional
+        complex-valued impedance array. Might be used to compare the properties of two data sets.
 
     """
 
@@ -108,8 +110,10 @@ def plot_results(omega, Z, Z_fit, title, show=True, save=False):
     plt.title("impedance real part")
     plt.ylabel(r"$\Re(Z) [\Omega]$")
     plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label='fitted')
+    plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label='best fit')
     plt.plot(omega / (2. * np.pi), Z.real, 'r', label='data')
+    if Z_comp is not None:
+        plt.plot(omega / (2. * np.pi), Z_comp.real, 'x', label='init fit')
     plt.legend()
     # plot imaginary part of impedance
     plt.subplot(222)
@@ -117,16 +121,20 @@ def plot_results(omega, Z, Z_fit, title, show=True, save=False):
     plt.xscale('log')
     plt.ylabel(r"$\Im(Z) [\Omega]$")
     plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label='fitted')
+    plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label='best fit')
     plt.plot(omega / (2. * np.pi), Z.imag, 'r', label='data')
+    if Z_comp is not None:
+        plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label='init fit')
     plt.legend()
     # plot real vs negative imaginary part
     plt.subplot(223)
     plt.title("Nyquist plot")
     plt.ylabel(r"$-\Im(Z) [\Omega]$")
     plt.xlabel(r"$\Re(Z) [\Omega]$")
-    plt.plot(Z_fit.real, Z_fit.imag, '+', label="fit")
+    plt.plot(Z_fit.real, Z_fit.imag, '+', label="best fit")
     plt.plot(Z.real, Z.imag, 'o', label="data")
+    if Z_comp is not None:
+        plt.plot(Z_comp.real, Z_comp.imag, 'x', label="init fit")
     plt.legend()
     plot_compare_to_data(omega, Z, Z_fit, subplot=224)
     plt.tight_layout()

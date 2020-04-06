@@ -85,8 +85,21 @@ def add_stray_capacitance(omega, Zdut, cf):
     else:
         cf *= 1e-12
         Zstray = Z_C(omega, cf)
+    return parallel(Zdut, Zstray)
 
-    return (Zdut * Zstray) / (Zdut + Zstray)
+
+def parallel(Z1, Z2):
+    """
+    return parallel circuit.
+
+    Parameters
+    ----------
+    Z1: ndarray of complex
+        Impedance 1
+    Z2: ndarray of complex
+        Impedance 2
+    """
+    return (Z1 * Z2) / (Z1 + Z2)
 
 
 def return_diel_properties(omega, Z, c0):
@@ -227,12 +240,18 @@ def parameter_names(model, ep_cpe=False, ind=False, loss=False, stray=False, emc
     """
     if model == 'ColeCole':
         names = ['c0', 'el', 'tau', 'a', 'kdc', 'eh']
+    elif model == 'CPE':
+        names = ['k', 'alpha']
+    elif model == 'CPE_CT':
+        names = ['k', 'alpha', 'Rct']
+    elif model == 'CPE_CT_W':
+        names = ['k', 'alpha', 'Rct', 'Aw']
     elif model == 'ColeColeR':
         names = ['Rinf', 'R0', 'tau', 'a']
     elif model == 'Randles':
-        names = ['Rinf', 'R0', 'tau', 'a']
+        names = ['R0', 'Rs', 'Aw', 'C0']
     elif model == 'Randles_CPE':
-        names = ['Rinf', 'R0', 'tau', 'a']
+        names = ['R0', 'Rs', 'Aw', 'k', 'alpha']
     elif model == 'RC':
         names = ['c0', 'conductivity', 'eps']
     elif model == 'RC_full':
@@ -244,7 +263,7 @@ def parameter_names(model, ep_cpe=False, ind=False, loss=False, stray=False, emc
                  'p', 'dm', 'Rc', 'ene', 'kne', 'knp', 'enp', 'dn', 'Rn']
     else:
         raise NotImplementedError("Model not known!")
-    if ep_cpe is True:
+    if ep_cpe is True and 'Randles' not in model and 'CPE' not in model:
         names.extend(['k', 'alpha'])
     if ind is True:
         names.extend(['L', 'R'])

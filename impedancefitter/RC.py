@@ -20,7 +20,7 @@
 from .utils import add_additions
 
 
-def RC_model(omega, Rd, Cd, k=None, alpha=None, L=None, C=None, R=None, cf=None):
+def RC_model(omega, Rd, Cd, k=None, alpha=None, L=None, C=None, R=None, cf=None, __lnsigma=None):
     """
     Simple RC model
     """

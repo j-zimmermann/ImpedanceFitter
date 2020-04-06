@@ -18,7 +18,7 @@
 
 
 import numpy as np
-from .utils import add_additions
+from .utils import add_additions, parallel
 from .elements import Z_CPE
 import logging
 
@@ -51,7 +51,7 @@ def Z_randles(omega, R0, Rs, Aw, C0, k=None, alpha=None, L=None, C=None, R=None,
     """
     Z_RW = R0 + Aw * (1. - 1j) / np.sqrt(omega)
     Z_C = 1. / (1j * omega * C0)
-    Z_par = Z_RW * Z_C / (Z_RW + Z_C)
+    Z_par = parallel(Z_RW, Z_C)
     Zs_fit = Rs + Z_par
     if k is not None or alpha is not None:
         logger.warning("""This model cannot be combined with an electrode polarization correction.
@@ -61,9 +61,17 @@ def Z_randles(omega, R0, Rs, Aw, C0, k=None, alpha=None, L=None, C=None, R=None,
 
 
 def Z_randles_CPE(omega, R0, Rs, Aw, k, alpha, L=None, C=None, R=None, cf=None):
+    """
+    Same randles circuit as in :func:`Z_randles` but with CPE instead of capacitor.
+
+    See also
+    --------
+    :func:`impedancefitter.elements.Z_CPE`
+
+    """
     Z_RW = R0 + Aw * (1. - 1j) / np.sqrt(omega)
     Z_cpe = Z_CPE(omega, k, alpha)
-    Z_par = Z_RW * Z_cpe / (Z_RW + Z_cpe)
+    Z_par = parallel(Z_RW, Z_cpe)
     Zs_fit = Rs + Z_par
     Z_fit = add_additions(omega, Zs_fit, None, None, L, C, R, cf)
     return Z_fit

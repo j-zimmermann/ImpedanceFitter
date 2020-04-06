@@ -29,6 +29,7 @@ from .double_shell import double_shell_model
 from .randles import Z_randles, Z_randles_CPE
 from .rc import rc_model
 from .RC import RC_model
+from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model
 from .single_shell import single_shell_model
 from .utils import set_parameters, parameter_names
 from .readin import readin_Data_from_TXT_file, readin_Data_from_collection, readin_Data_from_csv_E4980AL
@@ -222,11 +223,17 @@ class Fitter(object):
             model = single_shell_model
         elif modelname == 'DoubleShell':
             model = double_shell_model
+        elif modelname == 'CPE':
+            model = cpe_model
+        elif modelname == 'CPE_CT':
+            model = cpe_ct_model
+        elif modelname == 'CPE_CT_W':
+            model = cpe_ct_w_model
         else:
             raise NotImplementedError("Model not implemented")
 
         param_names = parameter_names(modelname, ep_cpe=self.electrode_polarization, ind=self.inductivity,
-                                      loss=self.high_loss, stray=self.stray)
+                                      loss=self.high_loss, stray=self.stray, emcee=self.emcee_tag)
         return lmfit.Model(model, param_names=param_names, name=modelname)
 
     def run(self, protocol=None, electrode_polarization=False, inductivity=False, high_loss=False, stray_capacitance=False):
@@ -268,20 +275,25 @@ class Fitter(object):
             if filename.endswith(self.excludeEnding):
                 logger.info("Skipped file {} due to excluded ending.".format(filename))
                 continue
-            self.read_data(filename)
 
-            iters = 1
-
-            # determine number of iterations if more than 1 data set is in file
-            if len(self.zarray.shape) > 1:
-                iters = self.zarray.shape[1]
-                logger.debug("Iters:" + str(iters))
-            if self.data_sets is not None:
-                iters = self.data_sets
-            for i in range(iters):
-                self.Z = self.zarray[i]
-                self.fittedValues = self.process_data_from_file(filename, self.model, self.model_parameters)
-                self.process_fitting_results(filename + '_' + str(i))
+            # continues only if data could be read in
+            if self.read_data(filename):
+                iters = 1
+                # determine number of iterations if more than 1 data set is in file
+                if len(self.zarray.shape) > 1:
+                    iters = self.zarray.shape[0]
+                    logger.debug("Number of data sets:" + str(iters))
+                if self.data_sets is not None:
+                    iters = self.data_sets
+                for i in range(iters):
+                    self.Z = self.zarray[i]
+                    self.fittedValues = self.process_data_from_file(filename, self.model, self.model_parameters)
+                    self.process_fitting_results(filename + '_' + str(i))
+        if self.write_output is True and hasattr(self, "data"):
+            outfile = open('outfile.yaml', 'W')  # overwrite output file, or create it, if there is no file
+            yaml.dump(self.data, outfile)
+        elif not hasattr(self, "data"):
+            logger.info("There was no file to process")
 
     def read_data(self, filename):
         filepath = self.directory + filename
@@ -293,6 +305,9 @@ class Fitter(object):
             self.omega, self.zarray = readin_Data_from_collection(filepath, 'CSV', minimumFrequency=self.minimumFrequency, maximumFrequency=self.maximumFrequency)
         elif self.inputformat == 'CSV_E4980AL' and filename.endswith(".csv"):
             self.omega, self.zarray = readin_Data_from_csv_E4980AL(filepath, minimumFrequency=self.minimumFrequency, maximumFrequency=self.maximumFrequency, current_threshold=self.current_threshold)
+        else:
+            return False
+        return True
 
     def process_fitting_results(self, filename):
         '''
@@ -303,13 +318,12 @@ class Fitter(object):
         filename: string
             name of file that is used as key in the output dictionary.
         '''
-        values = dict(self.fittedValues.params.valuesdict())
+        if not hasattr(self, "data"):
+            self.data = {}
+        values = self.fittedValues.best_values
         for key in values:
             values[key] = float(values[key])  # conversion into python native type
-        self.data = {str(filename): values}
-        if self.write_output is True:
-            outfile = open('outfile.yaml', 'a')  # append to the already existing file, or create it, if ther is no file
-            yaml.dump(self.data, outfile)
+        self.data[str(filename)] = values
 
     def model_iterations(self, model):
         r"""
@@ -390,11 +404,19 @@ class Fitter(object):
         .. todo::
             documentation
         """
+        logger.debug("Going to fit")
         fit_output = self.fit_data(model, parameters)
         Z_fit = fit_output.best_fit
+        logger.debug("Fit successful")
         if self.LogLevel == 'DEBUG':
             show = True
         # plots if LogLevel is INFO or DEBUG or figure should be saved
         if getattr(logging, self.LogLevel) <= 20 or self.savefig:
+            logger.debug("Going to plot results")
             plot_results(self.omega, self.Z, Z_fit, filename, show=show, save=self.savefig)
         return fit_output
+
+    def plot_initial_best_fit(self):
+        Z_fit = self.fittedValues.best_fit
+        Z_init = self.fittedValues.init_fit
+        plot_results(self.omega, self.Z, Z_fit, "", show=True, save=False, Z_comp=Z_init)
