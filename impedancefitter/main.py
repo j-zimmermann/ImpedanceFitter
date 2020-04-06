@@ -91,7 +91,7 @@ class Fitter(object):
         Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
     """
 
-    def __init__(self, modelname, inputformat, directory=None, **kwargs):
+    def __init__(self, inputformat, directory=None, **kwargs):
         """
         initializes the Fitter object
 
@@ -105,7 +105,6 @@ class Fitter(object):
             must be one of the formats specified in :func:`impedancefitter.utils.available_file_format`
 
         """
-        self.modelname = modelname
         self.inputformat = inputformat
         self._parse_kwargs(kwargs)
 
@@ -152,7 +151,6 @@ class Fitter(object):
         self.write_output = False
         self.fileList = None
         self.savefig = False
-        self.modelclass = "none"
 
         # for txt files
         self.trace_b = 'TRACE: B'
@@ -160,8 +158,6 @@ class Fitter(object):
         self.skiprows_trace = 2  # line between traces blocks
 
         # read in kwargs to update defaults
-        if 'modelclass' in kwargs:
-            self.modelclass = kwargs['modelclass']
         if 'LogLevel' in kwargs:
             self.LogLevel = kwargs['LogLevel']  # log level: choose info for less verbose output
         if 'minimumFrequency' in kwargs:
@@ -170,8 +166,6 @@ class Fitter(object):
             self.maximumFrequency = kwargs['maximumFrequency']
         if 'excludeEnding' in kwargs:
             self.excludeEnding = kwargs['excludeEnding']
-        if 'solver_kwargs' in kwargs:
-            self.solver_kwargs = kwargs['solver_kwargs']
         if 'data_sets' in kwargs:  # for debugging reasons use for instance only 1 data set
             self.data_sets = kwargs['data_sets']
         if 'current_threshold' in kwargs:
@@ -211,7 +205,7 @@ class Fitter(object):
         model = get_comp_model(modelname)
         return model
 
-    def run(self, solver=None, parameters=None, protocol=None):
+    def run(self, modelname, solver=None, parameters=None, protocol=None, solver_kwargs={}, modelclass="none"):
         """
         Main function that iterates through all data sets provided.
 
@@ -222,6 +216,9 @@ class Fitter(object):
             Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
         """
 
+        self.modelname = modelname
+        self.modelclass = modelclass
+
         # initialize solver
         if solver is None:
             self.solvername = "least_squares"
@@ -231,6 +228,8 @@ class Fitter(object):
             self.emcee_tag = True
         else:
             self.emcee_tag = False
+
+        self.solver_kwargs = solver_kwargs
 
         # initialize model
         self.model = self.initialize_model(self.modelname)
