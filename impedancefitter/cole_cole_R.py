@@ -17,10 +17,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from .utils import add_additions
-
-
-def cole_cole_R_model(omega, Rinf, R0, tau, a, k=None, alpha=None, L=None, C=None, R=None, cf=None):
+def cole_cole_R_model(omega, Rinf, R0, tau, a):
     r"""
     function holding the cole_cole_model equations, returning the calculated impedance
     Equations for calculations:
@@ -39,6 +36,5 @@ def cole_cole_R_model(omega, Rinf, R0, tau, a, k=None, alpha=None, L=None, C=Non
 
     """
     tau *= 1e-12  # use ps as unit
-    Zs_fit = Rinf + (R0 - Rinf) / (1. + 1j * omega * tau)**a
-    Z_fit = add_additions(omega, Zs_fit, k, alpha, L, C, R, cf)
+    Z_fit = Rinf + (R0 - Rinf) / (1. + 1j * omega * tau)**a
     return Z_fit

@@ -18,16 +18,14 @@
 
 
 from scipy.constants import epsilon_0 as e0
-from .utils import add_additions
 
 
-def rc_model(omega, c0, cf, kdc, eps, k=None, alpha=None, L=None, C=None, R=None):
+def rc_model(omega, c0, cf, kdc, eps):
     """
     Simple RC model
     """
     Rd = e0 / (kdc * c0)
     Cd = eps * c0
     C = Cd
-    Zs_fit = Rd / (1. + 1j * omega * C * Rd)
-    Z_fit = add_additions(omega, Zs_fit, k, alpha, L, C, R, cf)
+    Z_fit = Rd / (1. + 1j * omega * C * Rd)
     return Z_fit

@@ -18,10 +18,9 @@
 
 
 from .elements import e_sus, Z_sus
-from .utils import add_additions
 
 
-def cole_cole_model(omega, c0, el, tau, a, kdc, eh, k=None, alpha=None, L=None, C=None, R=None, cf=None):
+def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
     r"""
     function holding the cole_cole_model equations, returning the calculated impedance
     Equations for calculations:
@@ -48,8 +47,6 @@ def cole_cole_model(omega, c0, el, tau, a, kdc, eh, k=None, alpha=None, L=None, 
     tau *= 1e-12  # use ps as unit
     c0 *= 1e-12  # use pF as unit
     es = e_sus(omega, eh, el, tau, a)
-    Zs_fit = Z_sus(omega, es, kdc, c0)
-
-    Z_fit = add_additions(omega, Zs_fit, k, alpha, L, C, R, cf)
+    Z_fit = Z_sus(omega, es, kdc, c0)
 
     return Z_fit

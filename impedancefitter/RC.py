@@ -17,14 +17,10 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from .utils import add_additions
-
-
-def RC_model(omega, Rd, Cd, k=None, alpha=None, L=None, C=None, R=None, cf=None, __lnsigma=None):
+def RC_model(omega, Rd, Cd):
     """
     Simple RC model
     """
     Cfit = Cd
-    Zs_fit = Rd / (1. + 1j * omega * Cfit * Rd)
-    Z_fit = add_additions(omega, Zs_fit, k, alpha, L, C, R, cf)
+    Z_fit = Rd / (1. + 1j * omega * Cfit * Rd)
     return Z_fit

@@ -17,11 +17,10 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from .utils import add_additions
 from scipy.constants import epsilon_0 as e0
 
 
-def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc, k=None, alpha=None, L=None, C=None, R=None, cf=None):
+def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc):
     r"""
     Equations for the single-shell-model( :math:`\nu_1` is calculated like in the double-shell-model):
 
@@ -59,7 +58,6 @@ def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc, k=Non
     E0 = epsi_cell / epsi_med
     esus = epsi_med * (2. * (1. - p) + (1. + 2. * p) * E0) / ((2. + p) + (1. - p) * E0)
     Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
-    Zs_fit = 1 / Ys
+    Z_fit = 1 / Ys
 
-    Z_fit = add_additions(omega, Zs_fit, k, alpha, L, C, R, cf)
     return Z_fit

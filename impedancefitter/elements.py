@@ -18,6 +18,29 @@
 
 from scipy.constants import epsilon_0 as e0
 import numpy as np
+import logging
+logger = logging.getLogger('impedancefitter-logger')
+
+
+def parallel(Z1, Z2):
+    """
+    return parallel circuit.
+
+    Parameters
+    ----------
+    Z1: ndarray of complex
+        Impedance 1
+    Z2: ndarray of complex
+        Impedance 2
+    """
+    return (Z1 * Z2) / (Z1 + Z2)
+
+
+def Z_R(omega, R):
+    """create array for a resistor
+    """
+    new = np.zeros_like(omega, dtype='complex128')
+    return new + R
 
 
 def Z_L(omega, L):
@@ -172,6 +195,14 @@ def Z_w(omega, Aw):
         Warburg coefficient
     """
     return Aw * (1. - 1j) / np.sqrt(omega)
+
+
+def Z_stray(omega, C_stray):
+    if np.isclose(C_stray, 0, atol=1e-5):
+        logger.debug("""Stray capacitance is too small to be added.
+                     Did you maybe forget to enter it in terms of pF?""")
+
+    return Z_C(omega, C_stray * 1e-12)
 
 
 def Z_ws(omega, Aw, B):

@@ -18,14 +18,13 @@
 
 
 import numpy as np
-from .utils import add_additions, parallel
-from .elements import Z_CPE
+from .elements import Z_CPE, parallel
 import logging
 
 logger = logging.getLogger('impedancefitter-logger')
 
 
-def Z_randles(omega, R0, Rs, Aw, C0, k=None, alpha=None, L=None, C=None, R=None, cf=None):
+def Z_randles(omega, R0, Rs, Aw, C0):
     r"""
     function holding the Randles equation with capacitor in parallel to resistor in series with Warburg element
     and another resistor in series.
@@ -52,15 +51,11 @@ def Z_randles(omega, R0, Rs, Aw, C0, k=None, alpha=None, L=None, C=None, R=None,
     Z_RW = R0 + Aw * (1. - 1j) / np.sqrt(omega)
     Z_C = 1. / (1j * omega * C0)
     Z_par = parallel(Z_RW, Z_C)
-    Zs_fit = Rs + Z_par
-    if k is not None or alpha is not None:
-        logger.warning("""This model cannot be combined with an electrode polarization correction.
-                          The parameters k and alpha will have no effect here.""")
-    Z_fit = add_additions(omega, Zs_fit, None, None, L, C, R, cf)
+    Z_fit = Rs + Z_par
     return Z_fit
 
 
-def Z_randles_CPE(omega, R0, Rs, Aw, k, alpha, L=None, C=None, R=None, cf=None):
+def Z_randles_CPE(omega, R0, Rs, Aw, k, alpha):
     """
     Same randles circuit as in :func:`Z_randles` but with CPE instead of capacitor.
 
@@ -72,6 +67,5 @@ def Z_randles_CPE(omega, R0, Rs, Aw, k, alpha, L=None, C=None, R=None, cf=None):
     Z_RW = R0 + Aw * (1. - 1j) / np.sqrt(omega)
     Z_cpe = Z_CPE(omega, k, alpha)
     Z_par = parallel(Z_RW, Z_cpe)
-    Zs_fit = Rs + Z_par
-    Z_fit = add_additions(omega, Zs_fit, None, None, L, C, R, cf)
+    Z_fit = Rs + Z_par
     return Z_fit

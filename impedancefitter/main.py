@@ -19,19 +19,10 @@
 import logging
 import os
 
-import lmfit
 import yaml
 from copy import deepcopy
 
-from .cole_cole import cole_cole_model
-from .cole_cole_R import cole_cole_R_model
-from .double_shell import double_shell_model
-from .randles import Z_randles, Z_randles_CPE
-from .rc import rc_model
-from .RC import RC_model
-from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model
-from .single_shell import single_shell_model
-from .utils import set_parameters, parameter_names
+from .utils import set_parameters, get_comp_model
 from .readin import readin_Data_from_TXT_file, readin_Data_from_collection, readin_Data_from_csv_E4980AL
 from .plotting import plot_results
 
@@ -100,7 +91,7 @@ class Fitter(object):
         Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
     """
 
-    def __init__(self, modelname, solvername, inputformat, directory=None, parameters=None, **kwargs):
+    def __init__(self, modelname, inputformat, directory=None, **kwargs):
         """
         initializes the Fitter object
 
@@ -115,11 +106,6 @@ class Fitter(object):
 
         """
         self.modelname = modelname
-        self.solvername = solvername
-        if self.solvername == "emcee":
-            self.emcee_tag = True
-        else:
-            self.emcee_tag = False
         self.inputformat = inputformat
         self._parse_kwargs(kwargs)
 
@@ -134,12 +120,25 @@ class Fitter(object):
             ch.setLevel(logging.DEBUG)
             logger.addHandler(ch)
 
-        if parameters is not None:
-            logger.debug("Using provided parameter dictionary.")
-            assert(isinstance(parameters, dict)), "You need to provide an input dictionary!"
-        self.parameters = deepcopy(parameters)
         if self.inputformat == 'TXT':
             self.prepare_txt()
+
+        self.omega_dict = {}
+        self.z_dict = {}
+        # read in all data and store it
+        if self.fileList is None:
+            self.fileList = os.listdir(self.directory)
+        for filename in self.fileList:
+            filename = os.fsdecode(filename)
+            if filename.endswith(self.excludeEnding):
+                logger.info("Skipped file {} due to excluded ending.".format(filename))
+                continue
+
+            # continues only if data could be read in
+            (status, omega, zarray) = self.read_data(filename)
+            if status:
+                self.omega_dict[str(filename)] = omega
+                self.z_dict[str(filename)] = zarray
 
     def _parse_kwargs(self, kwargs):
         # set defaults
@@ -153,6 +152,7 @@ class Fitter(object):
         self.write_output = False
         self.fileList = None
         self.savefig = False
+        self.modelclass = "none"
 
         # for txt files
         self.trace_b = 'TRACE: B'
@@ -160,6 +160,8 @@ class Fitter(object):
         self.skiprows_trace = 2  # line between traces blocks
 
         # read in kwargs to update defaults
+        if 'modelclass' in kwargs:
+            self.modelclass = kwargs['modelclass']
         if 'LogLevel' in kwargs:
             self.LogLevel = kwargs['LogLevel']  # log level: choose info for less verbose output
         if 'minimumFrequency' in kwargs:
@@ -187,7 +189,7 @@ class Fitter(object):
         if 'savefig' in kwargs:
             self.savefig = kwargs['savefig']
 
-    def initialize_parameters(self, model):
+    def initialize_parameters(self, model, parameters):
         """
         The `model_parameters` are initialized either based on a provided `parameterdict` or an input file.
 
@@ -203,40 +205,13 @@ class Fitter(object):
 
         """
 
-        return set_parameters(model, parameterdict=self.parameters, emcee=self.emcee_tag)
+        return set_parameters(model, parameterdict=parameters, emcee=self.emcee_tag)
 
     def initialize_model(self, modelname):
+        model = get_comp_model(modelname)
+        return model
 
-        if modelname == 'ColeCole':
-            model = cole_cole_model
-        elif modelname == 'ColeColeR':
-            model = cole_cole_R_model
-        elif modelname == 'Randles':
-            model = Z_randles
-        elif modelname == 'Randles_CPE':
-            model = Z_randles_CPE
-        elif modelname == 'RC_full':
-            model = RC_model
-        elif modelname == 'RC':
-            model = rc_model
-        elif modelname == 'SingleShell':
-            model = single_shell_model
-        elif modelname == 'DoubleShell':
-            model = double_shell_model
-        elif modelname == 'CPE':
-            model = cpe_model
-        elif modelname == 'CPE_CT':
-            model = cpe_ct_model
-        elif modelname == 'CPE_CT_W':
-            model = cpe_ct_w_model
-        else:
-            raise NotImplementedError("Model not implemented")
-
-        param_names = parameter_names(modelname, ep_cpe=self.electrode_polarization, ind=self.inductivity,
-                                      loss=self.high_loss, stray=self.stray, emcee=self.emcee_tag)
-        return lmfit.Model(model, param_names=param_names, name=modelname)
-
-    def run(self, protocol=None, electrode_polarization=False, inductivity=False, high_loss=False, stray_capacitance=False):
+    def run(self, solver=None, parameters=None, protocol=None):
         """
         Main function that iterates through all data sets provided.
 
@@ -245,52 +220,117 @@ class Fitter(object):
 
         protocol: string, optional
             Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
-        electrode_polarization: bool
-            Switch on whether to account for electrode polarization or not. Currently, only a CPE correction is possible.
-        inductivity: bool
-            Switch on whether to account for cable inductance. See :func:`impedancefitter.elements.Z_in`.
-        high_loss: bool
-            Switch on whether to account for cable inductance AND capacitance. See :func:`impedancefitter.elements.Z_loss`.
-        stray_capacitance: bool
-            Switch on whether to account for stray capacitance
         """
 
-        # initialize global correction parameters
-        self.electrode_polarization = electrode_polarization
-        self.inductivity = inductivity
-        self.high_loss = high_loss
-        self.stray = stray_capacitance
+        # initialize solver
+        if solver is None:
+            self.solvername = "least_squares"
+        else:
+            self.solvername = solver
+        if self.solvername == "emcee":
+            self.emcee_tag = True
+        else:
+            self.emcee_tag = False
 
         # initialize model
         self.model = self.initialize_model(self.modelname)
         # initialize model parameters
-        self.model_parameters = self.initialize_parameters(self.model)
+        if parameters is not None:
+            logger.debug("Using provided parameter dictionary.")
+            assert(isinstance(parameters, dict)), "You need to provide an input dictionary!"
+        self.parameters = deepcopy(parameters)
+
+        self.model_parameters = self.initialize_parameters(self.model, self.parameters)
         self.protocol = protocol
         if self.write_output is True:
             open('outfile.yaml', 'w')  # create output file
-        if self.fileList is None:
-            self.fileList = os.listdir(self.directory)
-        for filename in self.fileList:
-            filename = os.fsdecode(filename)
-            if filename.endswith(self.excludeEnding):
-                logger.info("Skipped file {} due to excluded ending.".format(filename))
-                continue
-
-            # continues only if data could be read in
-            if self.read_data(filename):
-                iters = 1
-                # determine number of iterations if more than 1 data set is in file
-                if len(self.zarray.shape) > 1:
-                    iters = self.zarray.shape[0]
-                    logger.debug("Number of data sets:" + str(iters))
-                if self.data_sets is not None:
-                    iters = self.data_sets
-                for i in range(iters):
-                    self.Z = self.zarray[i]
-                    self.fittedValues = self.process_data_from_file(filename, self.model, self.model_parameters)
-                    self.process_fitting_results(filename + '_' + str(i))
+        for key in self.omega_dict:
+            self.omega = self.omega_dict[key]
+            self.zarray = self.z_dict[key]
+            iters = 1
+            # determine number of iterations if more than 1 data set is in file
+            if len(self.zarray.shape) > 1:
+                self.iters = self.zarray.shape[0]
+                logger.debug("Number of data sets:" + str(iters))
+            if self.data_sets is not None:
+                self.iters = self.data_sets
+                logger.debug("Will only iterate over {} data sets.".format(self.iters))
+            for i in range(self.iters):
+                self.Z = self.zarray[i]
+                self.fittedValues = self.process_data_from_file(key, self.model, self.model_parameters, self.modelclass)
+                self.process_fitting_results(key + '_' + str(i))
         if self.write_output is True and hasattr(self, "data"):
             outfile = open('outfile.yaml', 'W')  # overwrite output file, or create it, if there is no file
+            yaml.dump(self.data, outfile)
+        elif not hasattr(self, "data"):
+            logger.info("There was no file to process")
+
+    def sequential_run(self, model1, model2, communicate, solver=None, parameters1=None, parameters2=None, modelclass1=None, modelclass2=None, protocol=None):
+        """
+        Main function that iterates through all data sets provided.
+
+        Parameters
+        ----------
+
+        protocol: string, optional
+            Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
+        """
+
+        # initialize solver
+        if solver is None:
+            self.solvername = "least_squares"
+        else:
+            self.solvername = solver
+        if self.solvername == "emcee":
+            self.emcee_tag = True
+        else:
+            self.emcee_tag = False
+
+        # initialize model
+        self.model1 = self.initialize_model(model1)
+        self.model2 = self.initialize_model(model2)
+
+        # initialize model parameters
+        if parameters1 is not None:
+            logger.debug("Using provided parameter dictionary.")
+            assert(isinstance(parameters1, dict)), "You need to provide an input dictionary!"
+        self.parameters1 = deepcopy(parameters1)
+        # initialize model parameters
+        if parameters2 is not None:
+            logger.debug("Using provided parameter dictionary.")
+            assert(isinstance(parameters2, dict)), "You need to provide an input dictionary!"
+        self.parameters2 = deepcopy(parameters2)
+
+        self.model_parameters1 = self.initialize_parameters(self.model1, self.parameters1)
+        self.model_parameters2 = self.initialize_parameters(self.model2, self.parameters2)
+
+        self.protocol = protocol
+        if self.write_output is True:
+            open('outfile.yaml', 'w')  # create output file
+        for key in self.omega_dict:
+            self.omega = self.omega_dict[key]
+            self.zarray = self.z_dict[key]
+            iters = 1
+            # determine number of iterations if more than 1 data set is in file
+            if len(self.zarray.shape) > 1:
+                self.iters = self.zarray.shape[0]
+                logger.debug("Number of data sets:" + str(iters))
+            if self.data_sets is not None:
+                self.iters = self.data_sets
+                logger.debug("Will only iterate over {} data sets.".format(self.iters))
+            for i in range(self.iters):
+                self.Z = self.zarray[i]
+                self.fittedValues1 = self.process_data_from_file(key, self.model1, self.model_parameters1, modelclass1)
+                for c in communicate:
+                    try:
+                        self.model_parameters2[c].value = self.fittedValues1.best_values[c]
+                        self.model_parameters2[c].vary = False
+                    except KeyError:
+                        print("Key {} you want to communicate is not a valid model key.".format(c))
+                self.fittedValues2 = self.process_data_from_file(key, self.model2, self.model_parameters2, modelclass2)
+                self.process_sequential_fitting_results(key + '_' + str(i))
+        if self.write_output is True and hasattr(self, "data"):
+            outfile = open('outfile-sequential.yaml', 'W')  # overwrite output file, or create it, if there is no file
             yaml.dump(self.data, outfile)
         elif not hasattr(self, "data"):
             logger.info("There was no file to process")
@@ -298,16 +338,16 @@ class Fitter(object):
     def read_data(self, filename):
         filepath = self.directory + filename
         if self.inputformat == 'TXT' and filename.endswith(".TXT"):
-            self.omega, self.zarray = readin_Data_from_TXT_file(filepath, self.skiprows_txt, self.skiprows_trace, self.trace_b, self.minimumFrequency, self.maximumFrequency)
+            omega, zarray = readin_Data_from_TXT_file(filepath, self.skiprows_txt, self.skiprows_trace, self.trace_b, self.minimumFrequency, self.maximumFrequency)
         elif self.inputformat == 'XLSX' and filename.endswith(".xlsx"):
-            self.omega, self.zarray = readin_Data_from_collection(filepath, 'XLSX', minimumFrequency=self.minimumFrequency, maximumFrequency=self.maximumFrequency)
+            omega, zarray = readin_Data_from_collection(filepath, 'XLSX', minimumFrequency=self.minimumFrequency, maximumFrequency=self.maximumFrequency)
         elif self.inputformat == 'CSV' and filename.endswith(".csv"):
-            self.omega, self.zarray = readin_Data_from_collection(filepath, 'CSV', minimumFrequency=self.minimumFrequency, maximumFrequency=self.maximumFrequency)
+            omega, zarray = readin_Data_from_collection(filepath, 'CSV', minimumFrequency=self.minimumFrequency, maximumFrequency=self.maximumFrequency)
         elif self.inputformat == 'CSV_E4980AL' and filename.endswith(".csv"):
-            self.omega, self.zarray = readin_Data_from_csv_E4980AL(filepath, minimumFrequency=self.minimumFrequency, maximumFrequency=self.maximumFrequency, current_threshold=self.current_threshold)
+            omega, zarray = readin_Data_from_csv_E4980AL(filepath, minimumFrequency=self.minimumFrequency, maximumFrequency=self.maximumFrequency, current_threshold=self.current_threshold)
         else:
-            return False
-        return True
+            return False, None, None
+        return True, omega, zarray
 
     def process_fitting_results(self, filename):
         '''
@@ -324,6 +364,28 @@ class Fitter(object):
         for key in values:
             values[key] = float(values[key])  # conversion into python native type
         self.data[str(filename)] = values
+
+    def process_sequential_fitting_results(self, filename):
+        '''
+        function writes output into yaml file to prepare statistical analysis of the results.
+
+        Parameters
+        ----------
+        filename: string
+            name of file that is used as key in the output dictionary.
+        '''
+        if not hasattr(self, "data"):
+            self.data = {}
+        values1 = self.fittedValues1.best_values
+        values2 = self.fittedValues2.best_values
+        for key in values1:
+            values1[key] = float(values1[key])  # conversion into python native type
+        for key in values2:
+            values2[key] = float(values2[key])  # conversion into python native type
+
+        self.data[str(filename)] = {}
+        self.data[str(filename)]['model1'] = values1
+        self.data[str(filename)]['model2'] = values2
 
     def model_iterations(self, model):
         r"""
@@ -371,7 +433,7 @@ class Fitter(object):
             params[parameter].set(vary=False, value=result.best_values[parameter])
         return params
 
-    def fit_data(self, model, parameters):
+    def fit_data(self, model, parameters, modelclass=None):
         """
         .. todo::
             documentation
@@ -386,12 +448,16 @@ class Fitter(object):
 
         iters = 1
         if self.protocol == "Iterative":
-            iters = self.model_iterations(self.model._name)
+            try:
+                iters = self.model_iterations(modelclass)
+            except AttributeError:
+                logger.warning("Provide the modelclass kwarg to trigger possible iterative scheme.")
+                pass
         for i in range(iters):
             logger.info("###########\nFitting round {}\n###########".format(i + 1))
             if i > 0:
-                params = self.fix_parameters(i, model._name, params, model_result)
-            model_result = self.model.fit(self.Z, params, omega=self.omega, method=self.solvername, fit_kws=self.solver_kwargs)
+                params = self.fix_parameters(i, modelclass, params, model_result)
+            model_result = model.fit(self.Z, params, omega=self.omega, method=self.solvername, fit_kws=self.solver_kwargs)
             logger.info(model_result.fit_report())
             if self.solvername != "ampgo":
                 logger.info("Solver message: " + model_result.message)
@@ -399,13 +465,13 @@ class Fitter(object):
                 logger.info("Solver message: " + model_result.ampgo_msg)
         return model_result
 
-    def process_data_from_file(self, filename, model, parameters):
+    def process_data_from_file(self, filename, model, parameters, modelclass=None):
         """
         .. todo::
             documentation
         """
         logger.debug("Going to fit")
-        fit_output = self.fit_data(model, parameters)
+        fit_output = self.fit_data(model, parameters, modelclass)
         Z_fit = fit_output.best_fit
         logger.debug("Fit successful")
         if self.LogLevel == 'DEBUG':

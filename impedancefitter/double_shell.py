@@ -17,11 +17,9 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from scipy.constants import epsilon_0 as e0
-from .utils import add_additions
 
 
-def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, dm, Rc, dn, Rn,
-                       k=None, alpha=None, L=None, C=None, R=None, cf=None):
+def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, dm, Rc, dn, Rn):
     r"""
     Equations for the double-shell-model:
 
@@ -84,6 +82,5 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
     E0 = epsi_cell / epsi_med
     esus = epsi_med * (2. * (1. - p) + (1. + 2. * p) * E0) / ((2. + p) + (1. - p) * E0)
     Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
-    Zs = 1 / Ys
-    Z_fit = add_additions(omega, Zs, k, alpha, L, C, R, cf)
+    Z_fit = 1 / Ys
     return Z_fit

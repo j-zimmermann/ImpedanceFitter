@@ -22,84 +22,18 @@ import yaml
 import logging
 from scipy.constants import epsilon_0 as e0
 from collections import Counter
-from .elements import Z_C, Z_CPE, Z_in, Z_loss
+from .elements import Z_C, Z_stray, Z_in, Z_loss, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
+from .cole_cole import cole_cole_model
+from .cole_cole_R import cole_cole_R_model
+from .double_shell import double_shell_model
+from .randles import Z_randles, Z_randles_CPE
+from .rc import rc_model
+from .RC import RC_model
+from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model
+from .single_shell import single_shell_model
+from lmfit import Model, CompositeModel
 
 logger = logging.getLogger('impedancefitter-logger')
-
-
-def add_additions(omega, Zs_fit, k, alpha, L, C, R, cf):
-    """
-    .. todo::
-        documentation
-    """
-
-    # add first CPE
-    if k is not None and alpha is not None:
-        Zep_fit = Z_CPE(omega, k, alpha)
-        Zs_fit = Zs_fit + Zep_fit
-
-    # then stray capacitance, which is always in parallel to input
-    # and electrode polarization impedance
-    if cf is not None:
-        Zs_fit = add_stray_capacitance(omega, Zs_fit, cf)
-
-    # then add the influence of the wiring
-    if L is not None:
-        if C is None:
-            Zin_fit = Z_in(omega, L, R)
-        elif C is not None and R is not None:
-            Zin_fit = Z_loss(omega, L, C, R)
-        Zs_fit = Zs_fit + Zin_fit
-
-    return Zs_fit
-
-
-def add_stray_capacitance(omega, Zdut, cf):
-    r"""
-    add stray capacitance to impedance.
-    The assumption made is that the stray capacitance is in parallel to the DUT.
-    Hence, the total impedance is
-
-    .. math::
-
-        Z_\mathrm{total} = \left(\frac{1}{Z_\mathrm{DUT}} + \frac{1}{Z_\mathrm{stray}}\right)^{-1}
-
-    .. note::
-        The stray capacitance is always given in pF for numerical reasons!
-        It is checked if the stray capacitance is greater than 0 with an absolute tolerance of :math:`10^{-5}` pF.
-
-    Parameters
-    ----------
-    omega: double or ndarray of double
-        frequency array
-    Zdut: complex or array of complex
-        impedance array, data of DUT
-    cf: double
-        stray capacitance to be accounted for
-    """
-
-    if np.isclose(cf, 0, atol=1e-5):
-        logger.debug("""Stray capacitance is too small to be added.
-                     Did you maybe forget to enter it in terms of pF?""")
-        return Zdut
-    else:
-        cf *= 1e-12
-        Zstray = Z_C(omega, cf)
-    return parallel(Zdut, Zstray)
-
-
-def parallel(Z1, Z2):
-    """
-    return parallel circuit.
-
-    Parameters
-    ----------
-    Z1: ndarray of complex
-        Impedance 1
-    Z2: ndarray of complex
-        Impedance 2
-    """
-    return (Z1 * Z2) / (Z1 + Z2)
 
 
 def return_diel_properties(omega, Z, c0):
@@ -151,14 +85,6 @@ def set_parameters(model, parameterdict=None, emcee=False):
     parameterdict: optional
         a dictionary containing parameters for model with *min*, *max*, *vary* info for LMFIT.
         If it is None (default), the parameters are read in from a yaml-file.
-    ep_cpe: bool, optional
-        switch on electrode polarization correction by CPE
-    ind: bool, optional
-        switch on correction of inductive effects by LR model
-    loss: bool, optional
-        switch on correction of inductive effects by LCR model for high loss materials
-    stray: bool, optional
-        switch on stray capacitance
     emcee: bool, optional
         if emcee is used, an additional `__lnsigma` parameter will be set
 
@@ -172,23 +98,33 @@ def set_parameters(model, parameterdict=None, emcee=False):
     modelName = model._name
     if parameterdict is None:
         try:
-            infile = open(modelName + '_input.yaml', 'r')
+            infile = open('input.yaml', 'r')
             bufdict = yaml.safe_load(infile)
         except OSError:
-            logger.error("Please provide a yaml-input file for model: ", modelName)
+            logger.error("Please provide a yaml-input file.")
     else:
         try:
-            bufdict = parameterdict[modelName]
+            bufdict = parameterdict
         except KeyError:
             logger.error("Your parameterdict lacks an entry for the model: " + modelName)
 
-    bufdict = _clean_parameters(bufdict, modelName, model.param_names, emcee)
+    bufdict = _clean_parameters(bufdict, model.param_names)
     for key in model.param_names:
         model.set_param_hint(key, **bufdict[key])
-    return model.make_params()
+    parameters = model.make_params()
+    if emcee and '__lnsigma' not in bufdict:
+        logger.warning("""You did not provide the parameter '__lnsigma'.
+                          It is needed for the emcee of unweighted data (as implemented here).
+                          We now use the lmfit default:\n
+                          value=np.log(0.1), min=np.log(0.001), max=np.log(2)""")
+        parameters.add("__lnsigma", value=np.log(0.1), min=np.log(0.001), max=np.log(2.0))
+    elif emcee and "__lnsigma" in bufdict:
+        parameters.add("__lnsigma", **bufdict["__lnsigma"])
+
+    return parameters
 
 
-def _clean_parameters(params, modelName, names, emcee):
+def _clean_parameters(params, names):
     """
     clean parameter dicts that are passed to the fitter.
     get rid of parameters that are not needed.
@@ -205,75 +141,9 @@ def _clean_parameters(params, modelName, names, emcee):
     for p in list(params.keys()):
         if p not in names:
             del params[p]
-    if emcee and '__lnsigma' not in params:
-        logger.warning("""You did not provide the parameter '__lnsigma'.
-                          It is needed for the emcee of unweighted data (as implemented here).
-                          Use for example the lmfit default:\n
-                          value=np.log(0.1), min=np.log(0.001), max=np.log(2)""")
-    assert Counter(names) == Counter(params.keys()), "You need to provide the following parameters " + str(names)
+
+    assert Counter(names) == Counter(params.keys()), "You need to provide the following parameters (maybe with prefixes)" + str(names)
     return params
-
-
-def parameter_names(model, ep_cpe=False, ind=False, loss=False, stray=False, emcee=False):
-    """
-    Get the right order of parameters for a certain model.
-    Is needed to pass the parameters properly to each model function call.
-
-    Parameters
-    ----------
-    model: string
-        name of the model
-    ep_cpe: bool, optional
-        switch on electrode polarization correction by CPE
-    ind: bool, optional
-        switch on correction of inductive effects by LR model
-    loss: bool, optional
-        switch on correction of inductive effects by LCR model for high loss materials
-    stray: bool, optional
-        switch on stray capacitance
-
-    Returns
-    -------
-    names: list
-        List of parameters needed for model
-
-    """
-    if model == 'ColeCole':
-        names = ['c0', 'el', 'tau', 'a', 'kdc', 'eh']
-    elif model == 'CPE':
-        names = ['k', 'alpha']
-    elif model == 'CPE_CT':
-        names = ['k', 'alpha', 'Rct']
-    elif model == 'CPE_CT_W':
-        names = ['k', 'alpha', 'Rct', 'Aw']
-    elif model == 'ColeColeR':
-        names = ['Rinf', 'R0', 'tau', 'a']
-    elif model == 'Randles':
-        names = ['R0', 'Rs', 'Aw', 'C0']
-    elif model == 'Randles_CPE':
-        names = ['R0', 'Rs', 'Aw', 'k', 'alpha']
-    elif model == 'RC':
-        names = ['c0', 'conductivity', 'eps']
-    elif model == 'RC_full':
-        names = ['Rd', 'Cd']
-    elif model == 'SingleShell':
-        names = ['c0', 'em', 'km', 'kcp', 'ecp', 'kmed', 'emed', 'p', 'dm', 'Rc']
-    elif model == 'DoubleShell':
-        names = ['c0', 'em', 'km', 'kcp', 'ecp', 'kmed', 'emed',
-                 'p', 'dm', 'Rc', 'ene', 'kne', 'knp', 'enp', 'dn', 'Rn']
-    else:
-        raise NotImplementedError("Model not known!")
-    if ep_cpe is True and 'Randles' not in model and 'CPE' not in model:
-        names.extend(['k', 'alpha'])
-    if ind is True:
-        names.extend(['L', 'R'])
-    if loss is True:
-        names.extend(['L', 'C', 'R'])
-    if stray is True:
-        names.extend(['cf'])
-    if emcee is True:
-        names.extend(['__lnsigma'])
-    return names
 
 
 def get_labels():
@@ -332,11 +202,20 @@ def available_models():
     models = ['ColeCole',
               'ColeColeR',
               'Randles',
-              'Randles_CPE',
-              'RC_full',
+              'RandlesCPE',
+              'RCfull',
               'RC',
               'SingleShell',
-              'DoubleShell']
+              'DoubleShell',
+              'CPE',
+              'CPECT',
+              'CPECTW',
+              'L',
+              'R',
+              'C',
+              'W',
+              'Wo',
+              'Ws']
     return models
 
 
@@ -364,9 +243,9 @@ def model_information(model):
                                       Implemented in :func:impedancefitter.cole_cole_R.co """,
                    'Randles': """
                                 """,
-                   'Randles_CPE': """
+                   'RandlesCPE': """
                                 """,
-                   'RC_full': """
+                   'RCfull': """
                    """,
                    'RC': """
                    """,
@@ -390,3 +269,124 @@ def available_file_format():
     """
     formats = ['XLSX', 'CSV', 'CSV_E4980AL', "TXT"]
     return formats
+
+
+def model_function(modelname):
+    if modelname == 'ColeCole':
+        model = cole_cole_model
+    elif modelname == 'ColeColeR':
+        model = cole_cole_R_model
+    elif modelname == 'Randles':
+        model = Z_randles
+    elif modelname == 'RandlesCPE':
+        model = Z_randles_CPE
+    elif modelname == 'RCfull':
+        model = RC_model
+    elif modelname == 'RC':
+        model = rc_model
+    elif modelname == 'SingleShell':
+        model = single_shell_model
+    elif modelname == 'DoubleShell':
+        model = double_shell_model
+    elif modelname == 'CPE':
+        model = cpe_model
+    elif modelname == 'CPECT':
+        model = cpe_ct_model
+    elif modelname == 'CPECTW':
+        model = cpe_ct_w_model
+    elif modelname == "R":
+        model = Z_R
+    elif modelname == "C":
+        model = Z_C
+    elif modelname == "L":
+        model = Z_L
+    elif modelname == "W":
+        model = Z_w
+    elif modelname == "Wo":
+        model = Z_wo
+    elif modelname == "Ws":
+        model = Z_ws
+    elif modelname == "LCR":
+        model = Z_loss
+    elif modelname == "LR":
+        model = Z_in
+    elif modelname == "Cstray":
+        model = Z_stray
+    else:
+        raise NotImplementedError("Model {} not implemented".format(modelname))
+    return model
+
+
+def process_parallel(model_list):
+    first = []
+    second = []
+    tag_first = True
+    for m in model_list:
+        if ',' not in m and tag_first:
+            first.append(m)
+        elif ',' not in m and tag_first is False:
+            second.append(m)
+        else:
+            tmp = m.split(',')
+            if len(tmp) != 2:
+                raise RuntimeError("This should not be it! Parallel split looked like {}.".format(tmp))
+            first.append(tmp[0])
+            second.append(tmp[1])
+            tag_first = False
+    first_models = []
+    second_models = []
+    for m in first:
+        m = m.replace("(", "")
+        first_models.append(generate_model(m))
+    for m in second:
+        m = m.replace(")", "")
+        second_models.append(generate_model(m))
+    logger.debug("first_models: " + str(first_models))
+    logger.debug("second_models: " + str(second_models))
+    first = first_models[0]
+    first_models.pop(0)
+    for m in first_models:
+        first += m
+    second = second_models[0]
+    second_models.pop(0)
+    for m in second_models:
+        second += m
+    return CompositeModel(first, second, parallel)
+
+
+def generate_model(m):
+    if '_' in m:
+        # get possible prefix
+        info = m.split("_")
+        if len(info) != 2:
+            raise RuntimeError("A model must be always named PREFIX_MODEL! Instead you named it: {}".format(m))
+        # also checks if model exists
+        return Model(model_function(info[0].strip()), prefix=info[1].strip() + str('_'))
+    else:
+        return Model(model_function(m.strip()))
+
+
+def get_comp_model(modelname):
+    models = modelname.split("parallel")
+    models = [m.strip().split('+') for m in models]
+    # filter spaces out of list
+    models = [list(filter(('').__ne__, m)) for m in models]
+    compound = []
+    for model in models:
+        # iterate through groups
+        for idx, m in enumerate(model):
+            print("Processing {} with index {}". format(m, idx))
+            if idx == 0 and '(' not in m:
+                compound.append(generate_model(m))
+            elif idx == 0 and '(' in m:
+                compound.append(process_parallel(model))
+                break
+            else:
+                raise RuntimeError("There must have been a typo in your model specification.")
+    if len(compound) == 0:
+        raise RuntimeError("Did you provide an empty model?")
+    composite_model = compound[0]
+    compound.pop(0)
+    for m in compound:
+        composite_model += m
+    return composite_model
