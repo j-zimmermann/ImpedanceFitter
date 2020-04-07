@@ -18,13 +18,17 @@
 
 import logging
 import os
+import numpy as np
+import matplotlib.pyplot as plt
+import lmfit
 
+import pandas as pd
 import yaml
 from copy import deepcopy
 
 from .utils import set_parameters, get_comp_model
 from .readin import readin_Data_from_TXT_file, readin_Data_from_collection, readin_Data_from_csv_E4980AL
-from .plotting import plot_results
+from .plotting import plot_results, plot_uncertainty
 
 # create logger
 logger = logging.getLogger('impedancefitter-logger')
@@ -99,8 +103,6 @@ class Fitter(object):
         ----------
         modelname: string
             modelname. Must be one of those provided in :func:`impedancefitter.utils.available_models`
-        solvername: string
-            choose an optimizer. Must be available in lmfit.
         inputformat: string
             must be one of the formats specified in :func:`impedancefitter.utils.available_file_format`
 
@@ -214,6 +216,13 @@ class Fitter(object):
 
         protocol: string, optional
             Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
+
+        Kwargs
+        ------
+
+        solvername: string, optional
+            choose an optimizer. Must be available in lmfit. Default is least_squares
+
         """
 
         self.modelname = modelname
@@ -458,10 +467,18 @@ class Fitter(object):
                 params = self.fix_parameters(i, modelclass, params, model_result)
             model_result = model.fit(self.Z, params, omega=self.omega, method=self.solvername, fit_kws=self.solver_kwargs)
             logger.info(model_result.fit_report())
-            if self.solvername != "ampgo":
-                logger.info("Solver message: " + model_result.message)
-            else:
-                logger.info("Solver message: " + model_result.ampgo_msg)
+
+            # return solver message (needed since lmfit handles messages
+            # differently for the various solvers)
+            if hasattr(model_result, "message"):
+                if model_result.message is not None:
+                    logger.info("Solver message: " + model_result.message)
+            if hasattr(model_result, "lmdif_message"):
+                if model_result.lmdif_message is not None:
+                    logger.info("Solver message (leastsq): " + model_result.lmdif_message)
+            if hasattr(model_result, "ampgo_msg"):
+                if model_result.ampgo_msg is not None:
+                    logger.info("Solver message (ampgo): " + model_result.ampgo_msg)
         return model_result
 
     def process_data_from_file(self, filename, model, parameters, modelclass=None):
@@ -481,7 +498,140 @@ class Fitter(object):
             plot_results(self.omega, self.Z, Z_fit, filename, show=show, save=self.savefig)
         return fit_output
 
-    def plot_initial_best_fit(self):
-        Z_fit = self.fittedValues.best_fit
-        Z_init = self.fittedValues.init_fit
-        plot_results(self.omega, self.Z, Z_fit, "", show=True, save=False, Z_comp=Z_init)
+    def plot_initial_best_fit(self, sequential=False):
+        if not sequential:
+            Z_fit = self.fittedValues.best_fit
+            Z_init = self.fittedValues.init_fit
+            plot_results(self.omega, self.Z, Z_fit, "", show=True, save=False, Z_comp=Z_init)
+        else:
+            for i in range(2):
+                Z_fit = getattr(self, "fittedValues" + str(i + 1)).best_fit
+                Z_init = getattr(self, "fittedValues" + str(i + 1)).init_fit
+                plot_results(self.omega, self.Z, Z_fit, "", show=True, save=False, Z_comp=Z_init)
+
+    def cluster_emcee_result(self, constant=1e2):
+        """
+        .. todo::
+            documentation
+        """
+        res = self.fittedValues
+        if not self.emcee_tag:
+            print("You need to have run emcee as a solver to use this function")
+            return
+        else:
+            lnprob = np.swapaxes(res.lnprob, 0, 1)
+            chain = np.swapaxes(res.chain, 0, 1)
+            walker_prob = []
+            for i in range(lnprob.shape[0]):
+                walker_prob.append(-np.mean(lnprob[i]))
+            if self.LogLevel == "DEBUG":
+                plt.title("walkers sorted by probability")
+                plt.xlabel("walker")
+                plt.ylabel("negative mean ln probability")
+                plt.plot((np.sort(walker_prob)))
+                plt.show()
+            sorted_indices = np.argsort(walker_prob)
+            sorted_fields = np.sort(walker_prob)
+            l0 = sorted_fields[0]
+            differences = np.diff((sorted_fields))
+            if self.LogLevel == "DEBUG":
+                plt.title("difference between adjacent walkers")
+                plt.xlabel("walker")
+                plt.ylabel("difference")
+                plt.plot(differences)
+                plt.show()
+            average_differences = [(x - l0) / (j + 1) for j, x in enumerate((sorted_fields[1::]))]
+            if self.LogLevel == "DEBUG":
+                plt.title("average difference between current and first walkers")
+                plt.ylabel("average difference")
+                plt.xlabel("walker")
+                plt.plot(average_differences)
+                plt.show()
+            constant = 1e2
+
+            # set cut to the maximum number of walkers
+            cut = len(walker_prob)
+            for i in range(differences.size):
+                if differences[i] > constant * average_differences[i]:
+                    cut = i
+                    logger.debug("Cut off at walker {}".format(cut))
+                    break
+            if self.LogLevel == "DEBUG":
+                plt.title("Acceptance fractions after clustering")
+                plt.xlabel("walker")
+                plt.ylabel("acceptance fraction")
+                plt.plot(np.take(res.acceptance_fraction, sorted_indices[:cut:]), label="initially")
+                plt.plot(np.take(res.acceptance_fraction, sorted_indices[:cut:]), label="clustered")
+                plt.legend()
+                plt.show()
+            res.new_chain = np.take(chain, sorted_indices[:cut:], axis=0)
+            res.new_flatchain = pd.DataFrame(res.new_chain.reshape((-1, res.nvarys)),
+                                             columns=res.var_names)
+
+    def emcee_report(self):
+        """
+        .. todo:: documentation
+        """
+        if not self.emcee_tag:
+            print("You need to have run emcee as a solver to use this function")
+            return
+
+        if hasattr(self.fittedValues, 'acor'):
+            i = 0
+            logger.info("Correlation times per parameter")
+            for p in self.fittedValues.params:
+                if self.fittedValues.params[p].vary:
+                    print(p, self.fittedValues.acor[i])
+                    i += 1
+        else:
+            logger.warning("No autocorrelation data available. Maybe run a longer chain?")
+
+        plt.xlabel("walker")
+        plt.ylabel("acceptance fraction")
+        plt.plot(self.fittedValues.acceptance_fraction)
+        plt.show()
+
+    def plot_uncertainty_interval(self, sigma=1):
+
+        assert isinstance(sigma, int), "Sigma needs to be integer and range between 1 and 3."
+        assert sigma >= 1, "Sigma needs to be integer and range between 1 and 3."
+        assert sigma <= 3, "Sigma needs to be integer and range between 1 and 3."
+
+        if self.solvername != "emcee":
+            print("Not Using emcee")
+            ci = self.fittedValues.conf_interval()
+        else:
+            print("Using emcee")
+            ci = self.emcee_conf_interval(self.fittedValues)
+        eval1 = lmfit.Parameters()
+        eval2 = lmfit.Parameters()
+        for p in self.fittedValues.params:
+            eval1.add(p, value=self.fittedValues.best_values[p])
+            eval2.add(p, value=self.fittedValues.best_values[p])
+            if p in ci:
+                eval1[p].set(value=ci[p][3 - sigma][1])
+                eval2[p].set(value=ci[p][3 + sigma][1])
+
+        Z1 = self.fittedValues.eval(params=eval1)
+        Z2 = self.fittedValues.eval(params=eval2)
+        Z = self.fittedValues.best_fit
+        plot_uncertainty(self.fittedValues.userkws['omega'], self.fittedValues.data, Z, Z1, Z2, sigma)
+
+    def emcee_conf_interval(self, result):
+        """
+        .. todo::
+            documentation
+        """
+        ci = {}
+        percentiles = [0.9973002039367398,
+                       0.9544997361036416,
+                       0.6826894921370859,
+                       0.0,
+                       0.6826894921370859,
+                       0.9544997361036416,
+                       0.9973002039367398]
+        pars = [p for p in result.params if result.params[p].vary]
+        for i, p in enumerate(pars):
+            quantile = np.percentile(result.flatchain[p], np.array(percentiles) * 100)
+            ci[p] = list(zip(percentiles, quantile))
+        return ci

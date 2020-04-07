@@ -95,7 +95,6 @@ def set_parameters(model, parameterdict=None, emcee=False):
     params: Parameters
         LMFIT `Parameters`.
     """
-    modelName = model._name
     if parameterdict is None:
         try:
             infile = open('input.yaml', 'r')
@@ -104,22 +103,23 @@ def set_parameters(model, parameterdict=None, emcee=False):
             logger.error("Please provide a yaml-input file.")
     else:
         try:
-            bufdict = parameterdict
+            bufdict = parameterdict.copy()
         except KeyError:
-            logger.error("Your parameterdict lacks an entry for the model: " + modelName)
+            logger.error("Your parameterdict lacks an entry for the model. Required are: {}".format(model.param_names))
 
     bufdict = _clean_parameters(bufdict, model.param_names)
+    logger.debug("Setting values for parameters {}".format(model.param_names))
     for key in model.param_names:
         model.set_param_hint(key, **bufdict[key])
     parameters = model.make_params()
-    if emcee and '__lnsigma' not in bufdict:
+    if emcee and '__lnsigma' not in parameterdict:
         logger.warning("""You did not provide the parameter '__lnsigma'.
                           It is needed for the emcee of unweighted data (as implemented here).
                           We now use the lmfit default:\n
                           value=np.log(0.1), min=np.log(0.001), max=np.log(2)""")
         parameters.add("__lnsigma", value=np.log(0.1), min=np.log(0.001), max=np.log(2.0))
-    elif emcee and "__lnsigma" in bufdict:
-        parameters.add("__lnsigma", **bufdict["__lnsigma"])
+    elif emcee and "__lnsigma" in parameterdict:
+        parameters.add("__lnsigma", **parameterdict["__lnsigma"])
 
     return parameters
 
@@ -146,18 +146,22 @@ def _clean_parameters(params, names):
     return params
 
 
-def get_labels():
+def get_labels(params):
     """
     return the labels for every parameter in LaTex code.
 
+    Parameters
+    ----------
+
+    params: list of string
+        list with parameters names (possible prefixes included
     Returns
     -------
 
     labels: dict
         dictionary with parameter names as keys and LaTex code as values.
     """
-
-    labels = {
+    all_labels = {
         'c0': r'$C_0$',
         'cf': r'$C_\mathrm{f}$',
         'em': r'$\varepsilon_\mathrm{m}$',
@@ -192,6 +196,25 @@ def get_labels():
         'R0': r'$R_0$',
         'eps': r'$\varepsilon_\mathrm{r}$'}
 
+    labels = {}
+    for p in params:
+        if p != "__lnsigma":
+            tmp = p.split("_")
+            pre = ""
+        else:
+            tmp = ["__lnsigma"]
+        if len(tmp) == 2:
+            pre = tmp[0]
+            par = tmp[1]
+        elif len(tmp) == 1:
+            par = tmp[0]
+        else:
+            raise RuntimeError("The parameter {} cannot be split in prefix and suffix.".format(p))
+        try:
+            label = all_labels[par]
+        except KeyError:
+            print("There has not yet been a LaTex representation of the parameter {} implemented.".format(par))
+        labels[p] = r"{} {}".format(pre, label)
     return labels
 
 

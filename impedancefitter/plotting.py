@@ -195,9 +195,44 @@ def emcee_plot(res, **corner_kwargs):
     corner_kwargs: dict, optional
         Dictionary with further corner plot options
     """
-    truths = [res.params[p].value for p in res.var_names]
-    ifLabels = get_labels()
+    params = [p for p in res.params if res.params[p].vary]
+    truths = [res.params[p].value for p in params]
+    ifLabels = get_labels(params)
     labels = [ifLabels[p] for p in res.var_names]
     plot = corner.corner(res.flatchain, labels=labels,
                          truths=truths, **corner_kwargs)
     return plot
+
+
+def plot_uncertainty(omega, Zdata, Z, Z1, Z2, sigma, show=True):
+    """
+    .. todo::
+        documentation
+    """
+    plt.figure()
+    plt.suptitle(r"${} \sigma$ results".format(sigma), y=1.05)
+    # plot real part of impedance
+    plt.subplot(211)
+    plt.xscale('log')
+    plt.title("impedance real part")
+    plt.ylabel(r"$\Re(Z) [\Omega]$")
+    plt.xlabel("frequency [Hz]")
+    plt.plot(omega / (2. * np.pi), Z.real, '+', label='best fit')
+    plt.plot(omega / (2. * np.pi), Zdata.real, 'r', label='data')
+    plt.fill_between(omega / (2. * np.pi), Z1.real, Z2.real,
+                     color='#888888', label=r"${} \sigma$ interval".format(sigma))
+    plt.legend()
+    # plot imaginary part of impedance
+    plt.subplot(212)
+    plt.title("impedance imaginary part")
+    plt.xscale('log')
+    plt.ylabel(r"$\Im(Z) [\Omega]$")
+    plt.xlabel("frequency [Hz]")
+    plt.plot(omega / (2. * np.pi), Z.imag, '+', label='best fit')
+    plt.plot(omega / (2. * np.pi), Zdata.imag, 'r', label='data')
+    plt.fill_between(omega / (2. * np.pi), Z1.imag, Z2.imag,
+                     color='#888888', label=r"${} \sigma$ interval".format(sigma))
+    plt.legend()
+    plt.tight_layout()
+    if show:
+        plt.show()
