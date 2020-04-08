@@ -47,9 +47,6 @@ class Fitter(object):
 
     directory: {string, optional, path to data directory}
         provide directory if you run code from directory different to data directory
-    parameters: {dict, optional, needed parameters}
-        provide parameters if you do not want to use a yaml file (for instance in parallel UQ runs).
-        may contain parameters for more than one model.
 
     Kwargs
     ------
@@ -101,8 +98,6 @@ class Fitter(object):
 
         Parameters
         ----------
-        modelname: string
-            modelname. Must be one of those provided in :func:`impedancefitter.utils.available_models`
         inputformat: string
             must be one of the formats specified in :func:`impedancefitter.utils.available_file_format`
 
@@ -214,14 +209,16 @@ class Fitter(object):
         Parameters
         ----------
 
+        modelname: string
+            modelname. Must be built by those provided in :func:`impedancefitter.utils.available_models` and using `+`
+            and `parallel(x, y)` as possible representations of series or parallel circuit
         protocol: string, optional
             Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
-
-        Kwargs
-        ------
-
-        solvername: string, optional
+        solver: string, optional
             choose an optimizer. Must be available in lmfit. Default is least_squares
+        parameters: {dict, optional, needed parameters}
+            provide parameters if you do not want to use a yaml file (for instance in parallel UQ runs).
+
 
         """
 
@@ -437,8 +434,10 @@ class Fitter(object):
                     'ColeCole': [["kdc", "eh"]]}
         fix_list = fix_dict[modelname][idx]
         # fix all parameters to value given in result
+        for parameter in result.params:
+            params[parameter].set(value=result.best_values[parameter])
         for parameter in fix_list:
-            params[parameter].set(vary=False, value=result.best_values[parameter])
+            params[parameter].set(vary=False)
         return params
 
     def fit_data(self, model, parameters, modelclass=None):
@@ -591,33 +590,41 @@ class Fitter(object):
         plt.plot(self.fittedValues.acceptance_fraction)
         plt.show()
 
-    def plot_uncertainty_interval(self, sigma=1):
+    def plot_uncertainty_interval(self, sigma=1, sequential=False):
 
         assert isinstance(sigma, int), "Sigma needs to be integer and range between 1 and 3."
         assert sigma >= 1, "Sigma needs to be integer and range between 1 and 3."
         assert sigma <= 3, "Sigma needs to be integer and range between 1 and 3."
 
-        if self.solvername != "emcee":
-            print("Not Using emcee")
-            ci = self.fittedValues.conf_interval()
+        if sequential:
+            iters = 2
+            endings = ["1", "2"]
         else:
-            print("Using emcee")
-            ci = self.emcee_conf_interval(self.fittedValues)
-        eval1 = lmfit.Parameters()
-        eval2 = lmfit.Parameters()
-        for p in self.fittedValues.params:
-            if p == "__lnsigma":
-                continue
-            eval1.add(p, value=self.fittedValues.best_values[p])
-            eval2.add(p, value=self.fittedValues.best_values[p])
-            if p in ci:
-                eval1[p].set(value=ci[p][3 - sigma][1])
-                eval2[p].set(value=ci[p][3 + sigma][1])
+            iters = 1
+            endings = [""]
+        for i in range(iters):
+            fit_values = getattr(self, "fittedValues{}".format(endings[i]))
+            if self.solvername != "emcee":
+                print("Not Using emcee")
+                ci = fit_values.conf_interval()
+            else:
+                print("Using emcee")
+                ci = self.emcee_conf_interval(fit_values)
+            eval1 = lmfit.Parameters()
+            eval2 = lmfit.Parameters()
+            for p in fit_values.params:
+                if p == "__lnsigma":
+                    continue
+                eval1.add(p, value=fit_values.best_values[p])
+                eval2.add(p, value=fit_values.best_values[p])
+                if p in ci:
+                    eval1[p].set(value=ci[p][3 - sigma][1])
+                    eval2[p].set(value=ci[p][3 + sigma][1])
 
-        Z1 = self.fittedValues.eval(params=eval1)
-        Z2 = self.fittedValues.eval(params=eval2)
-        Z = self.fittedValues.best_fit
-        plot_uncertainty(self.fittedValues.userkws['omega'], self.fittedValues.data, Z, Z1, Z2, sigma)
+            Z1 = fit_values.eval(params=eval1)
+            Z2 = fit_values.eval(params=eval2)
+            Z = fit_values.best_fit
+            plot_uncertainty(fit_values.userkws['omega'], fit_values.data, Z, Z1, Z2, sigma, model=i)
 
     def emcee_conf_interval(self, result):
         """

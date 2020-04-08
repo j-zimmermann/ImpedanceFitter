@@ -20,7 +20,7 @@
 from scipy.constants import epsilon_0 as e0
 
 
-def rc_model(omega, c0, cf, kdc, eps):
+def rc_model(omega, c0, kdc, eps):
     """
     Simple RC model
     """

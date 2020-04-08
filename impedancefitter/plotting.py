@@ -204,13 +204,22 @@ def emcee_plot(res, **corner_kwargs):
     return plot
 
 
-def plot_uncertainty(omega, Zdata, Z, Z1, Z2, sigma, show=True):
+def plot_uncertainty(omega, Zdata, Z, Z1, Z2, sigma, show=True, model=None):
     """
     .. todo::
         documentation
+    Parameters
+    ----------
+
+    model: int, optional
+        numbering of model for sequential plotting
+
     """
     plt.figure()
-    plt.suptitle(r"${} \sigma$ results".format(sigma), y=1.05)
+    if model is not None:
+        plt.suptitle(r"${} \sigma$ results".format(sigma), y=1.05)
+    else:
+        plt.suptitle(r"${} \sigma$ results, model {}".format(sigma, model), y=1.05)
     # plot real part of impedance
     plt.subplot(211)
     plt.xscale('log')

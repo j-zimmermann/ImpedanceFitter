@@ -75,6 +75,72 @@ def return_diel_properties(omega, Z, c0):
     return eps_r, conductivity
 
 
+def check_parameters(bufdict):
+    """
+    check parameters for physical correctness
+
+    Parameters
+    ---------
+
+    bufdict: dict
+        Contains all parameters and their values
+    """
+    # capacitances in pF
+    capacitances = ['c0', 'C_stray']
+    for c in capacitances:
+        try:
+            assert not np.isclose(bufdict[c].value, 0.0, atol=1e-5), """{} is used in pF, do you really want it to be that small?
+                                                                            It might be ignored in the analysis""".format(c)
+        except KeyError:
+            pass
+
+    # check volume fraction
+    try:
+        assert 0 <= bufdict['p'].value <= 1.0, "p is the volume fraction and needs to be between 0.0 and 1.0. Change your initial value."
+        if bufdict['p'].vary:
+            assert 0 <= bufdict['p'].min <= 1.0, "p is the volume fraction and needs to be between 0.0 and 1.0. Change the min value accordingly."
+            assert 0 <= bufdict['p'].max <= 1.0, "p is the volume fraction and needs to be between 0.0 and 1.0. Change the max value accordingly."
+    except KeyError:
+        pass
+
+    # check tau (used in ColeCole models
+    try:
+        assert not np.isclose(bufdict['tau'].value, 0.0, atol=1e-5), "tau is used in ps, do you really want it to be that small?"
+    except KeyError:
+        pass
+
+    # check permittivities
+    permittivities = ['em', 'ecp', 'emed', 'ene', 'enp', 'el', 'eh', 'eps']
+    for p in permittivities:
+        try:
+            assert bufdict[p].value >= 1.0, "The permittivity {} needs to be greater than or equal to 1. Change the initial value.".format(p)
+            if bufdict[p].vary:
+                assert bufdict[p].min >= 1.0, "The permittivity {} needs to be greater than or equal to 1. Change the min value.".format(p)
+                assert bufdict[p].max >= 1.0, "The permittivity {} needs to be greater than or equal to 1. Change the max value.".format(p)
+        except KeyError:
+            pass
+
+    # check special parameters
+    exponents = ['a', 'alpha']
+    for e in exponents:
+        try:
+            assert 0 <= bufdict[e].value <= 1.0, "{} is an exponent that needs to be between 0.0 and 1.0. Change your initial value.".format(e)
+            if bufdict[p].vary:
+                assert 0 <= bufdict[e].min >= 0.0, "{} is an exponent that needs to be between 0.0 and 1.0. Change your min value.".format(e)
+                assert 0 <= bufdict[e].max <= 1.0, "{} is an exponent that needs to be between 0.0 and 1.0. Change your max value.".format(e)
+        except KeyError:
+            pass
+
+    for p in bufdict:
+        # __lnsigma can be negative
+        if p == '__lnsigma':
+            continue
+        assert bufdict[p].value >= 0.0, "{} needs to be positive. Change your initial value.".format(p)
+        if bufdict[p].vary:
+            assert bufdict[p].max >= 0.0, "{} needs to be positive. Change your max value.".format(p)
+            assert bufdict[p].min >= 0.0, "{} needs to be positive. Change your min value.".format(p)
+
+
 def set_parameters(model, parameterdict=None, emcee=False):
     """
     Parameters
@@ -112,6 +178,7 @@ def set_parameters(model, parameterdict=None, emcee=False):
     for key in model.param_names:
         model.set_param_hint(key, **bufdict[key])
     parameters = model.make_params()
+    check_parameters(parameters)
     if emcee and '__lnsigma' not in parameterdict:
         logger.warning("""You did not provide the parameter '__lnsigma'.
                           It is needed for the emcee of unweighted data (as implemented here).
@@ -163,7 +230,7 @@ def get_labels(params):
     """
     all_labels = {
         'c0': r'$C_0$',
-        'cf': r'$C_\mathrm{f}$',
+        'C_stray': r'$C_\mathrm{stray}$',
         'em': r'$\varepsilon_\mathrm{m}$',
         'km': r'$\sigma_\mathrm{m}$',
         'kcp': r'$\sigma_\mathrm{cp}$',
