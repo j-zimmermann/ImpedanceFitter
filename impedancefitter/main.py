@@ -606,6 +606,8 @@ class Fitter(object):
         eval1 = lmfit.Parameters()
         eval2 = lmfit.Parameters()
         for p in self.fittedValues.params:
+            if p == "__lnsigma":
+                continue
             eval1.add(p, value=self.fittedValues.best_values[p])
             eval2.add(p, value=self.fittedValues.best_values[p])
             if p in ci:
@@ -623,13 +625,13 @@ class Fitter(object):
             documentation
         """
         ci = {}
-        percentiles = [0.9973002039367398,
-                       0.9544997361036416,
-                       0.6826894921370859,
+        percentiles = [.5 * (1.0 - 0.9973002039367398),
+                       .5 * (1.0 - 0.9544997361036416),
+                       .5 * (1.0 - 0.6826894921370859),
                        0.0,
-                       0.6826894921370859,
-                       0.9544997361036416,
-                       0.9973002039367398]
+                       .5 * (1.0 + 0.6826894921370859),
+                       .5 * (1.0 + 0.9544997361036416),
+                       .5 * (1.0 + 0.9973002039367398)]
         pars = [p for p in result.params if result.params[p].vary]
         for i, p in enumerate(pars):
             quantile = np.percentile(result.flatchain[p], np.array(percentiles) * 100)
