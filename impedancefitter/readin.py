@@ -237,4 +237,4 @@ def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace, trace_b, m
     Z_real = fileDataArray[:, 1]
     Z_im = fileDataArray[:, 2]
     Z = Z_real + 1j * Z_im
-    return omega, Z
+    return omega, np.array([Z])

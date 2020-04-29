@@ -116,9 +116,6 @@ class Fitter(object):
             ch.setLevel(logging.DEBUG)
             logger.addHandler(ch)
 
-        if self.inputformat == 'TXT':
-            self.prepare_txt()
-
         self.omega_dict = {}
         self.z_dict = {}
         # read in all data and store it
@@ -252,11 +249,11 @@ class Fitter(object):
         for key in self.omega_dict:
             self.omega = self.omega_dict[key]
             self.zarray = self.z_dict[key]
-            iters = 1
+            self.iters = 1
             # determine number of iterations if more than 1 data set is in file
             if len(self.zarray.shape) > 1:
                 self.iters = self.zarray.shape[0]
-                logger.debug("Number of data sets:" + str(iters))
+                logger.debug("Number of data sets:" + str(self.iters))
             if self.data_sets is not None:
                 self.iters = self.data_sets
                 logger.debug("Will only iterate over {} data sets.".format(self.iters))
@@ -331,7 +328,8 @@ class Fitter(object):
                         self.model_parameters2[c].value = self.fittedValues1.best_values[c]
                         self.model_parameters2[c].vary = False
                     except KeyError:
-                        print("Key {} you want to communicate is not a valid model key.".format(c))
+                        logger.error("Key {} you want to communicate is not a valid model key.".format(c))
+                        raise
                 self.fittedValues2 = self.process_data_from_file(key, self.model2, self.model_parameters2, modelclass2)
                 self.process_sequential_fitting_results(key + '_' + str(i))
         if self.write_output is True and hasattr(self, "data"):
@@ -572,7 +570,7 @@ class Fitter(object):
         .. todo:: documentation
         """
         if not self.emcee_tag:
-            print("You need to have run emcee as a solver to use this function")
+            logger.error("You need to have run emcee as a solver to use this function")
             return
 
         if hasattr(self.fittedValues, 'acor'):
@@ -605,10 +603,10 @@ class Fitter(object):
         for i in range(iters):
             fit_values = getattr(self, "fittedValues{}".format(endings[i]))
             if self.solvername != "emcee":
-                print("Not Using emcee")
+                logger.debug("Not Using emcee")
                 ci = fit_values.conf_interval()
             else:
-                print("Using emcee")
+                logger.debug("Using emcee")
                 ci = self.emcee_conf_interval(fit_values)
             eval1 = lmfit.Parameters()
             eval2 = lmfit.Parameters()

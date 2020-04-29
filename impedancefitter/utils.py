@@ -31,6 +31,7 @@ from .rc import rc_model
 from .RC import RC_model
 from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model
 from .single_shell import single_shell_model
+from .drc import drc_model
 from lmfit import Model, CompositeModel
 
 logger = logging.getLogger('impedancefitter-logger')
@@ -84,6 +85,9 @@ def check_parameters(bufdict):
 
     bufdict: dict
         Contains all parameters and their values
+
+    .. todo::
+        this needs to work prefixes
     """
     # capacitances in pF
     capacitances = ['c0', 'C_stray']
@@ -137,8 +141,12 @@ def check_parameters(bufdict):
             continue
         assert bufdict[p].value >= 0.0, "{} needs to be positive. Change your initial value.".format(p)
         if bufdict[p].vary:
+            if bufdict[p].min <= 0.0:
+                logger.debug("{} needs to be positive. Changed your min value to 0.".format(p))
+                bufdict[p].set(min=0.0)
             assert bufdict[p].max >= 0.0, "{} needs to be positive. Change your max value.".format(p)
-            assert bufdict[p].min >= 0.0, "{} needs to be positive. Change your min value.".format(p)
+
+    return bufdict
 
 
 def set_parameters(model, parameterdict=None, emcee=False):
@@ -167,18 +175,21 @@ def set_parameters(model, parameterdict=None, emcee=False):
             bufdict = yaml.safe_load(infile)
         except OSError:
             logger.error("Please provide a yaml-input file.")
+            raise
     else:
         try:
             bufdict = parameterdict.copy()
         except KeyError:
             logger.error("Your parameterdict lacks an entry for the model. Required are: {}".format(model.param_names))
+            raise
 
     bufdict = _clean_parameters(bufdict, model.param_names)
     logger.debug("Setting values for parameters {}".format(model.param_names))
+    logger.debug("Parameters: {}".format(bufdict))
     for key in model.param_names:
         model.set_param_hint(key, **bufdict[key])
     parameters = model.make_params()
-    check_parameters(parameters)
+    parameters = check_parameters(parameters)
     if emcee and '__lnsigma' not in parameterdict:
         logger.warning("""You did not provide the parameter '__lnsigma'.
                           It is needed for the emcee of unweighted data (as implemented here).
@@ -249,6 +260,7 @@ def get_labels(params):
         'k': r'$\kappa$',
         'el': r'$\varepsilon_\mathrm{l}$',
         'tau': r'$\tau$',
+        'tauE': r'$\tau_\mathrm{E}$',
         'a': r'$a$',
         'alpha': r'$\alpha$',
         'kdc': r'$\sigma_\mathrm{DC}$',
@@ -261,6 +273,7 @@ def get_labels(params):
         'Rd': r'$R_\mathrm{d}$',
         'Rinf': r'$R_\infty$',
         'R0': r'$R_0$',
+        'RE': r'$R_\mathrm{E}$',
         'eps': r'$\varepsilon_\mathrm{r}$'}
 
     labels = {}
@@ -300,6 +313,7 @@ def available_models():
               'CPE',
               'CPECT',
               'CPECTW',
+              'DRC',
               'L',
               'R',
               'C',
@@ -370,6 +384,8 @@ def model_function(modelname):
         model = Z_randles
     elif modelname == 'RandlesCPE':
         model = Z_randles_CPE
+    elif modelname == 'DRC':
+        model = drc_model
     elif modelname == 'RCfull':
         model = RC_model
     elif modelname == 'RC':
@@ -457,18 +473,22 @@ def generate_model(m):
 
 
 def get_comp_model(modelname):
+    """
+    get composite model
+    """
     models = modelname.split("parallel")
     models = [m.strip().split('+') for m in models]
     # filter spaces out of list
     models = [list(filter(('').__ne__, m)) for m in models]
     compound = []
+    logger.debug("Models: {}".format(models))
     for model in models:
         # iterate through groups
+        logger.debug("Running model {}".format(model))
         for idx, m in enumerate(model):
-            print("Processing {} with index {}". format(m, idx))
-            if idx == 0 and '(' not in m:
+            if '(' not in m:
                 compound.append(generate_model(m))
-            elif idx == 0 and '(' in m:
+            elif '(' in m:
                 compound.append(process_parallel(model))
                 break
             else:
@@ -479,4 +499,5 @@ def get_comp_model(modelname):
     compound.pop(0)
     for m in compound:
         composite_model += m
+    logger.debug("Created composite model {}".format(composite_model))
     return composite_model
