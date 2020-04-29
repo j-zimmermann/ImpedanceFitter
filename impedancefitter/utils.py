@@ -20,6 +20,7 @@
 import numpy as np
 import yaml
 import logging
+import pyparsing as pp
 from scipy.constants import epsilon_0 as e0
 from collections import Counter
 from .elements import Z_C, Z_stray, Z_in, Z_loss, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
@@ -423,40 +424,12 @@ def model_function(modelname):
     return model
 
 
-def process_parallel(model_list):
-    first = []
-    second = []
-    tag_first = True
-    for m in model_list:
-        if ',' not in m and tag_first:
-            first.append(m)
-        elif ',' not in m and tag_first is False:
-            second.append(m)
-        else:
-            tmp = m.split(',')
-            if len(tmp) != 2:
-                raise RuntimeError("This should not be it! Parallel split looked like {}.".format(tmp))
-            first.append(tmp[0])
-            second.append(tmp[1])
-            tag_first = False
-    first_models = []
-    second_models = []
-    for m in first:
-        m = m.replace("(", "")
-        first_models.append(generate_model(m))
-    for m in second:
-        m = m.replace(")", "")
-        second_models.append(generate_model(m))
-    logger.debug("first_models: " + str(first_models))
-    logger.debug("second_models: " + str(second_models))
-    first = first_models[0]
-    first_models.pop(0)
-    for m in first_models:
-        first += m
-    second = second_models[0]
-    second_models.pop(0)
-    for m in second_models:
-        second += m
+def process_parallel(model):
+    assert len(model) == 3, "The model must be [model1, ',' , model2]"
+    first_model = model[0]
+    second_model = model[2]
+    first = process_element(first_model)
+    second = process_element(second_model)
     return CompositeModel(first, second, parallel)
 
 
@@ -472,32 +445,58 @@ def generate_model(m):
         return Model(model_function(m.strip()))
 
 
+def process_element(c):
+    if isinstance(c, str):
+        return generate_model(c)
+    elif isinstance(c, list):
+        return process_circuit(c)
+    else:
+        raise RuntimeError
+
+
+def process_series(circuitstr):
+    circuit = []
+    for c in circuitstr:
+        if c == '+':
+            continue
+        element = process_element(c)
+        circuit.append(element)
+    composite_model = circuit[0]
+    circuit.pop(0)
+    for m in circuit:
+        composite_model += m
+
+    return composite_model
+
+
+def process_circuit(circuit):
+    print("circuit: ", circuit)
+    if '+' in circuit:
+        c = process_series(circuit)
+    elif ',' in circuit:
+        c = process_parallel(circuit)
+    else:
+        raise RuntimeError("You must have entered a wrong circuit!")
+    return c
+
+
 def get_comp_model(modelname):
     """
     get composite model
     """
-    models = modelname.split("parallel")
-    models = [m.strip().split('+') for m in models]
-    # filter spaces out of list
-    models = [list(filter(('').__ne__, m)) for m in models]
-    compound = []
-    logger.debug("Models: {}".format(models))
-    for model in models:
-        # iterate through groups
-        logger.debug("Running model {}".format(model))
-        for idx, m in enumerate(model):
-            if '(' not in m:
-                compound.append(generate_model(m))
-            elif '(' in m:
-                compound.append(process_parallel(model))
-                break
-            else:
-                raise RuntimeError("There must have been a typo in your model specification.")
-    if len(compound) == 0:
-        raise RuntimeError("Did you provide an empty model?")
-    composite_model = compound[0]
-    compound.pop(0)
-    for m in compound:
-        composite_model += m
-    logger.debug("Created composite model {}".format(composite_model))
-    return composite_model
+
+    circuit = []
+    str2parse = modelname.replace("parallel", "")
+    circuit_elements = pp.Word(pp.srange("[a-zA-Z_0-9]"))
+    plusop = pp.Literal('+')
+    commaop = pp.Literal(',')
+    expr = pp.infixNotation(circuit_elements,
+                            [(plusop, 2, pp.opAssoc.LEFT),
+                             (commaop, 2, pp.opAssoc.LEFT)])
+    try:
+        circuitstr = expr.parseString(str2parse)
+    except pp.ParseException:
+        raise ("You must provide a correct string!")
+    circuit = process_circuit(circuitstr.asList()[0])
+    logger.debug("Created composite model {}".format(circuit))
+    return circuit
