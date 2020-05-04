@@ -23,9 +23,12 @@ logger = logging.getLogger('impedancefitter-logger')
 
 
 def readin_Data_from_collection(filepath, fileformat, minimumFrequency=None, maximumFrequency=None):
-    """
-    read in data collection from Excel or CSV file that is structured like: frequency, real part of impedance, imaginary part of impedance
-    there may be many different sets of impedance data, i.e. there may be more columns with the real and the imaginary part.
+    """read in data collection from Excel or CSV file.
+
+    The file is structured like:
+    frequency, real part of impedance, imaginary part of impedance.
+    There may be many different sets of impedance data,
+    i.e. there may be more columns with the real and the imaginary part.
     Then, the frequencies column must not be repeated.
 
     Parameters
@@ -35,9 +38,9 @@ def readin_Data_from_collection(filepath, fileformat, minimumFrequency=None, max
         Provide the full filepath
     fileformat: string
         Provide fileformat. Possibilities are 'XLSX' and 'CSV'.
-    minimumFrequency: optional
+    minimumFrequency: float, optional
         Provide a minimum frequency. All values below this frequency will be ignored.
-    maximumFrequency: optional
+    maximumFrequency: float, optional
         Provide a maximum frequency. All values above this frequencies will be ignored.
 
     Returns
@@ -93,8 +96,10 @@ def readin_Data_from_collection(filepath, fileformat, minimumFrequency=None, max
 
 
 def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequency=None, current_threshold=None):
-    """
-    read in data that is structured like: frequency, real part of impedance, imaginary part of impedance, voltage, current
+    """Read in data from E4980AL-LCR meter.
+
+    Read in data that is structured like:
+    frequency, real part of impedance, imaginary part of impedance, voltage, current
 
     .. note::
         There is always only one data set in a file.
@@ -179,7 +184,8 @@ def _get_max_rows(filepath, trace_b, skiprows_txt, skiprows_trace):
 
 
 def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace, trace_b, minimumFrequency=None, maximumFrequency=None):
-    """
+    """Read in data from TXT file.
+
     Data from txt files get reads in, returns array with omega and complex-valued impedance Z.
     The TXT files may contain two traces; only one of them is read in.
 

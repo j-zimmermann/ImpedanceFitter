@@ -1,3 +1,5 @@
+.. _circuits:
+
 Circuits
 ========
 

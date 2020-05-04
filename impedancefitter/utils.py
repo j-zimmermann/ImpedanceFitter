@@ -24,8 +24,7 @@ import pyparsing as pp
 from scipy.constants import epsilon_0 as e0
 from collections import Counter
 from .elements import Z_C, Z_stray, Z_in, Z_loss, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
-from .cole_cole import cole_cole_model
-from .cole_cole_R import cole_cole_R_model
+from .cole_cole import cole_cole_model, cole_cole_R_model
 from .double_shell import double_shell_model
 from .randles import Z_randles, Z_randles_CPE
 from .rc import rc_model
@@ -47,7 +46,7 @@ def return_diel_properties(omega, Z, c0):
 
         Z = (j \omega \varepsilon^\ast)^{-1} ,
 
-    where :math:`\varepsilon^\ast` is the complex permittivity (see for instance the paper with DOI 10.1063/1.1722949
+    where :math:`\varepsilon^\ast` is the complex permittivity (see for instance [1]_
     for further explanation).
 
     The relative permittivity is the real part of :math:`\varepsilon^\ast` divided by the vacuum permittivity and
@@ -70,6 +69,12 @@ def return_diel_properties(omega, Z, c0):
         relative permittivity
     conductivity: double
         conductivity in S/m
+
+    References
+    ----------
+
+    .. [1] Grant, F. A. (1958). Use of complex conductivity in the representation of dielectric phenomena.
+           Journal of Applied Physics, 29(1), 76–80. https://doi.org/10.1063/1.1722949
     """
     epsc = 1. / (1j * omega * Z * c0)
     eps_r = epsc.real / e0
@@ -87,8 +92,11 @@ def check_parameters(bufdict):
     bufdict: dict
         Contains all parameters and their values
 
+    Notes
+    -----
+
     .. todo::
-        this needs to work prefixes
+        this currently is not working with prefixes
     """
     # capacitances in pF
     capacitances = ['c0', 'C_stray']
@@ -155,20 +163,20 @@ def set_parameters(model, parameterdict=None, emcee=False):
     Parameters
     -----------
 
-    model: string
-        LMFIT model object.
-    parameterdict: optional
-        a dictionary containing parameters for model with *min*, *max*, *vary* info for LMFIT.
+    model: :py:class:`lmfit.model.Model`
+        The LMFIT model used for fitting.
+    parameterdict: dict, optional
+        A dictionary containing parameters for model with *min*, *max*, *vary* info for LMFIT.
         If it is None (default), the parameters are read in from a yaml-file.
     emcee: bool, optional
         if emcee is used, an additional `__lnsigma` parameter will be set
 
 
-    Returns:
-    --------
+    Returns
+    -------
 
-    params: Parameters
-        LMFIT `Parameters`.
+    params: :py:class:`lmfit.parameter.Parameters`
+        LMFIT Parameters object.
     """
     if parameterdict is None:
         try:
@@ -234,6 +242,7 @@ def get_labels(params):
 
     params: list of string
         list with parameters names (possible prefixes included
+
     Returns
     -------
 
@@ -300,8 +309,7 @@ def get_labels(params):
 
 
 def available_models():
-    """
-    return list of available models
+    """return list of available models
     """
     models = ['ColeCole',
               'ColeColeR',
@@ -324,59 +332,46 @@ def available_models():
     return models
 
 
-def model_information(model):
-    """Get detailed information about model.
-
-    Parameters
-    -----------
-    model: string
-        name of model, see available models from :func:`available_models`.
-
-    Returns:
-    --------
-    description: string
-        Description what is behind the model, where it can be found in literature and where it is implemented.
-
-    .. todo::
-        Update documentation here.
-
-    """
-    information = {'ColeCole': """ Cole-Cole model as implemented in paper with DOI:10.1063/1.4737121.
-                                    You need to provide the unit capacitance of your device to get the dielectric properties of
-                                    the Cole-Cole model. """,
-                   'ColeColeR': """ Standard Cole-Cole circuit as given in paper with DOI:10.1016/b978-1-4832-3111-2.50008-0.
-                                      Implemented in :func:impedancefitter.cole_cole_R.co """,
-                   'Randles': """
-                                """,
-                   'RandlesCPE': """
-                                """,
-                   'RCfull': """
-                   """,
-                   'RC': """
-                   """,
-                   'SingleShell': """
-                   """,
-                   'DoubleShell': """
-                   """}
-
-    if model in information:
-        description = information['model']
-    else:
-        raise NotImplementedError("This model has not been implemented yet or no information is available.")
-    return description
-
-
 def available_file_format():
-    """
-    .. todo::
-        Update documentation here.
+    """List available file formats.
 
+    Currently available:
+
+    **XLSX** and **CSV**:
+
+    The file is structured like:
+    frequency, real part of impedance, imaginary part of impedance.
+    There may be many different sets of impedance data,
+    i.e. there may be more columns with the real and the imaginary part.
+    Then, the frequencies column must not be repeated.
+    In fact, the number of columns equals the number of
+    impedance data sets plus one (for the frequency).
+
+    .. todo::
+        Clarify if header is needed.
+
+    **CSV_E4980AL**:
+
+    Read in data that is structured in 5 columns:
+    frequency, real part, imaginary part of the impedance, voltage, current
+
+    .. note::
+        There is always only one data set in a file.
+
+    **TXT**:
+
+    These files contain frequency, real and imaginary part of the impedance
+    (i.e., 3 columns).
+    The TXT files may contain two traces; only one of them is read in.
     """
+
     formats = ['XLSX', 'CSV', 'CSV_E4980AL', "TXT"]
     return formats
 
 
-def model_function(modelname):
+def _model_function(modelname):
+    """wrapper to return correct function for model
+    """
     if modelname == 'ColeCole':
         model = cole_cole_model
     elif modelname == 'ColeColeR':
@@ -424,42 +419,78 @@ def model_function(modelname):
     return model
 
 
-def process_parallel(model):
+def _process_parallel(model):
+    """Process parallel circuit.
+
+    Parameters
+    ----------
+    model: list
+        Contains the parallel circuit as a nested list.
+
+    Returns
+    -------
+    :py:class:`lmfit.model.CompositeModel`
+        The CompositeModel of the parallel circuit.
+    """
     assert len(model) == 3, "The model must be [model1, ',' , model2]"
     first_model = model[0]
     second_model = model[2]
-    first = process_element(first_model)
-    second = process_element(second_model)
+    first = _process_element(first_model)
+    second = _process_element(second_model)
     return CompositeModel(first, second, parallel)
 
 
-def generate_model(m):
+def _generate_model(m):
+    """Generate a :py:class:`lmfit.model.Model` from a Python function
+    """
     if '_' in m:
         # get possible prefix
         info = m.split("_")
         if len(info) != 2:
             raise RuntimeError("A model must be always named PREFIX_MODEL! Instead you named it: {}".format(m))
         # also checks if model exists
-        return Model(model_function(info[0].strip()), prefix=info[1].strip() + str('_'))
+        return Model(_model_function(info[0].strip()), prefix=info[1].strip() + str('_'))
     else:
-        return Model(model_function(m.strip()))
+        return Model(_model_function(m.strip()))
 
 
-def process_element(c):
+def _process_element(c):
+    """Process an individual element of the circuit.
+
+    Parameters
+    ----------
+
+    c: str or list
+        either a model is generated or the circuit is further processed
+    """
     if isinstance(c, str):
-        return generate_model(c)
+        return _generate_model(c)
     elif isinstance(c, list):
-        return process_circuit(c)
+        return _process_circuit(c)
     else:
         raise RuntimeError
 
 
-def process_series(circuitstr):
+def _process_series(circuitstr):
+    """Process series circuit
+
+    Parameters
+    ----------
+    circuitstr: str
+        string representation of circuit
+
+    Returns
+    -------
+
+    :py:class:`lmfit.model.CompositeModel`
+        the composite model representation of the series
+    """
+
     circuit = []
     for c in circuitstr:
         if c == '+':
             continue
-        element = process_element(c)
+        element = _process_element(c)
         circuit.append(element)
     composite_model = circuit[0]
     circuit.pop(0)
@@ -469,20 +500,48 @@ def process_series(circuitstr):
     return composite_model
 
 
-def process_circuit(circuit):
-    print("circuit: ", circuit)
+def _process_circuit(circuit):
+    """Generate LMFIT model from circuit.
+
+    Parameters
+    ----------
+    circuit: list
+        Nested list representation of circuit.
+
+    Returns
+    -------
+    :py:class:`lmfit.model.CompositeModel`
+        the final model of the entire circuit
+    """
+    logger.debug("circuit: ", circuit)
     if '+' in circuit:
-        c = process_series(circuit)
+        c = _process_series(circuit)
     elif ',' in circuit:
-        c = process_parallel(circuit)
+        c = _process_parallel(circuit)
     else:
         raise RuntimeError("You must have entered a wrong circuit!")
     return c
 
 
 def get_comp_model(modelname):
-    """
-    get composite model
+    """Get LMFIT CompositeModel.
+
+    Parameters
+    ----------
+    modelname: str
+        String representation of the equivalent circuit.
+
+    Returns
+    -------
+    :py:class:`lmfit.model.CompositeModel`
+        the final model of the entire circuit
+
+    Notes
+    -----
+
+    The parser is based on Pyparsing.
+    It is sensitive towards extra `(` or `)` or `+`.
+    Thus, keep the circuit simple.
     """
 
     circuit = []
@@ -497,6 +556,6 @@ def get_comp_model(modelname):
         circuitstr = expr.parseString(str2parse)
     except pp.ParseException:
         raise ("You must provide a correct string!")
-    circuit = process_circuit(circuitstr.asList()[0])
+    circuit = _process_circuit(circuitstr.asList()[0])
     logger.debug("Created composite model {}".format(circuit))
     return circuit

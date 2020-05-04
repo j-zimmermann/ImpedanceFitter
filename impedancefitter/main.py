@@ -1,4 +1,5 @@
-#    The ImpedanceFitter is a package that provides means to fit impedance spectra to theoretical models using open-source software.
+#    The ImpedanceFitter is a package that provides means to fit
+#    impedance spectra to theoretical models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
 #    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
@@ -27,14 +28,13 @@ import yaml
 from copy import deepcopy
 
 from .utils import set_parameters, get_comp_model
-from .readin import readin_Data_from_TXT_file, readin_Data_from_collection, readin_Data_from_csv_E4980AL
-from .plotting import plot_results, plot_uncertainty
+from .readin import (readin_Data_from_TXT_file,
+                     readin_Data_from_collection,
+                     readin_Data_from_csv_E4980AL)
+from .plotting import plot_impedance, plot_uncertainty
 
 # create logger
 logger = logging.getLogger('impedancefitter-logger')
-"""
-We use an own logger for the impedancefitter module.
-"""
 
 
 class Fitter(object):
@@ -46,49 +46,76 @@ class Fitter(object):
     Parameters
     ----------
 
-    inputformat: {string}
-        The inputformat of the data files. Must be one of the formats specified in :func:`impedancefitter.utils.available_file_format`.
-    directory: {string, optional, path to data directory}
-        Provide the data directory if the data directory is not the current working directory.
-
-    Kwargs
-    ------
-
-
-    LogLevel: {string, optional, 'DEBUG' OR 'INFO' OR 'WARNING'}
-        choose level for logger. Case DEBUG: the script will output plots after each fit, case INFO: the script will output results from each fit to the console.
-    excludeEnding: {string, optional}
-        for ending that should be ignored (if there are files with the same ending as the chosen inputformat)
-    minimumFrequency: {float, optional}
-        if you want to use another frequency than the minimum frequency in the dataset.
-    maximumFrequency: {float, optional}
-        if you want to use another frequency than the maximum frequency in the dataset.
-    data_sets: {int, optional}
+    inputformat: string
+        The inputformat of the data files. Must be one of the formats specified
+        in :func:`impedancefitter.utils.available_file_format`.
+    directory: string, optional
+        Path to data directory.
+        Provide the data directory if the data directory is not the
+        current working directory.
+    LogLevel: {'DEBUG', 'INFO', 'WARNING'}, optional
+        choose level for logger. Case DEBUG: the script will output plots after
+        each fit, case INFO: the script will output results from each fit
+        to the console.
+    excludeEnding: string, optional
+        For file ending that should be ignored (if there are files with the
+        same ending as the chosen inputformat).
+        Useful for instance, if there are files like `*_data.csv` and
+        `*_result.csv` around and only the first should
+        be fitted.
+    minimumFrequency: float, optional
+        If you want to use another frequency than the minimum frequency
+        in the dataset.
+    maximumFrequency: float, optional
+        If you want to use another frequency than the maximum frequency
+        in the dataset.
+    data_sets: int, optional
         Use only a certain number of data sets instead of all in directory.
-    current_threshold: {float, optional}
-        Use only for data from E4980AL LCR meter to check current. If the current is not close to the threshold, the data point will be neglected.
-    write_output: {bool, optional}
+    current_threshold: float, optional
+        Use only for data from E4980AL LCR meter to check current.
+        If the current is not close to the threshold,
+        the data point will be neglected.
+    write_output: bool, optional
         Decide if you want to dump output to file. Default is False
-    fileList: {list of strings, optional}
-        provide a list of files that exclusively should be processed. No other files will be processed.
-        This option is particularly good if you have a common fileending of your data (e.g., `.csv`)
-    savefig: {bool, optional}
+    fileList: list of strings, optional
+        provide a list of files that exclusively should be processed.
+        No other files will be processed.
+        This option is particularly good if you have a common
+        fileending of your data (e.g., `.csv`)
+    savefig: bool, optional
         Decide if you want to save the plots. Default is False.
-    trace_b: {string, optional}
-        For TXT files, which contain more than one trace. The data is only read in until
+    trace_b: string, optional
+        For TXT files, which contain more than one trace.
+        The data is only read in until
         :attr:`trace_b` is found. Default is :code:`TRACE: B`.
-    skiprows_txt: {int, optional}
+    skiprows_txt: int, optional
         Number of header rows inside a TXT file. Default is 21.
-    skiprows_trace: {int, optional}
+    skiprows_trace: int, optional
         Lines between traces blocks in a TXT file. Default is 2.
 
     Attributes
     ----------
 
     omega_dict: dict
-        Contains frequency lists that were found in the individual files. The keys are the file names, the values the frequencies.
+        Contains frequency lists that were found in the individual files.
+        The keys are the file names, the values the frequencies.
     Z_dict: dict
         Contains corresponding impedances.
+    fit_data: dict
+        Contains the fitting results for each individual file.
+        In case of a sequential run, the dictionary contains two
+        sub-dictionaries with keys `model1` and `model2` and the results.
+    fittedValues: :class:`lmfit.model.ModelResult`
+        The fitting result of the last data set that was fitted.
+        Exists only when :meth:`run` was called.
+    fittedValues1: :class:`lmfit.model.ModelResult`
+        The fitting result of the last data set that was fitted.
+        Exists only when :meth:`sequential_run` was called and
+        corresponds to the first model in this run.
+    fittedValues2: :class:`lmfit.model.ModelResult`
+        The fitting result of the last data set that was fitted.
+        Exists only when :meth:`sequential_run` was called and
+        corresponds to the second model in this run.
     """
 
     def __init__(self, inputformat, directory=None, **kwargs):
@@ -117,11 +144,12 @@ class Fitter(object):
         for filename in self.fileList:
             filename = os.fsdecode(filename)
             if filename.endswith(self.excludeEnding):
-                logger.info("Skipped file {} due to excluded ending.".format(filename))
+                logger.info("""Skipped file {}
+                             due to excluded ending.""".format(filename))
                 continue
 
             # continues only if data could be read in
-            (status, omega, zarray) = self.read_data(filename)
+            (status, omega, zarray) = self._read_data(filename)
             if status:
                 self.omega_dict[str(filename)] = omega
                 self.z_dict[str(filename)] = zarray
@@ -149,14 +177,14 @@ class Fitter(object):
 
         # read in kwargs to update defaults
         if 'LogLevel' in kwargs:
-            self.LogLevel = kwargs['LogLevel']  # log level: choose info for less verbose output
+            self.LogLevel = kwargs['LogLevel']
         if 'minimumFrequency' in kwargs:
             self.minimumFrequency = kwargs['minimumFrequency']
         if 'maximumFrequency' in kwargs:
             self.maximumFrequency = kwargs['maximumFrequency']
         if 'excludeEnding' in kwargs:
             self.excludeEnding = kwargs['excludeEnding']
-        if 'data_sets' in kwargs:  # for debugging reasons use for instance only 1 data set
+        if 'data_sets' in kwargs:
             self.data_sets = kwargs['data_sets']
         if 'current_threshold' in kwargs:
             self.current_threshold = kwargs['current_threshold']
@@ -173,9 +201,23 @@ class Fitter(object):
         if 'savefig' in kwargs:
             self.savefig = kwargs['savefig']
 
+    def visualize_data(self, savefig=False):
+        """Visualize impedance data.
+
+        Parameters
+        ----------
+        savefig: bool, optional
+            Decide if plots should be saved as pdf. Default is False.
+        """
+
+        for key in self.omega_dict:
+            plot_impedance(self.omega_dict[key], self.z_dict[key],
+                           key, save=savefig)
+
     def _initialize_parameters(self, model, parameters):
         """
-        The `model_parameters` are initialized either based on a provided `parameterdict` or an input file.
+        The `model_parameters` are initialized either based on a
+        provided `parameterdict` or an input file.
 
         Parameters
         ----------
@@ -191,12 +233,16 @@ class Fitter(object):
 
         """
 
-        return set_parameters(model, parameterdict=parameters, emcee=self.emcee_tag)
+        return set_parameters(model, parameterdict=parameters,
+                              emcee=self.emcee_tag)
 
     def initialize_model(self, modelname):
         """Interface to LMFIT model class.
+
         The equivalent circuit (represented as a string)
         is parsed and a LMFIT Model is returned.
+        This can be useful if one wants to compute the impedance values
+        for a given model and use it in a different context.
 
         Parameters
         ----------
@@ -207,13 +253,15 @@ class Fitter(object):
         Returns
         -------
 
-        model: LMFIT.Model
+        model: :class:`lmfit.model.Model`
+            The resulting LMFIT model.
         """
 
         model = get_comp_model(modelname)
         return model
 
-    def run(self, modelname, solver=None, parameters=None, protocol=None, solver_kwargs={}, modelclass="none"):
+    def run(self, modelname, solver=None, parameters=None, protocol=None,
+            solver_kwargs={}, modelclass="none"):
         """
         Main function that iterates through all data sets provided.
 
@@ -221,15 +269,28 @@ class Fitter(object):
         ----------
 
         modelname: string
-            modelname. Must be built by those provided in :func:`impedancefitter.utils.available_models` and using `+`
-            and `parallel(x, y)` as possible representations of series or parallel circuit
-        protocol: string, optional
-            Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
+            Name of the model to be parsed. Must be built by those provided in
+            :func:`impedancefitter.utils.available_models` and using `+`
+            and `parallel(x, y)` as possible representations of series or
+            parallel circuit.
         solver: string, optional
-            choose an optimizer. Must be available in lmfit. Default is least_squares
-        parameters: {dict, optional, needed parameters}
-            provide parameters if you do not want to use a yaml file (for instance in parallel UQ runs).
-
+            Choose an optimizer. Must be available in LMFIT.
+            Default is least_squares
+        parameters: dict, optional
+            Provide parameters if you do not want
+            to read them from a yaml file (for instance in parallel UQ runs).
+        protocol: string, optional
+            Choose 'Iterative' for repeated fits with changing parameter sets,
+            customized approach. If not specified, there is always
+            just one fit for each data set.
+        solver_kwargs: dict, optional
+            Customize the employed solver. Interface to the LMFIT routine.
+        modelclass: str, optional
+            Pass a modelclass for which the iterative scheme should be used.
+            This is experimental support for iterative schemes,
+            where parameters can be fixed during the fitting routine.
+            In the future, a more intelligent approach could be found.
+            See :meth:`impedancefitter.Fitter.model_iterations`
 
         """
 
@@ -253,7 +314,7 @@ class Fitter(object):
         # initialize model parameters
         if parameters is not None:
             logger.debug("Using provided parameter dictionary.")
-            assert(isinstance(parameters, dict)), "You need to provide an input dictionary!"
+            assert isinstance(parameters, dict), "You need to provide an input dictionary!"
         self.parameters = deepcopy(parameters)
 
         self.model_parameters = self._initialize_parameters(self.model, self.parameters)
@@ -270,26 +331,69 @@ class Fitter(object):
                 logger.debug("Number of data sets:" + str(self.iters))
             if self.data_sets is not None:
                 self.iters = self.data_sets
-                logger.debug("Will only iterate over {} data sets.".format(self.iters))
+                logger.debug("""Will only iterate
+                                over {} data sets.""".format(self.iters))
             for i in range(self.iters):
                 self.Z = self.zarray[i]
-                self.fittedValues = self.process_data_from_file(key, self.model, self.model_parameters, self.modelclass)
-                self.process_fitting_results(key + '_' + str(i))
-        if self.write_output is True and hasattr(self, "data"):
-            outfile = open('outfile.yaml', 'W')  # overwrite output file, or create it, if there is no file
-            yaml.dump(self.data, outfile)
-        elif not hasattr(self, "data"):
+                self.fittedValues = self.process_data_from_file(key,
+                                                                self.model,
+                                                                self.model_parameters,
+                                                                self.modelclass)
+                self._process_fitting_results(key + '_' + str(i))
+        if self.write_output is True and hasattr(self, "fit_data"):
+            outfile = open('outfile.yaml', 'W')
+            yaml.dump(self.fit_data, outfile)
+        elif not hasattr(self, "fit_data"):
             logger.info("There was no file to process")
 
-    def sequential_run(self, model1, model2, communicate, solver=None, parameters1=None, parameters2=None, modelclass1=None, modelclass2=None, protocol=None):
-        """
-        Main function that iterates through all data sets provided.
+    def sequential_run(self, model1, model2, communicate, solver=None,
+                       solver_kwargs={}, parameters1=None, parameters2=None,
+                       modelclass1=None, modelclass2=None, protocol=None):
+        """Main function that iterates through all data sets provided.
+
+        Here, two models are fitted sequentially and fitted parameters can
+        be communicated from one model to the other.
 
         Parameters
         ----------
 
+        model1: string
+            Name of first model. Must be built by those provided in
+            :func:`impedancefitter.utils.available_models` and using `+`
+            and `parallel(x, y)` as possible representations
+            of series or parallel circuit
+        model2: string
+            Name of second model. Must be built by those provided in
+            :func:`impedancefitter.utils.available_models` and using `+`
+            and `parallel(x, y)` as possible representations
+            of series or parallel circuit
+        communicate: list of strings
+            Names of parameters that should be communicated from model1 to model2.
+            Requires that model2 contains a parameter that is named appropriately.
+        solver: string, optional
+            choose an optimizer. Must be available in LMFIT. Default is least_squares
+        solver_kwargs: dict, optional
+            Customize the employed solver. Interface to the LMFIT routine.
+        parameters1: dict, optional
+            Parameters of model1.
+            Provide parameters if you do not want to use a yaml file.
+        parameters2: dict, optional
+            Parameters of model2.
+            Provide parameters if you do not want to use a yaml file.
+        modelclass1: str, optional
+            Pass a modelclass for which the iterative scheme should be used.
+            This is experimental support for iterative schemes,
+            where parameters can be fixed during the fitting routine.
+            In the future, a more intelligent approach could be found.
+        modelclass2: str, optional
+            Pass a modelclass for which the iterative scheme should be used.
+            This is experimental support for iterative schemes,
+            where parameters can be fixed during the fitting routine.
+            In the future, a more intelligent approach could be found.
         protocol: string, optional
-            Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
+            Choose 'Iterative' for repeated fits with changing parameter sets,
+            customized approach. If not specified, there is always just
+            one fit for each data set.
         """
 
         # initialize solver
@@ -301,7 +405,7 @@ class Fitter(object):
             self.emcee_tag = True
         else:
             self.emcee_tag = False
-
+        self.solver_kwargs = solver_kwargs
         # initialize model
         self.model1 = self.initialize_model(model1)
         self.model2 = self.initialize_model(model2)
@@ -309,12 +413,12 @@ class Fitter(object):
         # initialize model parameters
         if parameters1 is not None:
             logger.debug("Using provided parameter dictionary.")
-            assert(isinstance(parameters1, dict)), "You need to provide an input dictionary!"
+            assert isinstance(parameters1, dict), "You need to provide an input dictionary!"
         self.parameters1 = deepcopy(parameters1)
         # initialize model parameters
         if parameters2 is not None:
             logger.debug("Using provided parameter dictionary.")
-            assert(isinstance(parameters2, dict)), "You need to provide an input dictionary!"
+            assert isinstance(parameters2, dict), "You need to provide an input dictionary!"
         self.parameters2 = deepcopy(parameters2)
 
         self.model_parameters1 = self._initialize_parameters(self.model1, self.parameters1)
@@ -333,111 +437,198 @@ class Fitter(object):
                 logger.debug("Number of data sets:" + str(iters))
             if self.data_sets is not None:
                 self.iters = self.data_sets
-                logger.debug("Will only iterate over {} data sets.".format(self.iters))
+                logger.debug("""Will only iterate
+                                over {} data sets.""".format(self.iters))
             for i in range(self.iters):
                 self.Z = self.zarray[i]
-                self.fittedValues1 = self.process_data_from_file(key, self.model1, self.model_parameters1, modelclass1)
+                self.fittedValues1 = self.process_data_from_file(key,
+                                                                 self.model1,
+                                                                 self.model_parameters1,
+                                                                 modelclass1)
                 for c in communicate:
                     try:
                         self.model_parameters2[c].value = self.fittedValues1.best_values[c]
                         self.model_parameters2[c].vary = False
                     except KeyError:
-                        logger.error("Key {} you want to communicate is not a valid model key.".format(c))
+                        logger.error("""Key {} you want to
+                                        communicate is not a valid model key.""".format(c))
                         raise
-                self.fittedValues2 = self.process_data_from_file(key, self.model2, self.model_parameters2, modelclass2)
-                self.process_sequential_fitting_results(key + '_' + str(i))
-        if self.write_output is True and hasattr(self, "data"):
-            outfile = open('outfile-sequential.yaml', 'W')  # overwrite output file, or create it, if there is no file
-            yaml.dump(self.data, outfile)
-        elif not hasattr(self, "data"):
+                self.fittedValues2 = self.process_data_from_file(key,
+                                                                 self.model2,
+                                                                 self.model_parameters2,
+                                                                 modelclass2)
+                self._process_sequential_fitting_results(key + '_' + str(i))
+        if self.write_output is True and hasattr(self, "fit_data"):
+            outfile = open('outfile-sequential.yaml', 'W')
+            yaml.dump(self.fit_data, outfile)
+        elif not hasattr(self, "fit_data"):
             logger.info("There was no file to process")
 
-    def read_data(self, filename):
+    def _read_data(self, filename):
+        """Read in data from file.
+
+        Parameters
+        ----------
+
+        filename: str
+            Name of the file to read from.
+        """
+
         filepath = self.directory + filename
         if self.inputformat == 'TXT' and filename.endswith(".TXT"):
-            omega, zarray = readin_Data_from_TXT_file(filepath, self.skiprows_txt, self.skiprows_trace, self.trace_b, self.minimumFrequency, self.maximumFrequency)
+            omega, zarray = readin_Data_from_TXT_file(filepath,
+                                                      self.skiprows_txt,
+                                                      self.skiprows_trace,
+                                                      self.trace_b,
+                                                      self.minimumFrequency,
+                                                      self.maximumFrequency)
         elif self.inputformat == 'XLSX' and filename.endswith(".xlsx"):
-            omega, zarray = readin_Data_from_collection(filepath, 'XLSX', minimumFrequency=self.minimumFrequency, maximumFrequency=self.maximumFrequency)
+            omega, zarray = readin_Data_from_collection(filepath, 'XLSX',
+                                                        minimumFrequency=self.minimumFrequency,
+                                                        maximumFrequency=self.maximumFrequency)
         elif self.inputformat == 'CSV' and filename.endswith(".csv"):
-            omega, zarray = readin_Data_from_collection(filepath, 'CSV', minimumFrequency=self.minimumFrequency, maximumFrequency=self.maximumFrequency)
+            omega, zarray = readin_Data_from_collection(filepath, 'CSV',
+                                                        minimumFrequency=self.minimumFrequency,
+                                                        maximumFrequency=self.maximumFrequency)
         elif self.inputformat == 'CSV_E4980AL' and filename.endswith(".csv"):
-            omega, zarray = readin_Data_from_csv_E4980AL(filepath, minimumFrequency=self.minimumFrequency, maximumFrequency=self.maximumFrequency, current_threshold=self.current_threshold)
+            omega, zarray = readin_Data_from_csv_E4980AL(filepath,
+                                                         minimumFrequency=self.minimumFrequency,
+                                                         maximumFrequency=self.maximumFrequency,
+                                                         current_threshold=self.current_threshold)
         else:
             return False, None, None
         return True, omega, zarray
 
-    def process_fitting_results(self, filename):
-        '''
-        function writes output into yaml file to prepare statistical analysis of the results.
+    def _process_fitting_results(self, filename):
+        '''Write output to yaml file to prepare statistical analysis of the results.
 
         Parameters
         ----------
         filename: string
             name of file that is used as key in the output dictionary.
         '''
-        if not hasattr(self, "data"):
-            self.data = {}
+        if not hasattr(self, "fit_data"):
+            self.fit_data = {}
         values = self.fittedValues.best_values
         for key in values:
-            values[key] = float(values[key])  # conversion into python native type
-        self.data[str(filename)] = values
+            # conversion into python native type
+            values[key] = float(values[key])
+        self.fit_data[str(filename)] = values
 
-    def process_sequential_fitting_results(self, filename):
-        '''
-        function writes output into yaml file to prepare statistical analysis of the results.
+    def _process_sequential_fitting_results(self, filename):
+        '''Write output to yaml file to prepare statistical analysis of the results.
 
         Parameters
         ----------
         filename: string
             name of file that is used as key in the output dictionary.
         '''
-        if not hasattr(self, "data"):
-            self.data = {}
+        if not hasattr(self, "fit_data"):
+            self.fit_data = {}
         values1 = self.fittedValues1.best_values
         values2 = self.fittedValues2.best_values
+        # conversion into python native type
         for key in values1:
-            values1[key] = float(values1[key])  # conversion into python native type
+            values1[key] = float(values1[key])
         for key in values2:
-            values2[key] = float(values2[key])  # conversion into python native type
+            values2[key] = float(values2[key])
 
-        self.data[str(filename)] = {}
-        self.data[str(filename)]['model1'] = values1
-        self.data[str(filename)]['model2'] = values2
+        self.fit_data[str(filename)] = {}
+        self.fit_data[str(filename)]['model1'] = values1
+        self.fit_data[str(filename)]['model2'] = values2
 
-    def model_iterations(self, model):
-        r"""
-        Information about number of iterations if there is an iterative scheme for a model.
+    def model_iterations(self, modelclass):
+        r"""Information about number of iterations
+            if there is an iterative scheme for a modelclass.
 
-        Note
-        ----
+        Parameters
+        ----------
 
-        Double Shell model
-        k_fit and alpha_fit are the determined values in the cole-cole-fit
+        modelclass: str
+            Name of the modelclass. This means that this model is
+            represented in the equivalent circuit.
 
-        If :attr:`protocol` is equal to `Iterative`, the following procedure is applied:
+        Returns
+        -------
+        int
+            Number of iteration steps.
 
-        #. 1st Fit: the parameters :math:`k` and :math:`\alpha` are fixed(coming from cole-cole-fit), and the data is fitted against the double-shell-model. To be determined in this fit: :math:`\sigma_\mathrm{sup} / k_\mathrm{med}`.
+        Notes
+        -----
 
-        #. 2nd Fit: the parameters :math:`k`, :math:`\alpha` and :math:`\sigma_\mathrm{sup}` are fixed and the data is fitted again. To be determined in this fit: :math:`\sigma_\mathrm{m}, \varepsilon_\mathrm{m}, \sigma_\mathrm{cp}`.
+        *Double-Shell model*
 
-        #. 3rd Fit: the parameters :math:`k`, :math:`\alpha`, :math:`\sigma_\mathrm{sup}`, :math:`\sigma_\mathrm{m}` and :math:`\varepsilon_\mathrm{m}` are fixed and the data is fitted again. To be determined in this fit: :math:`\sigma_\mathrm{cp}`.
+        The following iterative procedure is applied:
 
-        #. last Fit: the parameters :math:`k`, :math:`\alpha`, :math:`\sigma_\mathrm{sup}, \sigma_\mathrm{ne}, \sigma_\mathrm{np}, \sigma_\mathrm{m}, \varepsilon_\mathrm{m}` are fixed. To be determined in this fit: :math:`\varepsilon_\mathrm{ne}, \sigma_\mathrm{ne}, \varepsilon_\mathrm{np}, \sigma_\mathrm{np}`.
+        #. 1st Fit: The data is fitted against a model comprising
+           the double-shell model.
+           Parameters to be determined in this fitting round: `kmed` and `emed`.
 
+        #. 2nd Fit: The parameters `kmed` and `emed` are fixed and
+           the data is fitted again.
+           To be determined in this fit: `km` and `em`.
 
-        See also: :func:`impedancefitter.double_shell.double_shell_model`
+        #. 3rd Fit: In addition, the parameters `km` and `em` are fixed
+           and the data is fitted again.
+           To be determined in this fit: `kcp`.
+
+        #. last Fit: In addition, he parameter `kcp` is fixed.
+           To be determined in this fit: all remaining parameters.
+
+        *Single-Shell model*
+
+        The following iterative procedure is applied:
+
+        #. 1st Fit: The data is fitted against a model comprising
+           the single-shell model.
+           Parameters to be determined in this fitting round: `kmed` and `emed`.
+
+        #. 2nd Fit: The parameters `kmed` and `emed` are fixed and
+           the data is fitted again.
+
+        *Cole-Cole model*
+
+        #. 1st Fit: The data is fitted against a model comprising
+           the Cole-Cole model.
+           Parameters to be determined in this fitting round: `kdc` and `eh`.
+
+        #. 2nd Fit: The parameters `kdc` and `eh` are fixed and
+           the data is fitted again.
+
+        See Also
+        --------
+        :func:`impedancefitter.double_shell.double_shell_model`
+        :func:`impedancefitter.single_shell.single_shell_model`
+        :func:`impedancefitter.cole_cole.cole_cole_model`
 
         """
         iteration_dict = {'DoubleShell': 4,
                           'SingleShell': 2,
                           'ColeCole': 2}
-        if model not in iteration_dict:
+        if modelclass not in iteration_dict:
             logger.info("There exists no iterative scheme for this model.")
             return 1
         else:
-            return iteration_dict[model]
+            return iteration_dict[modelclass]
 
-    def fix_parameters(self, i, modelname, params, result):
+    def _fix_parameters(self, i, modelname, params, result):
+        """Take parameter value from result and fix the parameter.
+
+        Parameters
+        ----------
+        i: int
+            index of iteration
+        params: :class:`lmfit.parameter.Parameters`
+            initial parameter dictionary
+        result: :class:`lmfit.model.ModelResult`
+            results from previous fitting round
+
+        Returns
+        -------
+        :class:`lmfit.parameter.Parameters`
+            updated parameter dictionary
+
+        """
         # since first iteration does not count
         idx = i - 1
 
@@ -452,10 +643,26 @@ class Fitter(object):
             params[parameter].set(vary=False)
         return params
 
-    def fit_data(self, model, parameters, modelclass=None):
-        """
-        .. todo::
-            documentation
+    def _fit_data(self, model, parameters, modelclass=None):
+        """Fit data to model.
+
+        Wrapper for LMFIT fitting routine.
+
+        Parameters
+        ----------
+
+        model: :class:`lmfit.model.Model` or :class:`lmfit.model.CompositeModel`
+            The model to fit to.
+        parameters: :class:`lmfit.parameter.Parameters`
+            The model parameters to be used.
+        modelclass: str, optional
+            For an iterative scheme, the modelclass is passed to this function.
+
+        Returns
+        -------
+
+        :class:`lmfit.model.ModelResult`
+            Result of fit as LMFIT.ModelResult object.
         """
         logger.debug('#################################')
         logger.debug('fit data to {} model'.format(model._name))
@@ -470,13 +677,17 @@ class Fitter(object):
             try:
                 iters = self.model_iterations(modelclass)
             except AttributeError:
-                logger.warning("Provide the modelclass kwarg to trigger possible iterative scheme.")
+                logger.warning("""Provide the modelclass kwarg
+                                  to trigger possible iterative scheme.""")
                 pass
         for i in range(iters):
-            logger.info("###########\nFitting round {}\n###########".format(i + 1))
+            logger.info("#########\nFitting round {}\n#########".format(i + 1))
             if i > 0:
-                params = self.fix_parameters(i, modelclass, params, model_result)
-            model_result = model.fit(self.Z, params, omega=self.omega, method=self.solvername, fit_kws=self.solver_kwargs)
+                params = self.fix_parameters(i, modelclass, params,
+                                             model_result)
+            model_result = model.fit(self.Z, params, omega=self.omega,
+                                     method=self.solvername,
+                                     fit_kws=self.solver_kwargs)
             logger.info(model_result.fit_report())
 
             # return solver message (needed since lmfit handles messages
@@ -486,19 +697,44 @@ class Fitter(object):
                     logger.info("Solver message: " + model_result.message)
             if hasattr(model_result, "lmdif_message"):
                 if model_result.lmdif_message is not None:
-                    logger.info("Solver message (leastsq): " + model_result.lmdif_message)
+                    logger.info("Solver message (leastsq): "
+                                + model_result.lmdif_message)
             if hasattr(model_result, "ampgo_msg"):
                 if model_result.ampgo_msg is not None:
-                    logger.info("Solver message (ampgo): " + model_result.ampgo_msg)
+                    logger.info("Solver message (ampgo): "
+                                + model_result.ampgo_msg)
         return model_result
 
-    def process_data_from_file(self, filename, model, parameters, modelclass=None):
-        """
-        .. todo::
-            documentation
+    def process_data_from_file(self, filename, model, parameters,
+                               modelclass=None):
+        """Fit data from input file to model.
+
+        Wrapper for LMFIT fitting routine.
+        If :attr:`LogLevel` is `DEBUG`, the fit result is
+        visualised.
+
+        Parameters
+        ----------
+
+        filename: str
+            Filename, which is contained in the data dictionaries
+            :attr:`omega_dict` and :attr:`z_dict`.
+        model: :class:`lmfit.model.Model` or :class:`lmfit.model.CompositeModel`
+            The model to fit to.
+        parameters: :class:`lmfit.parameter.Parameters`
+            The model parameters to be used.
+        modelclass: str, optional
+            For an iterative scheme, the modelclass is passed to this function.
+
+        Returns
+        -------
+
+        :class:`lmfit.model.ModelResult`
+            Result of fit as :class:`lmfit.model.ModelResult` object.
+
         """
         logger.debug("Going to fit")
-        fit_output = self.fit_data(model, parameters, modelclass)
+        fit_output = self._fit_data(model, parameters, modelclass)
         Z_fit = fit_output.best_fit
         logger.debug("Fit successful")
         if self.LogLevel == 'DEBUG':
@@ -506,28 +742,73 @@ class Fitter(object):
         # plots if LogLevel is INFO or DEBUG or figure should be saved
         if getattr(logging, self.LogLevel) <= 20 or self.savefig:
             logger.debug("Going to plot results")
-            plot_results(self.omega, self.Z, Z_fit, filename, show=show, save=self.savefig)
+            plot_impedance(self.omega, self.Z, filename, Z_fit=Z_fit,
+                           show=show, save=self.savefig)
         return fit_output
 
     def plot_initial_best_fit(self, sequential=False):
+        """Plot initial and best fit together.
+
+        This method reveals how good the initial fit was.
+
+        Parameters
+        ----------
+        sequential: bool, optional
+            If a :meth:`sequential_run` was performed, set this value to True.
+
+        """
         if not sequential:
             Z_fit = self.fittedValues.best_fit
             Z_init = self.fittedValues.init_fit
-            plot_results(self.omega, self.Z, Z_fit, "", show=True, save=False, Z_comp=Z_init)
+            plot_impedance(self.omega, self.Z, "", Z_fit=Z_fit,
+                           show=True, save=False, Z_comp=Z_init)
         else:
             for i in range(2):
                 Z_fit = getattr(self, "fittedValues" + str(i + 1)).best_fit
                 Z_init = getattr(self, "fittedValues" + str(i + 1)).init_fit
-                plot_results(self.omega, self.Z, Z_fit, "", show=True, save=False, Z_comp=Z_init)
+                plot_impedance(self.omega, self.Z, "", Z_fit=Z_fit,
+                               show=True, save=False, Z_comp=Z_init)
 
     def cluster_emcee_result(self, constant=1e2):
-        """
-        .. todo::
-            documentation
+        r"""Apply clustering to eliminate low-probability samples.
+
+        Parameters
+        ----------
+
+        constant: float
+            The constant, which is used to define the threshold
+            from which on walkers are eliminated.
+
+        Notes
+        -----
+
+        The clustering approach described in [4]_ is implemented in
+        this function.
+        The walkers are sorted by probability and subsequently
+        the difference between adjacent walker probabilities
+        :math:`\Delta_j` is evaluated.
+        Then the average difference between the current and the first
+        walkeri (:math:`\bar{\Delta}_j`) is evaluated.
+        Both differences are compared and a threshold is defined:
+
+        .. math::
+
+            \Delta_j > \mathrm{constant} \cdot \bar{\Delta}_j
+
+        When this inequality becomes true,
+        all walkers with :math:`k > j` are thrown away.
+
+        References
+        ----------
+        .. [4] Hou, F., Goodman, J., Hogg, D. W., Weare, J., & Schwab, C. (2012).
+            An affine-invariant sampler for exoplanet fitting and
+            discovery in radial velocity data. Astrophysical Journal, 745(2).
+            https://doi.org/10.1088/0004-637X/745/2/198
         """
         res = self.fittedValues
         if not self.emcee_tag:
-            print("You need to have run emcee as a solver to use this function")
+            print("""You need to have run emcee
+                     as a solver to use this function""")
             return
         else:
             lnprob = np.swapaxes(res.lnprob, 0, 1)
@@ -551,9 +832,11 @@ class Fitter(object):
                 plt.ylabel("difference")
                 plt.plot(differences)
                 plt.show()
-            average_differences = [(x - l0) / (j + 1) for j, x in enumerate((sorted_fields[1::]))]
+            # numerator with j + 1 since enumerate starts from 0
+            average_differences = [(x - l0) / (j + 1) for j, x
+                                   in enumerate((sorted_fields[1::]))]
             if self.LogLevel == "DEBUG":
-                plt.title("average difference between current and first walkers")
+                plt.title("average difference between current and first walker")
                 plt.ylabel("average difference")
                 plt.xlabel("walker")
                 plt.plot(average_differences)
@@ -580,11 +863,11 @@ class Fitter(object):
                                              columns=res.var_names)
 
     def emcee_report(self):
-        """
-        .. todo:: documentation
+        """Reports acceptance fraction and autocorrelation times.
         """
         if not self.emcee_tag:
-            logger.error("You need to have run emcee as a solver to use this function")
+            logger.error("""You need to have run emcee
+                            as a solver to use this function""")
             return
 
         if hasattr(self.fittedValues, 'acor'):
@@ -595,7 +878,8 @@ class Fitter(object):
                     print(p, self.fittedValues.acor[i])
                     i += 1
         else:
-            logger.warning("No autocorrelation data available. Maybe run a longer chain?")
+            logger.warning("""No autocorrelation data available.
+                              Maybe run a longer chain?""")
 
         plt.xlabel("walker")
         plt.ylabel("acceptance fraction")
@@ -603,6 +887,16 @@ class Fitter(object):
         plt.show()
 
     def plot_uncertainty_interval(self, sigma=1, sequential=False):
+        """Plot uncertainty interval around best fit.
+
+        Parameters
+        ----------
+        sigma: {1, 2, 3}, optional
+            Choose sigma for confidence interval.
+        sequential: bool, optional
+            Set to True if you performed a sequential run before.
+
+        """
 
         assert isinstance(sigma, int), "Sigma needs to be integer and range between 1 and 3."
         assert sigma >= 1, "Sigma needs to be integer and range between 1 and 3."
@@ -636,18 +930,49 @@ class Fitter(object):
             Z1 = fit_values.eval(params=eval1)
             Z2 = fit_values.eval(params=eval2)
             Z = fit_values.best_fit
-            plot_uncertainty(fit_values.userkws['omega'], fit_values.data, Z, Z1, Z2, sigma, model=i)
+            plot_uncertainty(fit_values.userkws['omega'], fit_values.data,
+                             Z, Z1, Z2, sigma, model=i)
 
     def emcee_conf_interval(self, result):
+        """Compute emcee confidence intervals.
+
+        The :math:`1\sigma` to :math:`3\sigma` confidence
+        intervals are computed for a fitting result
+        generated by emcee since this case is not
+        covered by the original LMFIT implementation.
+
+        Parameters
+        ----------
+        result: :class:`lmfit.model.ModelResult`
+            Result from fit.
+
+        Returns
+        -------
+        dict
+            Dictionary containing limits of confidence intervals
+            for all free parameters.
+            The limits are structured in a list with 7 items, which
+            are ordered as follows:
+
+            #. lower limit of :math:`3\sigma` confidence interval.
+            #. lower limit of :math:`2\sigma` confidence interval.
+            #. lower limit of :math:`1\sigma` confidence interval.
+            #. median.
+            #. upper limit of  :math:`1\sigma` confidence interval.
+            #. upper limit of  :math:`2\sigma` confidence interval.
+            #. upper limit of  :math:`3\sigma` confidence interval.
+
         """
-        .. todo::
-            documentation
-        """
+        if not self.emcee_tag:
+            print("""You need to have run emcee
+                     as a solver to use this function""")
+            return
+
         ci = {}
         percentiles = [.5 * (1.0 - 0.9973002039367398),
                        .5 * (1.0 - 0.9544997361036416),
                        .5 * (1.0 - 0.6826894921370859),
-                       0.0,
+                       .5,
                        .5 * (1.0 + 0.6826894921370859),
                        .5 * (1.0 + 0.9544997361036416),
                        .5 * (1.0 + 0.9973002039367398)]

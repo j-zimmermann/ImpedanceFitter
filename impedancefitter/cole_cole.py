@@ -22,7 +22,10 @@ from .elements import e_sus, Z_sus
 
 def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
     r"""
-    function holding the cole_cole_model equations, returning the calculated impedance
+Cole-Cole model as implemented in paper with DOI:10.1063/1.4737121.
+                                     You need to provide the unit capacitance of your device to get the dielectric proper    ties of
+                                     the Cole-Cole model.
+   function holding the cole_cole_model equations, returning the calculated impedance
     Equations for calculations:
 
     .. math::
@@ -67,4 +70,29 @@ def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
     es = e_sus(omega, eh, el, tau, a)
     Z_fit = Z_sus(omega, es, kdc, c0)
 
+    return Z_fit
+
+
+def cole_cole_R_model(omega, Rinf, R0, tau, a):
+    r"""
+                    Standard Cole-Cole circuit as given in paper with DOI:10.1016/b978-1-4832-3111-2.500    08-0.
+
+    function holding the cole_cole_model equations, returning the calculated impedance
+    Equations for calculations:
+
+    .. math::
+
+         Z_\mathrm{ep} = k^{-1} \* j\*\omega^{-\alpha}
+
+    .. math::
+
+        \Z_\mathrm{Cole} = R_\infty + \frac{R_0-R_\infty}{1+(j\*\omega\*\tau)^a}
+
+    .. math::
+
+        Z_\mathrm{fit} = Z_\mathrm{Cole} + Z_\mathrm{ep}
+
+    """
+    tau *= 1e-12  # use ps as unit
+    Z_fit = Rinf + (R0 - Rinf) / (1. + 1j * omega * tau)**a
     return Z_fit

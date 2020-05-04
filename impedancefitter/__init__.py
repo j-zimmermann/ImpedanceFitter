@@ -18,6 +18,6 @@
 
 from .main import Fitter
 from .postprocess import PostProcess
-from .utils import get_labels, available_models, model_information
-from .plotting import plot_compare_to_data, plot_results, plot_dielectric_properties, emcee_plot
-from .randles import Z_randles, Z_randles_CPE
+from .utils import get_labels, available_models
+from .plotting import plot_compare_to_data, plot_impedance, plot_dielectric_properties, emcee_plot
+from .__version__ import __version__

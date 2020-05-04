@@ -7,12 +7,14 @@ Welcome to ImpedanceFitter's documentation!
 ===========================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
+   :hidden:
 
-   main 
+   overview 
+   fitting
+   statistics
    utils
-   readin
    elements
    circuits
    postprocess
