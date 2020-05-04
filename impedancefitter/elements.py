@@ -16,84 +16,66 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from scipy.constants import epsilon_0 as e0
 import numpy as np
 import logging
 logger = logging.getLogger('impedancefitter-logger')
 
 
 def parallel(Z1, Z2):
-    """
-    return parallel circuit.
+    """Return values of parallel circuit.
 
     Parameters
     ----------
-    Z1: ndarray of complex
+    Z1: :class:`numpy.ndarray`, complex or real
         Impedance 1
-    Z2: ndarray of complex
+    Z2: :class:`numpy.ndarray`, complex or real
         Impedance 2
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
     """
     return (Z1 * Z2) / (Z1 + Z2)
 
 
 def Z_R(omega, R):
-    """create array for a resistor
+    """Create array for a resistor.
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+    R: double
+        Resistance.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
     """
     new = np.zeros_like(omega, dtype='complex128')
     return new + R
 
 
 def Z_L(omega, L):
-    """
-    impedance of an inductor
+    """Impedance of an inductor.
 
     Parameters
     ----------
-    omega: double or array of double
-        list of frequencies
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
     L: double
         inductance
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
     """
     return 1j * omega * L
-
-
-def Z_loss(omega, L, C, R):
-    """
-    impedance for high loss materials, where LCR are in parallel.
-    Described for instance in 10.1002/cmr.b.21318.
-
-    Parameters
-    -----------
-    omega: double or array of double
-        list of frequencies
-    L: double
-        inductance of coil
-    C: double
-        capacitance of capacitor
-    R: double
-        resistance of resistor
-    """
-    Y = 1. / R + 1. / (1j * omega * L) + 1j * omega * C
-    Z = 1. / Y
-    return Z
-
-
-def Z_in(omega, L, R):
-    """
-    Lead inductance of wires connecting DUT.
-    Described for instance in 10.1002/cmr.b.21318
-
-    Parameters
-    -----------
-    omega: double or array of double
-        list of frequencies
-    L: double
-        inductance of coil
-    R: double
-        resistance of resistor
-
-    """
-    return R + 1j * omega * L
 
 
 def Z_CPE(omega, k, alpha):
@@ -105,99 +87,77 @@ def Z_CPE(omega, k, alpha):
         Z_\mathrm{CPE} = k^{-1} (j \omega)^{-\alpha}
 
     Parameters
-    -----------
-
-    omega: double or array of double
-        list of frequencies
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
     k: double
         CPE factor
     alpha: double
         CPE phase
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
 
     """
     return (1. / k) * np.power(1j * omega, -alpha)
 
 
 def Z_C(omega, C):
-    """
-    capacitor impedance
+    """Capacitor impedance
 
     Parameters
-    -----------
-
-    omega: double or array of double
-        list of frequencies
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
     C: double
         capacitance of capacitor
-
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
     """
     return 1. / (1j * omega * C)
 
 
-def Z_sus(omega, es, kdc, c0):
-    r"""
-    impedance of suspension as used in paper with DOI: 10.1063/1.4737121
-
-    Parameters
-    -----------
-
-    omega: double or array of double
-        list of frequencies
-    es: complex
-        complex valued permittivity, check e.g. :func:e_sus
-    kdc: double
-        conductivity
-    c0: double
-        unit capacitance
-    """
-
-    return 1. / (1j * es * omega * c0 + (kdc * c0) / e0)
-
-
-def e_sus(omega, eh, el, tau, a):
-    r"""
-    Complex permitivity after Cole-Cole.
-    See their paper with DOI: 10.1063/1.1750906
-    Difference: the exponent :math:`1 - \alpha` is here named `a`.
-
-    Parameters
-    -----------
-
-    omega: double or array of double
-        list of frequencies
-    eh: double
-        value for :math:`\varepsilon_\infty`
-    el: double
-        value for :math:`\varepsilon_0`
-    tau: double
-        value for :math:`\tau_0`
-    a: double
-        value for :math:`1 - \alpha`
-    """
-    return eh + (el - eh) / (1. + np.power((1j * omega * tau), a))
-
-
 def Z_w(omega, Aw):
-    r"""
-    Warburg element
+    r"""Warburg element
 
     .. math::
 
         Z_\mathrm{W} = A_\mathrm{W} \frac{1-j}{\sqrt{\omega}}
 
-
     Parameters
-    -----------
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
 
-    omega: double or array of double
-        list of frequencies
     A_w: double
         Warburg coefficient
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
     """
     return Aw * (1. - 1j) / np.sqrt(omega)
 
 
 def Z_stray(omega, C_stray):
+    """Stray capacitance in pF
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+    C_stray: double
+        Stray capacitance, for numerical reasons in pF.
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+    """
     if np.isclose(C_stray, 0, atol=1e-5):
         logger.debug("""Stray capacitance is too small to be added.
                      Did you maybe forget to enter it in terms of pF?""")
@@ -208,6 +168,26 @@ def Z_stray(omega, C_stray):
 def Z_ws(omega, Aw, B):
     """Warburg short element
 
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+
+    A_w: double
+        Warburg coefficient
+    B: double
+        Second coefficient
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+
+    .. todo:: Better documentation needed.
+
     """
 
     return Aw / np.sqrt(1j * omega) * np.tanh(B * np.sqrt(1j * omega))
@@ -215,6 +195,28 @@ def Z_ws(omega, Aw, B):
 
 def Z_wo(omega, Aw, B):
     """Warburg open element
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+
+    A_w: double
+        Warburg coefficient
+    B: double
+        Second coefficient
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+
+    Notes
+    -----
+
+    .. todo:: Better documentation needed.
+
 
     """
 

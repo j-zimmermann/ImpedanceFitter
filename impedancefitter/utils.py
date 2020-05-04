@@ -23,15 +23,14 @@ import logging
 import pyparsing as pp
 from scipy.constants import epsilon_0 as e0
 from collections import Counter
-from .elements import Z_C, Z_stray, Z_in, Z_loss, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
+from .elements import Z_C, Z_stray, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
+from .loss import Z_in, Z_loss
 from .cole_cole import cole_cole_model, cole_cole_R_model
 from .double_shell import double_shell_model
 from .randles import Z_randles, Z_randles_CPE
-from .rc import rc_model
-from .RC import RC_model
+from .RC import RC_model, rc_model, drc_model
 from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model
 from .single_shell import single_shell_model
-from .drc import drc_model
 from lmfit import Model, CompositeModel
 
 logger = logging.getLogger('impedancefitter-logger')

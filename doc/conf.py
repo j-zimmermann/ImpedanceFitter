@@ -183,4 +183,5 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
-intersphinx_mapping = {'lmfit': ('https://lmfit.github.io/lmfit-py/', None)}
+intersphinx_mapping = {'lmfit': ('https://lmfit.github.io/lmfit-py/', None),
+                       'numpy': ('https://docs.scipy.org/doc/numpy', None)}

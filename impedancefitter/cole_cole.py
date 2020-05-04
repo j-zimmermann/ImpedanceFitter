@@ -16,83 +16,136 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from scipy.constants import epsilon_0 as e0
+import numpy as np
 
-from .elements import e_sus, Z_sus
+
+def _Z_sus(omega, es, kdc, c0):
+    r"""Impedance of suspension.
+
+    Described for example in [3]_.
+
+    Parameters
+    -----------
+
+    omega: double or array of double
+        list of frequencies
+    es: complex
+        complex valued permittivity, check e.g. :func:e_sus
+    kdc: double
+        conductivity
+    c0: double
+        unit capacitance
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    References
+    ----------
+    .. [3] Sabuncu, A. C., Zhuang, J., Kolb, J. F., & Beskok, A. (2012).
+           Microfluidic impedance spectroscopy as a tool for quantitative biology and biotechnology.
+           Biomicrofluidics, 6(3). https://doi.org/10.1063/1.4737121
+    """
+
+    return 1. / (1j * es * omega * c0 + (kdc * c0) / e0)
+
+
+def _e_sus(omega, eh, el, tau, a):
+    r"""
+    Complex permitivity after Cole-Cole.
+    See the original paper of the Cole brothers [4]_.
+    Difference: the exponent :math:`1 - \alpha` is here named `a`.
+
+    Parameters
+    -----------
+
+    omega: double or array of double
+        list of frequencies
+    eh: double
+        value for :math:`\varepsilon_\infty`
+    el: double
+        value for :math:`\varepsilon_0`
+    tau: double
+        value for :math:`\tau_0`
+    a: double
+        value for :math:`1 - \alpha`
+
+    References
+    ----------
+
+    [4]_ Cole, K. S., & Cole, R. H. (1941). Dispersion and absorption in dielectrics I.
+         Alternating current characteristics. The Journal of Chemical Physics,
+         9(4), 341–351. https://doi.org/10.1063/1.1750906
+    """
+    return eh + (el - eh) / (1. + np.power((1j * omega * tau), a))
 
 
 def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
-    r"""
-Cole-Cole model as implemented in paper with DOI:10.1063/1.4737121.
-                                     You need to provide the unit capacitance of your device to get the dielectric proper    ties of
-                                     the Cole-Cole model.
-   function holding the cole_cole_model equations, returning the calculated impedance
+    r"""Cole-Cole model for dielectric properties.
+
+    The model was implemented as presented in [1]_.
+    You need to provide the unit capacitance of your device to get
+    the dielectric properties of the Cole-Cole model.
+
+    Notes
+    -----
+
+    .. warning::
+
+        The unit capacitance is in pF!
+        The time constant tau is in ns!
+
     Equations for calculations:
 
     .. math::
 
-         Z_\mathrm{ep} = k^{-1} \* j\*\omega^{-\alpha}
+        \varepsilon_\mathrm{s} = \varepsilon_\mathrm{h} + \frac{\varepsilon_\mathrm{l}-\varepsilon_\mathrm{h}}{1+(j \omega \tau)^a}
 
     .. math::
 
-        \varepsilon_\mathrm{s} = \varepsilon_\mathrm{h} + \frac{\varepsilon_\mathrm{l}-\varepsilon_\mathrm{h}}{1+(j\*\omega\*\tau)^a}
+        Z_\mathrm{s} = \frac{1}{j\varepsilon_\mathrm{s}\omega c_\mathrm{0} + \frac{\sigma_\mathrm{dc} c_\mathrm{0}}{\varepsilon_\mathrm{0}}}
 
-    .. math::
 
-        Z_\mathrm{s} = \frac{1}{j\*\varepsilon_\mathrm{s}\*\omega\*c_\mathrm{0} + \frac{\sigma_\mathrm{dc}\*c_\mathrm{0}}{\varepsilon_\mathrm{0}} + j\*\omega\*c_\mathrm{f}}
 
-    .. math::
-
-        Z_\mathrm{fit} = Z_\mathrm{s} + Z_\mathrm{ep}
-
-    find more details in formula 6 and 7 of https://ieeexplore.ieee.org/document/6191683
-
-    +----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-    | Parameter                        | Name in Script   | Description                                     | Physical Boundaries                                                                 |
-    +==================================+==================+=================================================+=====================================================================================+
-    | k                                | k                | constant phase element parameter                | has to be non 0, otherwise the function wil throw NAN or quit(1/k in the formula)   |
-    +----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-    | :math:`\alpha`                   | alpha            | constant phase element exponent                 | :math:`0<\alpha<1`                                                                  |
-    +----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-    | :math:`\varepsilon_\mathrm{l}`   | epsi\_l          | low frequency permitivity                       | :math:`el\geq1`                                                                     |
-    +----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-    | :math:`\varepsilon_\mathrm{h}`   | eh               | high frequency permitivity                      | :math:`eh\geq1`                                                                     |
-    +----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-    | :math:`\tau`                     | tau              | relaxation time                                 | :math:`\tau>0`                                                                      |
-    +----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-    | a                                | a                | exponent in formula for :math:`\varepsilon^*`   | :math:`0<a<1`                                                                       |
-    +----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-    | :math:`\sigma`                   | conductivity     | low frequency conductivity                      | :math:`\sigma > 0`                                                                  |
-    +----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
+    References
+    ----------
+    .. [1] Sabuncu, A. C., Zhuang, J., Kolb, J. F., & Beskok, A. (2012).
+           Microfluidic impedance spectroscopy as a tool for quantitative biology and biotechnology.
+           Biomicrofluidics, 6(3). https://doi.org/10.1063/1.4737121
 
     """
-    tau *= 1e-12  # use ps as unit
+    tau *= 1e-9  # use ns as unit
     c0 *= 1e-12  # use pF as unit
-    es = e_sus(omega, eh, el, tau, a)
-    Z_fit = Z_sus(omega, es, kdc, c0)
+    es = _e_sus(omega, eh, el, tau, a)
+    Z_fit = _Z_sus(omega, es, kdc, c0)
 
     return Z_fit
 
 
 def cole_cole_R_model(omega, Rinf, R0, tau, a):
-    r"""
-                    Standard Cole-Cole circuit as given in paper with DOI:10.1016/b978-1-4832-3111-2.500    08-0.
+    r"""Standard Cole-Cole circuit for macroscopic quantities.
 
-    function holding the cole_cole_model equations, returning the calculated impedance
-    Equations for calculations:
+    See for example [2]_ for more information.
 
-    .. math::
+    Notes
+    -----
 
-         Z_\mathrm{ep} = k^{-1} \* j\*\omega^{-\alpha}
+    Equation for calculations:
+
 
     .. math::
 
         \Z_\mathrm{Cole} = R_\infty + \frac{R_0-R_\infty}{1+(j\*\omega\*\tau)^a}
 
-    .. math::
 
-        Z_\mathrm{fit} = Z_\mathrm{Cole} + Z_\mathrm{ep}
-
+    References
+    ----------
+    .. [2] Schwan, H. P. (1957). Electrical properties of tissue and cell suspensions.
+           Advances in biological and medical physics (Vol. 5).
+           ACADEMIC PRESS INC. https://doi.org/10.1016/b978-1-4832-3111-2.50008-0
     """
-    tau *= 1e-12  # use ps as unit
+    tau *= 1e-9  # use ns as unit
     Z_fit = Rinf + (R0 - Rinf) / (1. + 1j * omega * tau)**a
     return Z_fit
