@@ -1,234 +1,77 @@
-Main module
-===========
+Overview
+========
+
+Background
+----------
+
+Impedance spectroscopy is a great tool to analyse the behaviour of an electrical circuit,
+characterise the response of a sample (e.g. biological tissue) or determine the dielectric 
+properties of a sample.
+ImpedanceFitter is a software that facilitates parameter estimation for various mechanistic models.
+The mechanistic model is based on an equivalent circuit that may comprise different standard elements or 
+other models that have been formulated in the context of impedance spectroscopy.
+The unknown parameters are found by fitting to experimental data.
+The underlying fitting software is [LMFIT]_, which offers an interface to different optimization and curve-fitting 
+methods.
+ImpedanceFitter allows one to build a custom equivalent circuit, fit an arbitrary amount of data sets and 
+perform statistical analysis of the results.
+
+.. [LMFIT]  Matt Newville, Renee Otten, Andrew Nelson, Antonino Ingargiola, Till Stensitzki, Dan Allan, Austin Fox, Faustin Carter, Michał, Dima Pustakhod, Yoav Ram, Glenn, Christoph Deil, Stuermer, Alexandre Beelen, Oliver Frost, Nicholas Zobrist, Gustavo Pasquevich, Allan L. R. Hansen, Tim Spillane, Shane Caldwell, Anthony Polloreno, andrewhannum, Julius Zimmermann, Jose Borreguero, Jonathan Fraine, deep-42-thought, Benjamin F. Maier, Ben Gamari, Anthony Almarza. (2019, December 20). lmfit/lmfit-py 1.0.0 (Version 1.0.0). Zenodo. http://doi.org/10.5281/zenodo.3588521
 
 How it works
-------------
+============
 
-The script will cycle through all .TXT and .xlsx files in a selected directory and fit those files to a selected model. 
-You can exclude certain files by using the excludeEnding flag.
+Fitting
+-------
 
-The first possible step is to compensate the electrode polarization of the experiment by fitting the data to a cole-cole-model. 
-After this fit it will fit the data to a selected model, this can either be the Double Shell model or the Single Shell model.
-If there is no electrode polarization to compensate for, you can also skip this. See :py:meth:`impedancefitter.main.Fitter.main`
+The script will cycle through all files in a selected directory
+(unless certain files are excluded or explicitly listed)
+and will store the experimental data.
 
-After the fit to one of the models has finished, the calculated values get written into the 'outfile.yaml' in the data-directory.
+Formulate the model
+^^^^^^^^^^^^^^^^^^^
 
-The following parameters need to be provided in yaml-files:
+The ImpedanceFitter parser understands circuits that follow
+a simple pattern:
 
-Units
------
+- Elements in series are connected by a `+`.
+- Elements in parallel are connected by `parallel(A, B)`.
 
-Usually, SI units are used.
-However, some parameters have a very small numerical value.
-In this case, different units are used. 
-These parameters are:
-
-+-------------------------+------------------+---------+
-| Parameter               | Name in Script   | Unit    |
-+=========================+==================+=========+
-| :math:`c_0`             | c0               | pF      |
-+-------------------------+------------------+---------+
-| :math:`c_\mathrm{f}`    | cf               | pF      |
-+-------------------------+------------------+---------+
-| :math:`C`               | C                | pF      |
-+-------------------------+------------------+---------+
-| :math:`L`               | L                | nH      |
-+-------------------------+------------------+---------+
-| :math:`\tau`            | tau              | ps      |
-+-------------------------+------------------+---------+
-
-
-constants.yaml (or alternatively as input dict)
------------------------------------------------
-
-+-----------------------------------+------------------+-------------------------------------+
-| Parameter                         | Name in Script   | Description                         |
-+===================================+==================+=====================================+
-| :math:`c_0`                       | c0               | air capacitance                     |
-+-----------------------------------+------------------+-------------------------------------+
-| :math:`c_\mathrm{f}`              | cf               | stray capacitance                   |
-+-----------------------------------+------------------+-------------------------------------+
-| :math:`p`                         | p                | volume fraction of cells            |
-+-----------------------------------+------------------+-------------------------------------+
-| :math:`\varepsilon_\mathrm{cp}`   | ecp              | permittivity of cytoplasm           |
-+-----------------------------------+------------------+-------------------------------------+
-| :math:`d_\mathrm{m}`              | dm               | membrane thickness                  |
-+-----------------------------------+------------------+-------------------------------------+
-| :math:`R_\mathrm{c}`              | Rc               | outer cell radius                   |
-+-----------------------------------+------------------+-------------------------------------+
-|                                  only double shell model                                   |
-+-----------------------------------+------------------+-------------------------------------+
-| :math:`R_\mathrm{n}`              | Rn               | outer Radius of the nucleus         |
-+-----------------------------------+------------------+-------------------------------------+
-| :math:`d_\mathrm{n}`              | dn               | thickness of the nuclear envelope   |
-+-----------------------------------+------------------+-------------------------------------+
-| :math:`\varepsilon_\mathrm{np}`   | enp              | permittivity of nucleoplasm         |
-+-----------------------------------+------------------+-------------------------------------+
-
-Exemplary file:
+An example of a circuit could be:
 
 .. code-block:: python
 
-    c0 : 3.9e-13    # air capacitance
-    cf : 2.42532194241202e-13   # stray capacitance
+        parallel(R, C) + CPE
 
-    Rc : 5.8e-6  # unit(m). cell radius in buffer, this should be changed according to the chosed cell line
-    dm : 7.e-9    # thickness of cell membrane m
-    ecp : 60     # permittivity for cytoplasm
-    p : 0.075
+This stands for a resistor in parallel with a capacitor that are in series
+with a constant phase element (CPE).
 
-    Rn : 0.8 * constants['Rc']  # radius of nucleus
-    dn : 40.e-9   # thickness of nulear membrane
-    enp : 120    # Permittivity for nucleoplasm
-
-
-cole_cole_input.yaml
---------------------
-
-+----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-| Parameter                        | Name in Script   | Description                                     | Physical Boundaries                                                                 |
-+==================================+==================+=================================================+=====================================================================================+
-| k                                | k                | constant phase element parameter                | has to be non 0, otherwise the function wil throw NAN or quit(1/k in the formula)   |
-+----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-| :math:`\alpha`                   | alpha            | constant phase element exponent                 | :math:`0<\alpha<1`                                                                  |
-+----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-| :math:`\varepsilon_\mathrm{l}`   | epsi\_l          | low frequency permitivity                       | :math:`el\geq1`                                                                     |
-+----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-| :math:`\varepsilon_\mathrm{h}`   | eh               | high frequency permitivity                      | :math:`eh\geq1`                                                                     |
-+----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-| :math:`\tau`                     | tau              | relaxation time                                 | :math:`\tau>0`                                                                      |
-+----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-| a                                | a                | exponent in formula for :math:`\varepsilon^*`   | :math:`0<a<1`                                                                       |
-+----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-| :math:`\sigma`                   | conductivity     | low frequency conductivity                      | :math:`\sigma > 0`                                                                  |
-+----------------------------------+------------------+-------------------------------------------------+-------------------------------------------------------------------------------------+
-
-Exemplary file:
+Also nested parallels are possible:
 
 .. code-block:: python
 
-    k: {value: 1.5e-7,  min: 1.e-7, max: 1.e-2, vary: True} 
-    epsi_l: {value: 1000, min: 200, max: 3000, vary: True}
-    tau: {value: 5.e-7, min: 1.e-8, max: 1.e-3, vary: True}
-    a: {value: 0.9, min: 0.8, max: 1.0, vary: True}
-    alpha :   {value: 0.3, min: 0., max: .5, vary: True}
-    conductivity : {value: 0.05, min: 0.05, max: 0.2, vary: True}
-    eh :  {value: 78., min: 60., max: 85., vary: True}
+        parallel(parallel(L, C), R)
 
-With the `vary` flag, one can choose whether a variable should be included in the fitting procedure or fixed.
 
-single_shell_input.yaml
------------------------
 
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-| Parameter                         | Name in Script   | Description                                                                                                       | Physical Boundaries                      |
-+===================================+==================+===================================================================================================================+==========================================+
-| :math:`\sigma_\mathrm{m}`         | km               | conductivity of the membrane                                                                                      | :math:`\sigma_\mathrm{m}>0`              |
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-| :math:`\varepsilon_\mathrm{m}`    | em               | pemitivity of the membrane                                                                                        | :math:`\varepsilon_\mathrm{m}\geq1`      |
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-| :math:`\sigma_\mathrm{cp}`        | kcp              | conductivity of the cytoplasm                                                                                     | :math:`\sigma_\mathrm{cp} >0`            |
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-| :math:`\sigma_\mathrm{med}`       | kmed             | conductivity of the supernatant(\ :math:`\varepsilon_\mathrm{med} = \varepsilon_\mathrm{h}` from cole cole fit)   | :math:`\sigma_\mathrm{med}>0`            |
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
+Execute the fit
+^^^^^^^^^^^^^^^
 
-Exemplary file:
+Using :meth:`impedancefitter.main.Fitter.run`, those files can be fitted 
+to an equivalent circuit model. 
+If there are two models involved that shall be fitted sequentially for each file,
+refer to :meth:`impedancefitter.main.Fitter.sequential_run`.
+This method allows one to communicate inferered parameters to the second model.
+In [Sab2012]_, an example of such a sequential procedure has been presented.
 
-.. code-block:: python
+.. [Sab2012] Sabuncu, A. C., Zhuang, J., Kolb, J. F., & Beskok, A. (2012). Microfluidic impedance spectroscopy as a tool for quantitative biology and biotechnology. Biomicrofluidics, 6(3). https://doi.org/10.1063/1.4737121
 
-    km: {value: 1.e-8, min: 1.e-12, max: 1e-2, vary: True} 
-    em: {value: 11, min: 1., max: 50., vary: True} 
-    kcp: {value: 0.4, min: 0.1, max: 2., vary: True} 
-    kmed: {value: 0.15, min: 0.0001, max: 1.0, vary: True} 
-
-With the `vary` flag, one can choose whether a variable should be included in the fitting procedure or fixed.
-
-.. note::
-
-	If you run without electrode polarization, you must include a line for emed as here:
-   
-    .. code-block:: python
-
-    	emed: {value: 78, min: 70, max: 80, vary: True} 
-
-double_shell_input.yaml
------------------------
-
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-| Parameter                         | Name in Script   | Description                                                                                                       | Physical Boundaries                      |
-+===================================+==================+===================================================================================================================+==========================================+
-| :math:`\sigma_\mathrm{m}`         | km               | conductivity of the membrane                                                                                      | :math:`\sigma_\mathrm{m}>0`              |
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-| :math:`\varepsilon_\mathrm{m}`    | em               | pemitivity of the membrane                                                                                        | :math:`\varepsilon_\mathrm{m}\geq1`      |
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-| :math:`\sigma_\mathrm{cp}`        | kcp              | conductivity of the cytoplasm                                                                                     | :math:`\sigma_\mathrm{cp} >0`            |
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-| :math:`\varepsilon_\mathrm{ne}`   | ene              | permitivity of the nulear envelope                                                                                | :math:`\varepsilon_\mathrm{ne} \geq1`    |
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-| :math:`\sigma_\mathrm{ne}`        | kne              | conductivity of the nuclear envelope                                                                              | :math:`\sigma_\mathrm{ne} >0`            |
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-| :math:`\sigma_\mathrm{np}`        | knp              | conductivity of the nucleoplasm                                                                                   | :math:`\sigma_\mathrm{np}>0`             |
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-| :math:`\sigma_\mathrm{med}`       | kmed             | conductivity of the supernatant(\ :math:`\varepsilon_\mathrm{med} = \varepsilon_\mathrm{h}` from cole cole fit)   | :math:`\sigma_\mathrm{med}>0`            |
-+-----------------------------------+------------------+-------------------------------------------------------------------------------------------------------------------+------------------------------------------+
-
-Exemplary file:
-
-.. code-block:: python
-
-    km: {value: 300.e-6, min: 1.e-8, max: 5.e-4, vary: True} 
-    em: {value: 11., min: 1., max: 20., vary: True} 
-    kcp: {value: 0.4, min: 0.1, max: 2., vary: True} 
-    ene: {value: 50, min: 1., max: 50., vary: True} 
-    kne: {value: 2.e-3, min: 1.e-8, max: 1.e-1, vary: True} 
-    knp: {value: .8, min: 0.1, max: 1., vary: True} 
-    kmed: {value: 0.05, min: 0.04, max: 0.3, vary: True} 
-
-With the `vary` flag, one can choose whether a variable should be included in the fitting procedure or fixed.
-
-.. note::
-
-	If you run without electrode polarization, you must include a line for emed as here:
-   
-    .. code-block:: python
-
-    	emed: {value: 78, min: 70, max: 80, vary: True} 
-
-possible values
----------------
-
-In Ermolina, I., Polevaya, Y., & Feldman, Y. (2000). Analysis of dielectric spectra of eukaryotic cells by computer modeling. European Biophysics Journal, 29(2), 141–145. https://doi.org/10.1007/s002490050259,
-there have been reported upper/lower limits for certain parameters. They could act as a first guess for the bounds of the optimization method.
-
-+-----------------------------------+---------------+---------------+
-| Parameter                         | lower limit   | upper limit   |
-+===================================+===============+===============+
-| :math:`\varepsilon_\mathrm{m}`    | 1.4           | 16.8          |
-+-----------------------------------+---------------+---------------+
-| :math:`\sigma_\mathrm{m}`         | 8e-8          | 5.6e-5        |
-+-----------------------------------+---------------+---------------+
-| :math:`\varepsilon_\mathrm{cp}`   | 60            | 77            |
-+-----------------------------------+---------------+---------------+
-| :math:`\sigma_\mathrm{cp}`        | 0.033         | 1.1           |
-+-----------------------------------+---------------+---------------+
-| :math:`\varepsilon_\mathrm{ne}`   | 6.8           | 100           |
-+-----------------------------------+---------------+---------------+
-| :math:`\sigma_\mathrm{ne}`        | 8.3e-5        | 7e-3          |
-+-----------------------------------+---------------+---------------+
-| :math:`\varepsilon_\mathrm{np}`   | 32            | 300           |
-+-----------------------------------+---------------+---------------+
-| :math:`\sigma_\mathrm{np}`        | 0.25          | 2.2           |
-+-----------------------------------+---------------+---------------+
-| R                                 | 3.5e-6        | 10.5e-6       |
-+-----------------------------------+---------------+---------------+
-| :math:`R_\mathrm{n}`              | 2.95e-6       | 8.85e-6       |
-+-----------------------------------+---------------+---------------+
-| d                                 | 3.5e-9        | 10.5e-9       |
-+-----------------------------------+---------------+---------------+
-| :math:`d_\mathrm{n}`              | 2e-8          | 6e-8          |
-+-----------------------------------+---------------+---------------+
-
+API Reference
+^^^^^^^^^^^^^
 
 .. automodule:: impedancefitter.main
         :members:
-        :private-members:
+
+Statistical analysis
+--------------------
+

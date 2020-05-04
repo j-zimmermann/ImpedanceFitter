@@ -14,9 +14,7 @@ Welcome to ImpedanceFitter's documentation!
    utils
    readin
    elements
-   cole_cole
-   single_shell
-   double_shell
+   circuits
    postprocess
 
 Indices and tables

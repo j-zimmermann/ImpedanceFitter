@@ -40,23 +40,21 @@ We use an own logger for the impedancefitter module.
 class Fitter(object):
     """
     The main fitting object class.
-    The chosen fitting routine is applied to all files in the chosen directory.
+    All files in the data directory with matching file ending are imported
+    to be fitted.
 
     Parameters
     ----------
 
+    inputformat: {string}
+        The inputformat of the data files. Must be one of the formats specified in :func:`impedancefitter.utils.available_file_format`.
     directory: {string, optional, path to data directory}
-        provide directory if you run code from directory different to data directory
+        Provide the data directory if the data directory is not the current working directory.
 
     Kwargs
     ------
 
-    model: {string, 'SingleShell' OR 'DoubleShell'}
-        currently, you can choose between SingleShell and DoubleShell.
-    solvername : string
-        choose among solvers from lmfit: global (basinhopping, differential_evolution, ...) or local solvers (levenberg-marquardt, nelder-mead, least-squares). See also lmfit documentation.
-    inputformat: {string, 'TXT' OR 'XLSX'}
-        currently only TXT and Excel files with a certain formatting (impedance in two columns, first is real part, second imaginary part, is accepted).
+
     LogLevel: {string, optional, 'DEBUG' OR 'INFO' OR 'WARNING'}
         choose level for logger. Case DEBUG: the script will output plots after each fit, case INFO: the script will output results from each fit to the console.
     excludeEnding: {string, optional}
@@ -65,43 +63,38 @@ class Fitter(object):
         if you want to use another frequency than the minimum frequency in the dataset.
     maximumFrequency: {float, optional}
         if you want to use another frequency than the maximum frequency in the dataset.
-    solver_kwargs: {dict, optional}
-        Contains infos for the solver. find possible kwargs in the lmfit documentation.
     data_sets: {int, optional}
         Use only a certain number of data sets instead of all in directory.
     current_threshold: {float, optional}
-        use only for data from E4980AL LCR meter to check current
+        Use only for data from E4980AL LCR meter to check current. If the current is not close to the threshold, the data point will be neglected.
     write_output: {bool, optional}
-        decide if you want to dump output to file. Default is False
-    fileList: list of strings, optional
+        Decide if you want to dump output to file. Default is False
+    fileList: {list of strings, optional}
         provide a list of files that exclusively should be processed. No other files will be processed.
         This option is particularly good if you have a common fileending of your data (e.g., `.csv`)
-
-    .. todo::
-        some are currently not documented
-
+    savefig: {bool, optional}
+        Decide if you want to save the plots. Default is False.
+    trace_b: {string, optional}
+        For TXT files, which contain more than one trace. The data is only read in until
+        :attr:`trace_b` is found. Default is :code:`TRACE: B`.
+    skiprows_txt: {int, optional}
+        Number of header rows inside a TXT file. Default is 21.
+    skiprows_trace: {int, optional}
+        Lines between traces blocks in a TXT file. Default is 2.
 
     Attributes
     ----------
 
-    omega: list
-        Contains frequencies.
-    Z: list
+    omega_dict: dict
+        Contains frequency lists that were found in the individual files. The keys are the file names, the values the frequencies.
+    Z_dict: dict
         Contains corresponding impedances.
-    protocol: None or string
-        Choose 'Iterative' for repeated fits with changing parameter sets, customized approach. If not specified, there is always just one fit for each data set.
     """
 
     def __init__(self, inputformat, directory=None, **kwargs):
+        """ initializes the Fitter object
         """
-        initializes the Fitter object
 
-        Parameters
-        ----------
-        inputformat: string
-            must be one of the formats specified in :func:`impedancefitter.utils.available_file_format`
-
-        """
         self.inputformat = inputformat
         self._parse_kwargs(kwargs)
 
@@ -134,12 +127,15 @@ class Fitter(object):
                 self.z_dict[str(filename)] = zarray
 
     def _parse_kwargs(self, kwargs):
+        """parses the different kwargs when the Fitter object
+        is initialized.
+        """
+
         # set defaults
         self.minimumFrequency = None
         self.maximumFrequency = None
         self.LogLevel = 'INFO'
         self.excludeEnding = "impossibleEndingLoL"
-        self.solver_kwargs = {}
         self.data_sets = None
         self.current_threshold = None
         self.write_output = False
@@ -177,14 +173,16 @@ class Fitter(object):
         if 'savefig' in kwargs:
             self.savefig = kwargs['savefig']
 
-    def initialize_parameters(self, model, parameters):
+    def _initialize_parameters(self, model, parameters):
         """
         The `model_parameters` are initialized either based on a provided `parameterdict` or an input file.
 
         Parameters
         ----------
         model: string
-            model name
+            Model name
+        parameters: dict
+            Parameter dictionary provided by user.
 
         See also
         --------
@@ -196,6 +194,22 @@ class Fitter(object):
         return set_parameters(model, parameterdict=parameters, emcee=self.emcee_tag)
 
     def initialize_model(self, modelname):
+        """Interface to LMFIT model class.
+        The equivalent circuit (represented as a string)
+        is parsed and a LMFIT Model is returned.
+
+        Parameters
+        ----------
+
+        modelname: string
+            Provide equivalent circuit model to be parsed.
+
+        Returns
+        -------
+
+        model: LMFIT.Model
+        """
+
         model = get_comp_model(modelname)
         return model
 
@@ -242,7 +256,7 @@ class Fitter(object):
             assert(isinstance(parameters, dict)), "You need to provide an input dictionary!"
         self.parameters = deepcopy(parameters)
 
-        self.model_parameters = self.initialize_parameters(self.model, self.parameters)
+        self.model_parameters = self._initialize_parameters(self.model, self.parameters)
         self.protocol = protocol
         if self.write_output is True:
             open('outfile.yaml', 'w')  # create output file
@@ -303,8 +317,8 @@ class Fitter(object):
             assert(isinstance(parameters2, dict)), "You need to provide an input dictionary!"
         self.parameters2 = deepcopy(parameters2)
 
-        self.model_parameters1 = self.initialize_parameters(self.model1, self.parameters1)
-        self.model_parameters2 = self.initialize_parameters(self.model2, self.parameters2)
+        self.model_parameters1 = self._initialize_parameters(self.model1, self.parameters1)
+        self.model_parameters2 = self._initialize_parameters(self.model2, self.parameters2)
 
         self.protocol = protocol
         if self.write_output is True:
