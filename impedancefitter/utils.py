@@ -21,8 +21,8 @@ import numpy as np
 import yaml
 import logging
 import pyparsing as pp
-from scipy.constants import epsilon_0 as e0
 from collections import Counter
+from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
 from .loss import Z_in, Z_loss
 from .cole_cole import cole_cole_model, cole_cole_R_model
@@ -37,26 +37,47 @@ logger = logging.getLogger('impedancefitter-logger')
 
 
 def return_diel_properties(omega, Z, c0):
-    r"""
-    return relative permittivity and conductivity from impedance spectrum
+    r"""Return relative permittivity and conductivity
+    from impedance spectrum in cavity with known unit capacitance.
+
+    Notes
+    -----
+
     Use that the impedance is
 
     .. math::
 
         Z = (j \omega \varepsilon^\ast)^{-1} ,
 
-    where :math:`\varepsilon^\ast` is the complex permittivity (see for instance [1]_
+    where :math:`\varepsilon^\ast` is the complex permittivity (see for instance [Grant1958]_
     for further explanation).
 
-    The relative permittivity is the real part of :math:`\varepsilon^\ast` divided by the vacuum permittivity and
-    the conductivity is the imaginary part times the frequency.
+    When the unit capacitance :math:`c_0` of the device is known, a direct mapping from impedance to
+    relative complex permittivity is possible:
+
+    .. math ::
+
+        \varepsilon_\mathrm{r}^\ast = (j \omega Z c_0)^{-1} = \varepsilon^\ast / \varepsilon_0
+
+    The unit capacitance (or air capacitance) of the device is defined as
+
+    .. math::
+
+        c_0 = \frac{\varepsilon_0 A}{d}
+
+    for a parallel-plate capacitor with electrode area `A` and spacing `d` but can
+    also be measured in a calibration step.
+
+    The relative permittivity is the real part of :math:`\varepsilon_\mathrm{r}^\ast`
+    and the conductivity is the negative imaginary part times the frequency and the
+    vacuum permittivity.
 
     Parameters
     ----------
 
-    omega: double or ndarray of double
+    omega: :class:`numpy.ndarray`, double
         frequency array
-    Z: complex or array of complex
+    Z: :class:`numpy.ndarray`, complex
         impedance array
     c0: double
         unit capacitance of device
@@ -64,26 +85,25 @@ def return_diel_properties(omega, Z, c0):
     Returns
     -------
 
-    eps_r: double
+    eps_r: :class:`numpy.ndarray`, double
         relative permittivity
-    conductivity: double
+    conductivity: :class:`numpy.ndarray`, double
         conductivity in S/m
 
     References
     ----------
 
-    .. [1] Grant, F. A. (1958). Use of complex conductivity in the representation of dielectric phenomena.
+    .. [Grant1958] Grant, F. A. (1958). Use of complex conductivity in the representation of dielectric phenomena.
            Journal of Applied Physics, 29(1), 76–80. https://doi.org/10.1063/1.1722949
     """
     epsc = 1. / (1j * omega * Z * c0)
-    eps_r = epsc.real / e0
-    conductivity = epsc.imag * omega
+    eps_r = epsc.real
+    conductivity = -epsc.imag * e0 * omega
     return eps_r, conductivity
 
 
 def check_parameters(bufdict):
-    """
-    check parameters for physical correctness
+    """Check parameters for physical correctness.
 
     Parameters
     ---------
@@ -91,69 +111,74 @@ def check_parameters(bufdict):
     bufdict: dict
         Contains all parameters and their values
 
-    Notes
-    -----
-
-    .. todo::
-        this currently is not working with prefixes
     """
+
     # capacitances in pF
     capacitances = ['c0', 'C_stray']
-    for c in capacitances:
-        try:
-            assert not np.isclose(bufdict[c].value, 0.0, atol=1e-5), """{} is used in pF, do you really want it to be that small?
-                                                                            It might be ignored in the analysis""".format(c)
-        except KeyError:
-            pass
-
-    # check volume fraction
-    try:
-        assert 0 <= bufdict['p'].value <= 1.0, "p is the volume fraction and needs to be between 0.0 and 1.0. Change your initial value."
-        if bufdict['p'].vary:
-            assert 0 <= bufdict['p'].min <= 1.0, "p is the volume fraction and needs to be between 0.0 and 1.0. Change the min value accordingly."
-            assert 0 <= bufdict['p'].max <= 1.0, "p is the volume fraction and needs to be between 0.0 and 1.0. Change the max value accordingly."
-    except KeyError:
-        pass
-
-    # check tau (used in ColeCole models
-    try:
-        assert not np.isclose(bufdict['tau'].value, 0.0, atol=1e-5), "tau is used in ps, do you really want it to be that small?"
-    except KeyError:
-        pass
-
-    # check permittivities
+    # taus in ns
+    taus = ['tau']
+    zerotoones = ['p', 'a', 'alpha']
     permittivities = ['em', 'ecp', 'emed', 'ene', 'enp', 'el', 'eh', 'eps']
-    for p in permittivities:
-        try:
-            assert bufdict[p].value >= 1.0, "The permittivity {} needs to be greater than or equal to 1. Change the initial value.".format(p)
-            if bufdict[p].vary:
-                assert bufdict[p].min >= 1.0, "The permittivity {} needs to be greater than or equal to 1. Change the min value.".format(p)
-                assert bufdict[p].max >= 1.0, "The permittivity {} needs to be greater than or equal to 1. Change the max value.".format(p)
-        except KeyError:
-            pass
-
-    # check special parameters
-    exponents = ['a', 'alpha']
-    for e in exponents:
-        try:
-            assert 0 <= bufdict[e].value <= 1.0, "{} is an exponent that needs to be between 0.0 and 1.0. Change your initial value.".format(e)
-            if bufdict[p].vary:
-                assert 0 <= bufdict[e].min >= 0.0, "{} is an exponent that needs to be between 0.0 and 1.0. Change your min value.".format(e)
-                assert 0 <= bufdict[e].max <= 1.0, "{} is an exponent that needs to be between 0.0 and 1.0. Change your max value.".format(e)
-        except KeyError:
-            pass
-
     for p in bufdict:
-        # __lnsigma can be negative
+        # __lnsigma can be negative and does not need to be checked
         if p == '__lnsigma':
             continue
-        assert bufdict[p].value >= 0.0, "{} needs to be positive. Change your initial value.".format(p)
+
+        tmp = p.split("_")
+        if len(tmp) == 2:
+            par = tmp[1]
+        elif len(tmp) == 1:
+            par = tmp[0]
+        else:
+            raise RuntimeError("The parameter {} cannot be split in prefix and suffix.".format(p))
+
+        if par in capacitances:
+            assert not np.isclose(bufdict[p].value, 0.0, atol=1e-5),\
+                """{} is used in pF, do you really want it to be that small?
+                   It will be ignored in the analysis""".format(p)
+
+        if par in zerotoones:
+            assert 0 <= bufdict[p].value <= 1.0,\
+                """{} is an exponent or the volume fraction that needs to be between 0.0 and 1.0.
+                   Change your initial value.""".format(p)
+            if bufdict[p].vary:
+                if bufdict[p].min < 0.0 or bufdict[p].min > 1.0:
+                    logger.info("""{} is an exponent that needs to be between
+                                   0.0 and 1.0. Changed your min value to 0.""".format(p))
+                    bufdict[p].set(min=0.0)
+                if bufdict[p].max > 1.0:
+                    logger.info("""{} is an exponent that needs to be between 0.0 and 1.0.
+                                   Changed your max value to 1.0.""".format(p))
+                    bufdict[p].set(max=1.0)
+            continue
+
+        if par in taus:
+            assert not np.isclose(bufdict[p].value, 0.0, atol=1e-7),\
+                "tau is used in ns, do you really want it to be that small?"
+
+        # check permittivities
+        if par in permittivities:
+            assert bufdict[p].value >= 1.0,\
+                """The permittivity {} needs to be greater than
+                   or equal to 1. Change the initial value.""".format(p)
+            if bufdict[p].vary:
+                if bufdict[p].min < 1.0:
+                    logger.info("""The permittivity {} needs to be greater
+                                   than or equal to 1. Changed the min value to 1.""".format(p))
+                    bufdict[p].set(min=1.0)
+                if bufdict[p].max < 1.0:
+                    logger.info("""The permittivity {} needs to be greater than
+                                   or equal to 1. Changed the max value to inf.""".format(p))
+                    bufdict[p].set(max=np.inf)
+            continue
+
         if bufdict[p].vary:
-            if bufdict[p].min <= 0.0:
+            if bufdict[p].min < 0.0:
                 logger.debug("{} needs to be positive. Changed your min value to 0.".format(p))
                 bufdict[p].set(min=0.0)
-            assert bufdict[p].max >= 0.0, "{} needs to be positive. Change your max value.".format(p)
-
+            if bufdict[p].max < 0.0:
+                logger.debug("{} needs to be positive. Changed your max value to inf.".format(p))
+                bufdict[p].set(max=np.inf)
     return bufdict
 
 
@@ -346,8 +371,11 @@ def available_file_format():
     In fact, the number of columns equals the number of
     impedance data sets plus one (for the frequency).
 
-    .. todo::
-        Clarify if header is needed.
+    .. note::
+
+        A single header line is needed in a CSV and XLSX file.
+        It may contain for example `frequency, Real Part, Imag Part`.
+        Otherwise the read-in function will fail.
 
     **CSV_E4980AL**:
 
@@ -362,6 +390,11 @@ def available_file_format():
     These files contain frequency, real and imaginary part of the impedance
     (i.e., 3 columns).
     The TXT files may contain two traces; only one of them is read in.
+    For TXT files you can specify the number of rows to skip.
+
+    See Also
+    --------
+    :class:`impedancefitter.main.Fitter`
     """
 
     formats = ['XLSX', 'CSV', 'CSV_E4980AL', "TXT"]
@@ -512,7 +545,7 @@ def _process_circuit(circuit):
     :py:class:`lmfit.model.CompositeModel`
         the final model of the entire circuit
     """
-    logger.debug("circuit: ", circuit)
+    logger.debug("circuit: {}".format(circuit))
     if '+' in circuit:
         c = _process_series(circuit)
     elif ',' in circuit:

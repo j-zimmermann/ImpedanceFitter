@@ -23,7 +23,7 @@ import numpy as np
 def _Z_sus(omega, es, kdc, c0):
     r"""Impedance of suspension.
 
-    Described for example in [3]_.
+    Described for example in [Sabuncu2012]_.
 
     Parameters
     -----------
@@ -44,24 +44,24 @@ def _Z_sus(omega, es, kdc, c0):
 
     References
     ----------
-    .. [3] Sabuncu, A. C., Zhuang, J., Kolb, J. F., & Beskok, A. (2012).
+    .. [Sabuncu2012] Sabuncu, A. C., Zhuang, J., Kolb, J. F., & Beskok, A. (2012).
            Microfluidic impedance spectroscopy as a tool for quantitative biology and biotechnology.
            Biomicrofluidics, 6(3). https://doi.org/10.1063/1.4737121
     """
 
-    return 1. / (1j * es * omega * c0 + (kdc * c0) / e0)
+    return 1. / (1j * es * omega * c0 + (kdc * c0 / e0))
 
 
 def _e_sus(omega, eh, el, tau, a):
     r"""
     Complex permitivity after Cole-Cole.
-    See the original paper of the Cole brothers [4]_.
+    See the original paper of the Cole brothers [Cole1941]_.
     Difference: the exponent :math:`1 - \alpha` is here named `a`.
 
     Parameters
     -----------
 
-    omega: double or array of double
+    omega: :class:`numpy.ndarray`, double
         list of frequencies
     eh: double
         value for :math:`\varepsilon_\infty`
@@ -75,7 +75,7 @@ def _e_sus(omega, eh, el, tau, a):
     References
     ----------
 
-    [4]_ Cole, K. S., & Cole, R. H. (1941). Dispersion and absorption in dielectrics I.
+    [Cole1941]_ Cole, K. S., & Cole, R. H. (1941). Dispersion and absorption in dielectrics I.
          Alternating current characteristics. The Journal of Chemical Physics,
          9(4), 341–351. https://doi.org/10.1063/1.1750906
     """
@@ -85,9 +85,33 @@ def _e_sus(omega, eh, el, tau, a):
 def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
     r"""Cole-Cole model for dielectric properties.
 
-    The model was implemented as presented in [1]_.
+    The model was implemented as presented in [Sabuncu2012]_.
     You need to provide the unit capacitance of your device to get
     the dielectric properties of the Cole-Cole model.
+
+    Parameters
+    -----------
+
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for :math:`c_0`, unit capacitance in pF
+    eh: double
+        value for :math:`\varepsilon_\mathrm{h}`
+    el: double
+        value for :math:`\varepsilon_\mathrm{l}`
+    tau: double
+        value for :math:`\tau`, in ns
+    kdc: double
+        value for :math:`\sigma_\mathrm{dc}`
+    a: double
+        value for :math:`1 - \alpha = a`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
 
     Notes
     -----
@@ -111,7 +135,7 @@ def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
 
     References
     ----------
-    .. [1] Sabuncu, A. C., Zhuang, J., Kolb, J. F., & Beskok, A. (2012).
+    .. [Sabuncu2012] Sabuncu, A. C., Zhuang, J., Kolb, J. F., & Beskok, A. (2012).
            Microfluidic impedance spectroscopy as a tool for quantitative biology and biotechnology.
            Biomicrofluidics, 6(3). https://doi.org/10.1063/1.4737121
 
@@ -127,7 +151,28 @@ def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
 def cole_cole_R_model(omega, Rinf, R0, tau, a):
     r"""Standard Cole-Cole circuit for macroscopic quantities.
 
-    See for example [2]_ for more information.
+    See for example [Schwan1957]_ for more information.
+
+
+    Parameters
+    -----------
+
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    Rinf: double
+        value for :math:`R_\infty`
+    R0: double
+        value for :math:`R_0`
+    tau: double
+        value for :math:`\tau`, in ns
+    a: double
+        value for :math:`1 - \alpha = a`
+
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
 
     Notes
     -----
@@ -137,12 +182,12 @@ def cole_cole_R_model(omega, Rinf, R0, tau, a):
 
     .. math::
 
-        \Z_\mathrm{Cole} = R_\infty + \frac{R_0-R_\infty}{1+(j\*\omega\*\tau)^a}
+        Z_\mathrm{Cole} = R_\infty + \frac{R_0-R_\infty}{1+(j\omega \tau)^a}
 
 
     References
     ----------
-    .. [2] Schwan, H. P. (1957). Electrical properties of tissue and cell suspensions.
+    .. [Schwan1957] Schwan, H. P. (1957). Electrical properties of tissue and cell suspensions.
            Advances in biological and medical physics (Vol. 5).
            ACADEMIC PRESS INC. https://doi.org/10.1016/b978-1-4832-3111-2.50008-0
     """

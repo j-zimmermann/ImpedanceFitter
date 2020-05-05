@@ -132,7 +132,7 @@ def Z_w(omega, Aw):
     omega: :class:`numpy.ndarray`
         List of frequencies.
 
-    A_w: double
+    Aw: double
         Warburg coefficient
 
     Returns
@@ -173,7 +173,7 @@ def Z_ws(omega, Aw, B):
     omega: :class:`numpy.ndarray`
         List of frequencies.
 
-    A_w: double
+    Aw: double
         Warburg coefficient
     B: double
         Second coefficient
@@ -201,7 +201,7 @@ def Z_wo(omega, Aw, B):
     omega: :class:`numpy.ndarray`
         List of frequencies.
 
-    A_w: double
+    Aw: double
         Warburg coefficient
     B: double
         Second coefficient

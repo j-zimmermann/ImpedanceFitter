@@ -20,12 +20,71 @@ from scipy.constants import epsilon_0 as e0
 
 
 def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, dm, Rc, dn, Rn):
-    r"""
-    Equations for the double-shell-model:
+    r"""Double Shell model.
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for :math:`c_0`, unit capacitance in pF
+    em: double
+        membrane permittivity,membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
+    km: double
+        membrane conductivity,  value for :math:`\sigma_\mathrm{m}`
+    ecp: double
+        cytoplasm permittivity,  value for :math:`\varepsilon_\mathrm{cp}`
+    kcp: double
+        cytoplasm conductivity,  value for :math:`\sigma_\mathrm{cp}`
+    ene: double
+        nuclear envelope permittivity,  value for :math:`\varepsilon_\mathrm{ne}`
+    kne: double
+        nuclear envelope conductivity,  value for :math:`\sigma_\mathrm{ne}`
+    enp: double
+        nucleoplasm permittivity,  value for :math:`\varepsilon_\mathrm{np}`
+    knp: double
+        nucleoplasm conductivity,  value for :math:`\sigma_\mathrm{np}`
+    emed: double
+        medium permittivity,  value for :math:`\varepsilon_\mathrm{med}`
+    kmed: double
+        medium conductivity,  value for :math:`\sigma_\mathrm{med}`
+    p: double
+        volume fraction
+    dm: double
+        membrane thickness, value for :math:`d_\mathrm{m}`
+    Rc: double
+        cell radius, value for :math:`R_\mathrm{c}`
+    dn: double
+        nuclear envelope thickness, value for :math:`d_\mathrm{n}`
+    Rn: double
+        nucleus radius, value for :math:`R_\mathrm{n}`
+
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+
+    .. warning::
+
+        The unit capacitance is in pF!
+
+    Equations for the single-shell-model [Feldman2003]_:
 
     .. math::
 
-        \varepsilon_\mathrm{mix}^\ast = \varepsilon_\mathrm{sup}^\ast\frac{(2\varepsilon_\mathrm{sup}^\ast+\varepsilon_\mathrm{c}^\ast)-2p(\varepsilon_\mathrm{sup}^\ast-\varepsilon_\mathrm{c}^\ast)}{(2\varepsilon_\mathrm{sup}^\ast+\varepsilon_\mathrm{c}^\ast)+p(\varepsilon_\mathrm{sup}^\ast-\varepsilon_\mathrm{c}^\ast)}
+            \nu_1 = \left(1-\frac{d_\mathrm{m}}{R_\mathrm{c}}\right)^3
+
+    .. math::
+
+            \nu_\mathrm{2} = \left(\frac{R_\mathrm{n}}{R-d}\right)^3
+
+    .. math::
+
+            \nu_\mathrm{3} = \left(1-\frac{d_\mathrm{n}}{R_\mathrm{n}}\right)^3
 
     .. math::
 
@@ -43,22 +102,50 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
 
             E_\mathrm{3} = \frac{\varepsilon_\mathrm{np}^\ast}{\varepsilon_\mathrm{ne}^\ast}
 
-    with :math:`R \hat{=}` outer cell Radius; :math:`R_\mathrm{n} \hat{=}` outer Radius of the nucleus; :math:`d \hat{=}` thickness of the membrane
 
     .. math::
 
-            \nu_\mathrm{1} = \left(1-\frac{d}{R}\right)^3
+        \varepsilon_\mathrm{m} = \varepsilon_\mathrm{m} - j \frac{\sigma_\mathrm{m}}{\varepsilon_0 \omega}
 
     .. math::
 
-            \nu_\mathrm{2} = \left(\frac{R_\mathrm{n}}{R-d}\right)^3
+        \varepsilon_\mathrm{cp} = \varepsilon_\mathrm{cp} - j \frac{\sigma_\mathrm{cp}}{\varepsilon_0 \omega}
 
     .. math::
 
-            \nu_\mathrm{3} = \left(1-\frac{d_\mathrm{n}}{R_\mathrm{n}}\right)^3
+        \varepsilon_\mathrm{ne} = \varepsilon_\mathrm{ne} - j \frac{\sigma_\mathrm{ne}}{\varepsilon_0 \omega}
 
 
-    In [Erm2000]_ , there have been reported upper/lower limits for certain parameters.
+    .. math::
+
+        \varepsilon_\mathrm{np} = \varepsilon_\mathrm{np} - j \frac{\sigma_\mathrm{np}}{\varepsilon_0 \omega}
+
+
+    .. math::
+
+        \varepsilon_\mathrm{cell}^\ast = \varepsilon_\mathrm{m}^\ast \frac{2 (1 - \nu_1) + (1 + 2 \nu_1) E_1}{(2 + \nu_1) + (1 - \nu_1) E_1}
+
+    .. math::
+
+        \varepsilon_\mathrm{sus}^\ast = \varepsilon_\mathrm{med}^\ast
+        \frac{(2 \varepsilon_\mathrm{med}^\ast + \varepsilon_\mathrm{cell}^\ast) - 2 p
+        (\varepsilon_\mathrm{med}^\ast - \varepsilon_\mathrm{cell}^\ast)}
+        {(2 \varepsilon_\mathrm{med}^\ast + \varepsilon_\mathrm{cell}^\ast) + p
+        (\varepsilon_\mathrm{med}^\ast - \varepsilon_\mathrm{cell}^\ast)}
+
+    .. math::
+
+        Z = \frac{1}{j \varepsilon_\mathrm{sus}^\ast \omega c_0}
+
+    References
+    ----------
+
+    .. [Feldman2003] Feldman, Y., Ermolina, I., & Hayashi, Y. (2003).
+           Time domain dielectric spectroscopy study of biological systems.
+           IEEE Transactions on Dielectrics and Electrical Insulation, 10, 728–753.
+           https://doi.org/10.1109/TDEI.2003.1237324
+
+    In [Ermolina2000]_ , there have been reported upper/lower limits for certain parameters.
     They could act as a first guess for the bounds of the optimization method.
 
     +-----------------------------------+---------------+---------------+
@@ -89,12 +176,13 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
     | :math:`d_\mathrm{n}`              | 2e-8          | 6e-8          |
     +-----------------------------------+---------------+---------------+
 
-    .. [Erm2000] Ermolina, I., Polevaya, Y., & Feldman, Y. (2000). Analysis of dielectric spectra of eukaryotic cells by computer modeling. European Biophysics Journal, 29(2), 141–145. https://doi.org/10.1007/s002490050259
+    .. [Ermolina2000] Ermolina, I., Polevaya, Y., & Feldman, Y. (2000). Analysis of dielectric spectra of eukaryotic cells by computer modeling. European Biophysics Journal, 29(2), 141–145. https://doi.org/10.1007/s002490050259
 
-    .. todo::
-        needs to be checked
-
+    See Also
+    --------
+    :meth:`impedancefitter.single_shell.single_shell_model`
     """
+
     c0 *= 1e-12
     v1 = (1. - dm / Rc)**3
     v2 = (Rn / (Rc - dm))**3
@@ -108,12 +196,12 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
 
     E3 = epsi_np / epsi_ne
     E2 = ((epsi_ne / epsi_cp) * (2. * (1. - v3) + (1. + 2. * v3) * E3)
-          / ((2. + v3) + (1. - v3) * E3))  # Eq. 13
+          / ((2. + v3) + (1. - v3) * E3))
     E1 = ((epsi_cp / epsi_m) * (2. * (1. - v2) + (1. + 2. * v2) * E2)
-          / ((2. + v2) + (1. - v2) * E2))  # Eq. 14
+          / ((2. + v2) + (1. - v2) * E2))
 
     epsi_cell = (epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1)
-                 / ((2. + v1) + (1. - v1) * E1))  # Eq. 11
+                 / ((2. + v1) + (1. - v1) * E1))
     E0 = epsi_cell / epsi_med
     esus = epsi_med * (2. * (1. - p) + (1. + 2. * p) * E0) / ((2. + p) + (1. - p) * E0)
     Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum

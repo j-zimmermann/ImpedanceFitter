@@ -65,3 +65,9 @@ Inductance circuits
 
 .. automodule:: impedancefitter.loss
         :members:
+
+CPE circuits
+------------
+
+.. automodule:: impedancefitter.cpe
+	:members:

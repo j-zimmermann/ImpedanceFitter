@@ -100,7 +100,8 @@ class Fitter(object):
         Contains frequency lists that were found in the individual files.
         The keys are the file names, the values the frequencies.
     Z_dict: dict
-        Contains corresponding impedances.
+        Contains corresponding impedances. Note that the values might
+        be lists when there was more than one impedance data set in the file.
     fit_data: dict
         Contains the fitting results for each individual file.
         In case of a sequential run, the dictionary contains two
@@ -211,8 +212,18 @@ class Fitter(object):
         """
 
         for key in self.omega_dict:
-            plot_impedance(self.omega_dict[key], self.z_dict[key],
-                           key, save=savefig)
+            zarray = self.z_dict[key]
+            if len(zarray.shape) > 1:
+                iters = zarray.shape[0]
+                logger.debug("Number of data sets to visualise:"
+                             + str(iters))
+            if self.data_sets is not None:
+                iters = self.data_sets
+                logger.debug("""Will only iterate
+                                over {} data sets.""".format(iters))
+            for i in range(iters):
+                plot_impedance(self.omega_dict[key], zarray[i],
+                               key, save=savefig)
 
     def _initialize_parameters(self, model, parameters):
         """
@@ -782,7 +793,7 @@ class Fitter(object):
         Notes
         -----
 
-        The clustering approach described in [4]_ is implemented in
+        The clustering approach described in [Hou2012]_ is implemented in
         this function.
         The walkers are sorted by probability and subsequently
         the difference between adjacent walker probabilities
@@ -800,7 +811,7 @@ class Fitter(object):
 
         References
         ----------
-        .. [4] Hou, F., Goodman, J., Hogg, D. W., Weare, J., & Schwab, C. (2012).
+        .. [Hou2012] Hou, F., Goodman, J., Hogg, D. W., Weare, J., & Schwab, C. (2012).
             An affine-invariant sampler for exoplanet fitting and
             discovery in radial velocity data. Astrophysical Journal, 745(2).
             https://doi.org/10.1088/0004-637X/745/2/198
@@ -981,3 +992,9 @@ class Fitter(object):
             quantile = np.percentile(result.flatchain[p], np.array(percentiles) * 100)
             ci[p] = list(zip(percentiles, quantile))
         return ci
+
+    def prepare_emcee_run(self):
+        """Prepare initial configuration.
+
+           .. todo:: Implement.
+        """

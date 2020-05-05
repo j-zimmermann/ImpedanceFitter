@@ -34,16 +34,21 @@ class PostProcess(object):
     Parameters
     ----------
 
-    model: {string, DoubleShell OR SingleShell}
-         define, which model has been used
-    electrode_polarization: {bool, default True}
-         set to false if not used
-    yamlfile: {string, default None}
-         define path to yamlfile or use current working directory
+    modelresult: :class:`lmfit.ModelResult`
+        Result of the fit.
+    yamlfile: bool
+        Provide the link to a file from which you want to
+        read the results.
+
+    Notes
+    -----
+
+    .. todo::
+
+        Total rewrite needed.
     """
-    def __init__(self, model, electrode_polarization=True, yamlfile=None):
+    def __init__(self, modelresult=None, yamlfile=False):
         self.model = model
-        self.electrode_polarization = electrode_polarization
         if yamlfile is None:
             yamlfile = 'outfile.yaml'
         file = open(yamlfile, 'r')

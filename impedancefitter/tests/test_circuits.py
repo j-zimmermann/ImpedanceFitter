@@ -1,17 +1,32 @@
 from impedancefitter.utils import get_comp_model
+import numpy as np
+from impedancefitter.cpe import cpe_ct_model, cpe_ct_w_model
 
-models = ["R + C + parallel(ColeCole, DRC)",
-"R_1 + C_1 + parallel(ColeCole_2, DRC_2)",
-"parallel(ColeCole + R, DRC)",
-"parallel(ColeCole, DRC)",
-"R + parallel(ColeCole, DRC) + C",
-"parallel(ColeCole, DRC) + R + C",
-"parallel(parallel(ColeCole, L), DRC) + R + C",
-"parallel(ColeCole + L, DRC) + R + C",
-"R + C",
-         ]
-for model in models:
-    print(model)
+omega = 2. * np.pi * np.logspace(1, 8, num=20)
+
+
+def test_cpe_RCT():
+
+    k = 1e-7
+    alpha = 0.9
+    Rct = 100
+
+    model = 'parallel(CPE, R)'
     m = get_comp_model(model)
-    print(m)
-    print("\n")
+    Z_lmfit = m.eval(omega=omega, k=k, alpha=alpha, R=Rct)
+    Z = cpe_ct_model(omega, k, alpha, Rct)
+    assert np.all(np.isclose(Z, Z_lmfit))
+
+
+def test_cpe_RCT_W():
+
+    k = 1e-7
+    alpha = 0.9
+    Rct = 100
+    Aw = 10
+
+    model = 'parallel(CPE, R + W)'
+    m = get_comp_model(model)
+    Z_lmfit = m.eval(omega=omega, k=k, alpha=alpha, R=Rct, Aw=Aw)
+    Z = cpe_ct_w_model(omega, k, alpha, Rct, Aw)
+    assert np.all(np.isclose(Z, Z_lmfit))

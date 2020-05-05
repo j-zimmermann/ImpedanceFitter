@@ -8,7 +8,7 @@ setuptools.setup(
     version="1.1.0",
     author="Leonard Thiele, Julius Zimmermann",
     author_email="leonard.thiele@uni-rostock.de, julius.zimmermann@uni-rostock.de",
-    description="Library for fitting impedance data to models like single-shell oder double-shell model.",
+    description="Library for fitting impedance data to equivalent circuit models and analyse the result.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),

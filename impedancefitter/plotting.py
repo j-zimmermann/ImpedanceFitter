@@ -132,11 +132,11 @@ def plot_impedance(omega, Z, title, Z_fit=None, show=True, save=False, Z_comp=No
     plt.title("Nyquist plot")
     plt.ylabel(r"$-\Im(Z) [\Omega]$")
     plt.xlabel(r"$\Re(Z) [\Omega]$")
-    plt.plot(Z.real, Z.imag, 'o', label="data")
+    plt.plot(Z.real, -Z.imag, 'o', label="data")
     if Z_fit is not None:
-        plt.plot(Z_fit.real, Z_fit.imag, '+', label="best fit")
+        plt.plot(Z_fit.real, -Z_fit.imag, '+', label="best fit")
     if Z_comp is not None:
-        plt.plot(Z_comp.real, Z_comp.imag, 'x', label="init fit")
+        plt.plot(Z_comp.real, -Z_comp.imag, 'x', label="init fit")
     plt.legend()
     if Z_fit is not None:
         plot_compare_to_data(omega, Z, Z_fit, subplot=224)

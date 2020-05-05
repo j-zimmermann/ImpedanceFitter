@@ -2,9 +2,11 @@ How to use this package
 =======================
 
 Run
+
 ```
-pip3 install . --user --process-dependency-links
+pip3 install . --user
 ```
+
 in this directory.
 It will install all requirements automatically.
 
