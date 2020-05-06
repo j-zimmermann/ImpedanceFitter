@@ -184,4 +184,5 @@ texinfo_documents = [
 ]
 
 intersphinx_mapping = {'lmfit': ('https://lmfit.github.io/lmfit-py/', None),
-                       'numpy': ('https://docs.scipy.org/doc/numpy', None)}
+                       'numpy': ('https://docs.scipy.org/doc/numpy', None),
+                       'openturns': ('http://openturns.github.io/openturns/master/', None)}

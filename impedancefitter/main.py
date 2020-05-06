@@ -1,5 +1,5 @@
-#    The ImpedanceFitter is a package that provides means to fit
-#    impedance spectra to theoretical models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
 #    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
@@ -947,7 +947,7 @@ class Fitter(object):
                              Z, Z1, Z2, sigma, model=i)
 
     def emcee_conf_interval(self, result):
-        """Compute emcee confidence intervals.
+        r"""Compute emcee confidence intervals.
 
         The :math:`1\sigma` to :math:`3\sigma` confidence
         intervals are computed for a fitting result

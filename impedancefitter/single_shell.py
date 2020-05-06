@@ -1,4 +1,4 @@
-#    The ImpedanceFitter is a package that provides means to fit impedance spectra to theoretical models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
 #    Copyright (C) 2018, 2019 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de

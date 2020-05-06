@@ -1,7 +1,7 @@
-#    The ImpedanceFitter is a package that provides means to fit impedance spectra to theoretical models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -25,19 +25,43 @@ logger = logging.getLogger('impedancefitter-logger')
 
 
 def Z_randles(omega, R0, Rs, Aw, C0):
-    r"""
-    function holding the Randles equation with capacitor in parallel to resistor in series with Warburg element
+    r"""Randles circuit.
+
+    Parameters
+    -----------
+
+    omega: double or array of double
+        list of frequencies
+    R0: double
+        Resistance in series with Warburg element, e.g.
+        charge transfer resistance
+    Rs: double
+        Resistance of the DUT, e.g. electrolyte resistance
+    Aw: double
+        Warburg coefficient
+    C0: double
+        capacitance
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+
+    Notes
+    -----
+    Function holding the Randles equation with capacitor in parallel to resistor in series with Warburg element
     and another resistor in series.
-    It returns the calculated impedance
+
     Equations for calculations:
 
-    impedance of resistor and Warburg element:
+    Impedance of resistor and Warburg element:
 
     .. math::
 
         Z_\mathrm{RW} = R_0 + A_\mathrm{W} \frac{1 - j}{\sqrt{\omega}}
 
-    impedance of capacitor:
+    Impedance of capacitor:
 
     .. math::
 
@@ -56,11 +80,33 @@ def Z_randles(omega, R0, Rs, Aw, C0):
 
 
 def Z_randles_CPE(omega, R0, Rs, Aw, k, alpha):
-    """
-    Same randles circuit as in :func:`Z_randles` but with CPE instead of capacitor.
+    """Randles circuit with CPE instead of capacitor.
+
+    Parameters
+    -----------
+
+    omega: double or array of double
+        list of frequencies
+    R0: double
+        Resistance in series with Warburg element, e.g.
+        charge transfer resistance
+    Rs: double
+        Resistance of the DUT, e.g. electrolyte resistance
+    Aw: double
+        Warburg coefficient
+    k: double
+        CPE coefficient
+    alpha: double
+        CPE exponent
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
 
     See also
     --------
+    :func:`Z_randles`
     :func:`impedancefitter.elements.Z_CPE`
 
     """

@@ -3,3 +3,6 @@
 Statistical analysis
 ====================
 
+.. autoclass:: impedancefitter.postprocess.PostProcess
+        :members:
+
