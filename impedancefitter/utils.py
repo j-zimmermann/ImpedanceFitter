@@ -116,8 +116,8 @@ def check_parameters(bufdict):
     # capacitances in pF
     capacitances = ['c0', 'C_stray']
     # taus in ns
-    taus = ['tau']
-    zerotoones = ['p', 'a', 'alpha']
+    taus = ['tau', 'tauE']
+    zerotoones = ['p', 'a', 'alpha', 'beta']
     permittivities = ['em', 'ecp', 'emed', 'ene', 'enp', 'el', 'eh', 'eps']
     for p in bufdict:
         # __lnsigma can be negative and does not need to be checked
@@ -555,7 +555,7 @@ def _process_circuit(circuit):
     return c
 
 
-def get_comp_model(modelname):
+def get_equivalent_circuit_model(modelname):
     """Get LMFIT CompositeModel.
 
     Parameters

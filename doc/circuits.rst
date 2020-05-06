@@ -71,3 +71,9 @@ CPE circuits
 
 .. automodule:: impedancefitter.cpe
 	:members:
+
+RC circuits
+-----------
+
+.. automodule:: impedancefitter.RC
+	:members:

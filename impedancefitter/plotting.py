@@ -76,7 +76,7 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
         plt.show()
 
 
-def plot_impedance(omega, Z, title, Z_fit=None, show=True, save=False, Z_comp=None):
+def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None):
     """
     Plot the `result` and compare it to data `Z`.
     Generates 4 subplots showing the real and imaginary parts over

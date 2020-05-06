@@ -21,8 +21,22 @@ from scipy.constants import epsilon_0 as e0
 
 
 def RC_model(omega, Rd, Cd):
-    """
-    Simple RC model
+    """Simple RC model, resistor in parallel with capacitor.
+
+    Parameters
+    ----------
+
+    omega: double or array of double
+        list of frequencies
+    Rd: complex
+        Resistance.
+    Cd: double
+        Capacitance
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
     """
     Cfit = Cd
     Z_fit = Rd / (1. + 1j * omega * Cfit * Rd)
@@ -31,7 +45,34 @@ def RC_model(omega, Rd, Cd):
 
 def rc_model(omega, c0, kdc, eps):
     """Simple RC model to obtain dielectric properties.
+
+    Parameters
+    -----------
+
+    omega: double or array of double
+        list of frequencies
+    c0: double
+        unit capacitance in pF
+    eps: double
+        relative permittivity
+    kdc: double
+        conductivity
+
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+
+    .. warning::
+
+        C0 is in pF!
+
     """
+    c0 *= 1e-12
     Rd = e0 / (kdc * c0)
     Cd = eps * c0
     C = Cd
@@ -40,9 +81,44 @@ def rc_model(omega, c0, kdc, eps):
 
 
 def drc_model(omega, RE, tauE, alpha, beta):
+    """Distributed RC circuit.
+
+    Parameters
+    -----------
+
+    omega: double or array of double
+        list of frequencies
+    RE: double
+        resistance
+    tauE: double
+        relaxation time, in ns
+    alpha: double
+        Cole-Cole exponent
+    beta: double
+        DRC exponent, beta = 1 equals Cole-Cole model
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+    Described for example in [Emmert2011]_.
+
+    .. warning::
+
+        The time constant tauE is in ns!
+
+
+    References
+    ----------
+
+    .. [Emmert2011] Emmert, S., Wolf, M., Gulich, R., Krohns, S., Kastner, S., Lunkenheimer, P., & Loidl, A. (2011).
+                    Electrode polarization effects in broadband dielectric spectroscopy.
+                    European Physical Journal B, 83(2), 157–165.
+                    https://doi.org/10.1140/epjb/e2011-20439-8
     """
-    as described in
-     Emmert, S., Wolf, M., Gulich, R., Krohns, S., Kastner, S., Lunkenheimer, P., & Loidl, A. (2011). Electrode polarizatio  n effects in broadband dielectric spectroscopy. European Physical Journal B, 83(2), 157–165. https://doi.org/10.1140/epjb/  e2011-20439-8
-    """
+    tauE *= 1e-9
     nom = power(1. + power(1j * omega * tauE, 1. - alpha), beta)
     return RE / nom

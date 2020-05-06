@@ -27,7 +27,7 @@ import pandas as pd
 import yaml
 from copy import deepcopy
 
-from .utils import set_parameters, get_comp_model
+from .utils import set_parameters, get_equivalent_circuit_model
 from .readin import (readin_Data_from_TXT_file,
                      readin_Data_from_collection,
                      readin_Data_from_csv_E4980AL)
@@ -87,11 +87,13 @@ class Fitter(object):
     trace_b: string, optional
         For TXT files, which contain more than one trace.
         The data is only read in until
-        :attr:`trace_b` is found. Default is :code:`TRACE: B`.
+        :attr:`trace_b` is found.
+        Default is None (then trace_b does not have any effect).
     skiprows_txt: int, optional
-        Number of header rows inside a TXT file. Default is 21.
+        Number of header rows inside a TXT file. Default is 1.
     skiprows_trace: int, optional
-        Lines between traces blocks in a TXT file. Default is 2.
+        Lines between traces blocks in a TXT file.
+        Default is None (then skiprows_trace does not have any effect).
 
     Attributes
     ----------
@@ -172,9 +174,9 @@ class Fitter(object):
         self.savefig = False
 
         # for txt files
-        self.trace_b = 'TRACE: B'
-        self.skiprows_txt = 21  # header rows inside the *.txt files
-        self.skiprows_trace = 2  # line between traces blocks
+        self.trace_b = None
+        self.skiprows_txt = 1  # header rows inside the *.txt files
+        self.skiprows_trace = None  # line between traces blocks
 
         # read in kwargs to update defaults
         if 'LogLevel' in kwargs:
@@ -268,7 +270,7 @@ class Fitter(object):
             The resulting LMFIT model.
         """
 
-        model = get_comp_model(modelname)
+        model = get_equivalent_circuit_model(modelname)
         return model
 
     def run(self, modelname, solver=None, parameters=None, protocol=None,

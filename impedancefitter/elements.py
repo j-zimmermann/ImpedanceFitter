@@ -17,8 +17,6 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-import logging
-logger = logging.getLogger('impedancefitter-logger')
 
 
 def parallel(Z1, Z2):
@@ -26,9 +24,9 @@ def parallel(Z1, Z2):
 
     Parameters
     ----------
-    Z1: :class:`numpy.ndarray`, complex or real
+    Z1: :class:`numpy.ndarray`, complex
         Impedance 1
-    Z2: :class:`numpy.ndarray`, complex or real
+    Z2: :class:`numpy.ndarray`, complex
         Impedance 2
 
     Returns
@@ -159,8 +157,8 @@ def Z_stray(omega, C_stray):
         Impedance array
     """
     if np.isclose(C_stray, 0, atol=1e-5):
-        logger.debug("""Stray capacitance is too small to be added.
-                     Did you maybe forget to enter it in terms of pF?""")
+        raise RuntimeError("""Stray capacitance is too small to be added.
+                          Did you maybe forget to enter it in terms of pF?""")
 
     return Z_C(omega, C_stray * 1e-12)
 

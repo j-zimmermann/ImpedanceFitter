@@ -192,5 +192,5 @@ def cole_cole_R_model(omega, Rinf, R0, tau, a):
            ACADEMIC PRESS INC. https://doi.org/10.1016/b978-1-4832-3111-2.50008-0
     """
     tau *= 1e-9  # use ns as unit
-    Z_fit = Rinf + (R0 - Rinf) / (1. + 1j * omega * tau)**a
+    Z_fit = Rinf + (R0 - Rinf) / (1. + np.power(1j * omega * tau, a))
     return Z_fit
