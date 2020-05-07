@@ -508,8 +508,8 @@ def _process_series(circuitstr):
 
     Parameters
     ----------
-    circuitstr: str
-        string representation of circuit
+    circuitstr: list, str
+        string representation of circuit, must be a list
 
     Returns
     -------
@@ -542,11 +542,17 @@ def _process_circuit(circuit):
 
     Returns
     -------
-    :py:class:`lmfit.model.CompositeModel`
+    :py:class:`lmfit.model.CompositeModel` or :class:`lmfit.model.Model`
         the final model of the entire circuit
     """
     logger.debug("circuit: {}".format(circuit))
-    if '+' in circuit:
+    if isinstance(circuit, str):
+        circuit = [circuit]
+    if not isinstance(circuit, list):
+        raise RuntimeError("You must have entered a wrong circuit!")
+
+    # if there are elements in series or only one element
+    if '+' in circuit or len(circuit) == 1:
         c = _process_series(circuit)
     elif ',' in circuit:
         c = _process_parallel(circuit)
@@ -565,7 +571,7 @@ def get_equivalent_circuit_model(modelname):
 
     Returns
     -------
-    :py:class:`lmfit.model.CompositeModel`
+    :py:class:`lmfit.model.CompositeModel` or :class:`lmfit.model.Model`
         the final model of the entire circuit
 
     Notes

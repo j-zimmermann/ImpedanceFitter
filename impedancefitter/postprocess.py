@@ -99,8 +99,6 @@ class PostProcess(object):
         fig, ax = plt.subplots(nrows=nrows, ncols=ncols)
         r = 0
         c = 0
-        print(ax)
-        print(len(ax))
         for key in self.sampledict:
             graph = ot.HistogramFactory().build(self.sampledict[key]).drawPDF()
             graph.setTitle("Histogram for variables")
@@ -151,7 +149,7 @@ class PostProcess(object):
 
         Returns
         -------
-            :class:`openturns.Distribution`
+        :class:`openturns.Distribution`
         """
         sample = self.sampledict[parameter]
         distribution = ot.NormalFactory().build(sample)
@@ -172,7 +170,7 @@ class PostProcess(object):
 
         Returns
         -------
-            :class:`openturns.Distribution`
+        :class:`openturns.Distribution`
         """
         sample = self.sampledict[parameter]
         distribution = ot.HistogramFactory().build(sample)

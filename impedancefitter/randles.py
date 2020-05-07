@@ -24,7 +24,7 @@ import logging
 logger = logging.getLogger('impedancefitter-logger')
 
 
-def Z_randles(omega, R0, Rs, Aw, C0):
+def Z_randles(omega, Rct, Rs, Aw, C0):
     r"""Randles circuit.
 
     Parameters
@@ -32,7 +32,7 @@ def Z_randles(omega, R0, Rs, Aw, C0):
 
     omega: double or array of double
         list of frequencies
-    R0: double
+    Rct: double
         Resistance in series with Warburg element, e.g.
         charge transfer resistance
     Rs: double
@@ -72,14 +72,14 @@ def Z_randles(omega, R0, Rs, Aw, C0):
         Z_\mathrm{fit} = R_s + \frac{Z_C Z_\mathrm{RW}}{Z_C + Z_\mathrm{RW}}
 
     """
-    Z_RW = R0 + Aw * (1. - 1j) / np.sqrt(omega)
+    Z_RW = Rct + Aw * (1. - 1j) / np.sqrt(omega)
     Z_C = 1. / (1j * omega * C0)
     Z_par = parallel(Z_RW, Z_C)
     Z_fit = Rs + Z_par
     return Z_fit
 
 
-def Z_randles_CPE(omega, R0, Rs, Aw, k, alpha):
+def Z_randles_CPE(omega, Rct, Rs, Aw, k, alpha):
     """Randles circuit with CPE instead of capacitor.
 
     Parameters
@@ -87,7 +87,7 @@ def Z_randles_CPE(omega, R0, Rs, Aw, k, alpha):
 
     omega: double or array of double
         list of frequencies
-    R0: double
+    Rct: double
         Resistance in series with Warburg element, e.g.
         charge transfer resistance
     Rs: double
@@ -110,7 +110,7 @@ def Z_randles_CPE(omega, R0, Rs, Aw, k, alpha):
     :func:`impedancefitter.elements.Z_CPE`
 
     """
-    Z_RW = R0 + Aw * (1. - 1j) / np.sqrt(omega)
+    Z_RW = Rct + Aw * (1. - 1j) / np.sqrt(omega)
     Z_cpe = Z_CPE(omega, k, alpha)
     Z_par = parallel(Z_RW, Z_cpe)
     Z_fit = Rs + Z_par

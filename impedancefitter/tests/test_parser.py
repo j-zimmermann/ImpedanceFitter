@@ -1,5 +1,11 @@
 from impedancefitter.utils import get_equivalent_circuit_model
-from lmfit import CompositeModel
+from lmfit import CompositeModel, Model
+
+
+def test_single():
+    model1 = 'R'
+    model = get_equivalent_circuit_model(model1)
+    assert isinstance(model, Model)
 
 
 def test_parallel():

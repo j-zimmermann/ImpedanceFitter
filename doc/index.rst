@@ -11,13 +11,12 @@ Welcome to ImpedanceFitter's documentation!
    :caption: Contents:
    :hidden:
 
+   examples
    fitting
    statistics
-   examples
    utils
    elements
    circuits
-   postprocess
 
 .. _Overview:
 

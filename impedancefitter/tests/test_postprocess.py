@@ -18,7 +18,7 @@ def postprocessRC():
     data = OrderedDict()
     data['f'] = f
 
-    samples = 500
+    samples = 50
 
     model = "parallel(R, C)"
     m = get_equivalent_circuit_model(model)

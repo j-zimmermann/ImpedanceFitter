@@ -39,7 +39,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.intersphinx',
               'sphinx.ext.viewcode',
               'sphinx.ext.autosummary',
-              'sphinx.ext.napoleon']
+              'sphinx.ext.napoleon',
+              'jupyter_sphinx.execute']
 
 # Napoleon options
 napoleon_google_docstring = False
