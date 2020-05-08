@@ -7,7 +7,8 @@ with open("README.md", "r") as fh:
 here = os.path.abspath(os.path.dirname(__file__))
 
 about = {}
-with open(os.path.join(here, 'requests', '__version__.py'), 'r', 'utf-8') as f:
+print(here)
+with open(os.path.join(here, 'impedancefitter', '__version__.py'), mode='r', encoding='utf-8') as f:
     exec(f.read(), about)
 
 setuptools.setup(
@@ -21,6 +22,6 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     python_requires='>=3',
     install_requires=['pyyaml==5.3.1', 'numpy==1.17', 'xlrd==1.2.0', 'pandas==1.0.1',
-                      'openturns==1.13', 'scipy==1.3.1', 'lmfit==1.0.0', 'corner==2.0.1',
+                      'openturns==1.13', 'scipy==1.3.1', 'lmfit==1.0.1', 'corner==2.0.1',
                       'emcee==3.0.1', 'tqdm==4.42.1', 'pyparsing', 'xlsxwriter'],
 )
