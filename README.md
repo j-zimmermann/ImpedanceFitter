@@ -4,7 +4,7 @@ How to use this package
 Documentation
 -------------
 
-The documentation is in the `docs`
+The documentation is in the `doc`
 directory and requires [Sphinx](https://www.sphinx-doc.org/en/master/usage/installation.html)
 to be installed.
 
@@ -12,8 +12,8 @@ to be installed.
 Installation
 ------------
 
-Clone the code into
-a local directory.
+If you want to install the code from source,
+clone into a local directory.
 
 `cd` into this directory and run
 

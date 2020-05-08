@@ -8,4 +8,5 @@ These are a few examples of how ImpedanceFitter could be used.
   
    examples/model
    examples/fitting
+   examples/solver
    examples/statistics
