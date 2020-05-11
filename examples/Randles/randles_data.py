@@ -41,3 +41,6 @@ parameters = {'Rct': {'value': 3. * Rct},
 
 # run fit
 fitter.run(model, parameters=parameters)
+
+# Inspect initial fit
+fitter.plot_initial_best_fit()
