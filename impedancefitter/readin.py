@@ -224,7 +224,8 @@ def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None,
         fileDataArray = np.loadtxt(txt_file, delimiter=delimiter,
                                    skiprows=skiprows_txt, max_rows=max_rows)
     except ValueError as v:
-        logger.error('Error in file ' + filepath, v.arg)
+        logger.error('Error in file {}.\n {}'.format(filepath, v.args))
+        raise
     filteredvalues = np.empty((0, fileDataArray.shape[1]))
     if minimumFrequency is None:
         minimumFrequency = fileDataArray[0, 0].astype(np.float)

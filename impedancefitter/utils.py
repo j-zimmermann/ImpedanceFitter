@@ -391,6 +391,7 @@ def available_file_format():
     (i.e., 3 columns).
     The TXT files may contain two traces; only one of them is read in.
     For TXT files you can specify the number of rows to skip.
+    Moreover, the file ending is not strictly enforced here.
 
     See Also
     --------

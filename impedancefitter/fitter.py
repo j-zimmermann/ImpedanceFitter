@@ -49,6 +49,7 @@ class Fitter(object):
     inputformat: string
         The inputformat of the data files. Must be one of the formats specified
         in :func:`impedancefitter.utils.available_file_format`.
+        Moreover, the ending of the file must match the `inputformat`.
     directory: string, optional
         Path to data directory.
         Provide the data directory if the data directory is not the
@@ -63,6 +64,9 @@ class Fitter(object):
         Useful for instance, if there are files like `*_data.csv` and
         `*_result.csv` around and only the first should
         be fitted.
+    ending: string, optional
+        When `inputformat` is `TXT`, an alternative file ending is possible.
+        The default is `.TXT`.
     minimumFrequency: float, optional
         If you want to use another frequency than the minimum frequency
         in the dataset.
@@ -94,6 +98,9 @@ class Fitter(object):
     skiprows_trace: int, optional
         Lines between traces blocks in a TXT file.
         Default is None (then skiprows_trace does not have any effect).
+    delimiter: str, optional
+        Only for TXT files. If the TXT file is not tab-separated, this
+        can be specified here.
 
     Attributes
     ----------
@@ -127,6 +134,7 @@ class Fitter(object):
 
         self.inputformat = inputformat
         self._parse_kwargs(kwargs)
+        print(self.skiprows_txt)
 
         if directory is None:
             directory = os.getcwd()
@@ -167,11 +175,13 @@ class Fitter(object):
         self.maximumFrequency = None
         self.LogLevel = 'INFO'
         self.excludeEnding = "impossibleEndingLoL"
+        self.ending = ".TXT"
         self.data_sets = None
         self.current_threshold = None
         self.write_output = False
         self.fileList = None
         self.savefig = False
+        self.delimiter = "\t"
 
         # for txt files
         self.trace_b = None
@@ -187,6 +197,8 @@ class Fitter(object):
             self.maximumFrequency = kwargs['maximumFrequency']
         if 'excludeEnding' in kwargs:
             self.excludeEnding = kwargs['excludeEnding']
+        if 'ending' in kwargs:
+            self.ending = kwargs['ending']
         if 'data_sets' in kwargs:
             self.data_sets = kwargs['data_sets']
         if 'current_threshold' in kwargs:
@@ -203,6 +215,8 @@ class Fitter(object):
             self.skiprows_trace = kwargs['skiprows_trace']
         if 'savefig' in kwargs:
             self.savefig = kwargs['savefig']
+        if 'delimiter' in kwargs:
+            self.delimiter = kwargs['delimiter']
 
     def visualize_data(self, savefig=False):
         """Visualize impedance data.
@@ -488,18 +502,19 @@ class Fitter(object):
         """
 
         filepath = self.directory + filename
-        if self.inputformat == 'TXT' and filename.endswith(".TXT"):
+        if self.inputformat == 'TXT' and filename.upper().endswith(self.ending.upper()):
             omega, zarray = readin_Data_from_TXT_file(filepath,
                                                       self.skiprows_txt,
                                                       self.skiprows_trace,
                                                       self.trace_b,
+                                                      self.delimiter,
                                                       self.minimumFrequency,
                                                       self.maximumFrequency)
-        elif self.inputformat == 'XLSX' and filename.endswith(".xlsx"):
+        elif self.inputformat == 'XLSX' and filename.upper().endswith(".XLSX"):
             omega, zarray = readin_Data_from_collection(filepath, 'XLSX',
                                                         minimumFrequency=self.minimumFrequency,
                                                         maximumFrequency=self.maximumFrequency)
-        elif self.inputformat == 'CSV' and filename.endswith(".csv"):
+        elif self.inputformat == 'CSV' and filename.upper().endswith(".CSV"):
             omega, zarray = readin_Data_from_collection(filepath, 'CSV',
                                                         minimumFrequency=self.minimumFrequency,
                                                         maximumFrequency=self.maximumFrequency)
