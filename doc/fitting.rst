@@ -48,10 +48,10 @@ For example:
 Execute the fit
 ---------------
 
-Using :meth:`impedancefitter.main.Fitter.run`, those files can be fitted 
+Using :meth:`impedancefitter.fitter.Fitter.run`, those files can be fitted 
 to an equivalent circuit model. 
 If there are two models involved that shall be fitted sequentially for each file,
-refer to :meth:`impedancefitter.main.Fitter.sequential_run`.
+refer to :meth:`impedancefitter.fitter.Fitter.sequential_run`.
 This method allows one to communicate inferered parameters to the second model.
 In [Sabuncu2012]_, an example of such a sequential procedure has been presented.
 
@@ -93,5 +93,5 @@ models, you need to follow these steps:
 API Reference
 -------------
 
-.. autoclass:: impedancefitter.main.Fitter
+.. autoclass:: impedancefitter.fitter.Fitter
         :members:

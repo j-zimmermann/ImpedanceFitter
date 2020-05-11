@@ -394,7 +394,7 @@ def available_file_format():
 
     See Also
     --------
-    :class:`impedancefitter.main.Fitter`
+    :class:`impedancefitter.fitter.Fitter`
     """
 
     formats = ['XLSX', 'CSV', 'CSV_E4980AL', "TXT"]

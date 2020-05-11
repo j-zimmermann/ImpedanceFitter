@@ -16,7 +16,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .main import Fitter
+from .fitter import Fitter
 from .postprocess import PostProcess
 from .utils import get_labels, available_models, get_equivalent_circuit_model
 from .plotting import plot_compare_to_data, plot_impedance, plot_dielectric_properties, emcee_plot

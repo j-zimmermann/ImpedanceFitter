@@ -4,7 +4,7 @@ Fitting experimental data
 -------------------------
 
 Impedance spectroscopy data can be processed
-using :class:`impedancefitter.main.Fitter`.
+using :class:`impedancefitter.fitter.Fitter`.
 
 Currently, a few fileformats can be used.
 They are summarized in :func:`impedancefitter.utils.available_file_format`.

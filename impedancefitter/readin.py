@@ -181,8 +181,9 @@ def _get_max_rows(filepath, trace_b, skiprows_txt, skiprows_trace):
     return max_rows
 
 
-def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None, trace_b=None, minimumFrequency=None, maximumFrequency=None):
-    """Read in tab-delimited data from TXT file.
+def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None,
+                              trace_b=None, delimiter="\t", minimumFrequency=None, maximumFrequency=None):
+    """Read in data from TXT file.
 
     Data from txt files get reads in, returns array with omega and complex-valued impedance Z.
     The TXT files may contain two traces; only one of them is read in.
@@ -198,8 +199,8 @@ def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None, trace
         lines between traces blocks
     trace_b: string
         Flag for beginning of second trace in data.
-    fileformat: string
-        Provide fileformat. Possibilities are 'XLSX' and 'CSV'.
+    delimiter: string, optional
+        Choose the delimiter. Default is tab, i.e. tab-delimited data is read in.
     minimumFrequency: optional
         Provide a minimum frequency. All values below this frequency will be ignored.
     maximumFrequency: optional
@@ -220,7 +221,8 @@ def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None, trace
         max_rows = _get_max_rows(filepath, trace_b, skiprows_txt, skiprows_trace)
     txt_file = open(filepath, 'r')
     try:
-        fileDataArray = np.loadtxt(txt_file, delimiter='\t', skiprows=skiprows_txt, max_rows=max_rows)
+        fileDataArray = np.loadtxt(txt_file, delimiter=delimiter,
+                                   skiprows=skiprows_txt, max_rows=max_rows)
     except ValueError as v:
         logger.error('Error in file ' + filepath, v.arg)
     filteredvalues = np.empty((0, fileDataArray.shape[1]))
