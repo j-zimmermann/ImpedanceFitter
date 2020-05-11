@@ -57,7 +57,7 @@ def return_diel_properties(omega, Z, c0):
 
     .. math ::
 
-        \varepsilon_\mathrm{r}^\ast = (j \omega Z c_0)^{-1} = \varepsilon^\ast / \varepsilon_0
+        \varepsilon_\mathrm{r}^\ast = (j \omega Z c_0)^{-1} = \frac{\varepsilon^\ast}{\varepsilon_0}
 
     The unit capacitance (or air capacitance) of the device is defined as
 

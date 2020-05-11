@@ -184,6 +184,10 @@ def cole_cole_R_model(omega, Rinf, R0, tau, a):
 
         Z_\mathrm{Cole} = R_\infty + \frac{R_0-R_\infty}{1+(j\omega \tau)^a}
 
+    .. warning::
+
+        The time constant tau is in ns!
+
 
     References
     ----------

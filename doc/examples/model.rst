@@ -28,6 +28,7 @@ computed by calling
         Aw = 300.
         C0 = 25e-6
 
+         model = 'R_s + parallel(R_ct + W, C)'
         lmfit_model = impedancefitter.get_equivalent_circuit_model(model)
         Z = lmfit_model.eval(omega=2. * numpy.pi * frequencies,
                              ct_R=Rct, s_R=Rs,
