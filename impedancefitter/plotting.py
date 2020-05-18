@@ -76,9 +76,69 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
         plt.show()
 
 
-def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None):
+def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
+              labels=["data", "best fit", "init fit"]):
+    """Bode plot of impedance.
+
+    Plots phase and log of magnitude over log of frequency.
+
+    Parameters
+    ----------
+    omega: double or ndarray of double
+        Frequency array
+    Z: complex or array of complex
+        Impedance array, experimental data or data to compare to.
+    Z_fit: complex or array of complex
+        Impedance array, fit result. If provided, the difference
+        between data and fit will be shown.
+    title: str
+        Title of plot.
+    show: bool, optional
+        Show figure (default is True).
+    save: bool, optional
+        Save figure to pdf (default is False). Name of figure starts with `title`.
+    Z_comp: optional
+        Complex-valued impedance array. Might be used to compare the properties of two data sets.
+    labels: list
+        List of labels for three plots. Must have length 3 always.
+        Is ordered like: `[Z, Z_fit, Z_comp]`
     """
-    Plot the `result` and compare it to data `Z`.
+
+    plt.figure()
+    plt.suptitle(title, y=1.05)
+    # plot real part of impedance
+    plt.subplot(211)
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.ylabel("|Z| $\Omega$")
+    plt.xlabel("frequency [Hz]")
+    plt.plot(omega / (2. * np.pi), np.abs(Z), 'r', label=labels[0])
+    if Z_fit is not None:
+        plt.plot(omega / (2. * np.pi), np.abs(Z_fit), '+', label=labels[1])
+    if Z_comp is not None:
+        plt.plot(omega / (2. * np.pi), np.abs(Z_comp), 'x', label=labels[2])
+    plt.legend()
+    plt.subplot(212)
+    plt.xscale('log')
+    plt.ylabel("phase [°]")
+    plt.xlabel("frequency [Hz]")
+    plt.plot(omega / (2. * np.pi), np.angle(Z, deg=True), 'r', label=labels[0])
+    if Z_fit is not None:
+        plt.plot(omega / (2. * np.pi), np.angle(Z_fit, deg=True), '+', label=labels[1])
+    if Z_comp is not None:
+        plt.plot(omega / (2. * np.pi), np.angle(Z_comp, deg=True), 'x', label=labels[2])
+    plt.legend()
+    plt.tight_layout()
+    if save:
+        plt.savefig(str(title) + "_bode_plot.pdf")
+    if show:
+        plt.show()
+
+
+def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
+                   labels=["data", "best fit", "init fit"], relative=True):
+    """Plot the `result` and compare it to data `Z`.
+
     Generates 4 subplots showing the real and imaginary parts over
     the frequency; a Nyquist plot of real and negative imaginary part
     and the relative differences of real and imaginary part as well as absolute value of impedance.
@@ -90,7 +150,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     Z: complex or array of complex
         Impedance array, experimental data or data to compare to.
     Z_fit: complex or array of complex
-        Impedance array, fit result
+        Impedance array, fit result. If provided, the difference
+        between data and fit will be shown.
     title: str
         Title of plot.
     show: bool, optional
@@ -99,6 +160,11 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         Save figure to pdf (default is False). Name of figure starts with `title`.
     Z_comp: optional
         Complex-valued impedance array. Might be used to compare the properties of two data sets.
+    labels: list
+        List of labels for three plots. Must have length 3 always.
+        Is ordered like: `[Z, Z_fit, Z_comp]`
+    relative: bool
+        Plot relative difference if True, else plot residual.
     """
 
     plt.figure()
@@ -109,11 +175,11 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     plt.title("impedance real part")
     plt.ylabel(r"$\Re(Z) [\Omega]$")
     plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z.real, 'r', label='data')
+    plt.plot(omega / (2. * np.pi), Z.real, 'r', label=labels[0])
     if Z_fit is not None:
-        plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label='best fit')
+        plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label=labels[1])
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), Z_comp.real, 'x', label='init fit')
+        plt.plot(omega / (2. * np.pi), Z_comp.real, 'x', label=labels[2])
     plt.legend()
     # plot imaginary part of impedance
     plt.subplot(222)
@@ -121,25 +187,25 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     plt.xscale('log')
     plt.ylabel(r"$\Im(Z) [\Omega]$")
     plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z.imag, 'r', label='data')
+    plt.plot(omega / (2. * np.pi), Z.imag, 'r', label=labels[0])
     if Z_fit is not None:
-        plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label='best fit')
+        plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label=labels[1])
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label='init fit')
+        plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
     plt.legend()
     # plot real vs negative imaginary part
     plt.subplot(223)
     plt.title("Nyquist plot")
     plt.ylabel(r"$-\Im(Z) [\Omega]$")
     plt.xlabel(r"$\Re(Z) [\Omega]$")
-    plt.plot(Z.real, -Z.imag, 'o', label="data")
+    plt.plot(Z.real, -Z.imag, 'o', label=labels[0])
     if Z_fit is not None:
-        plt.plot(Z_fit.real, -Z_fit.imag, '+', label="best fit")
+        plt.plot(Z_fit.real, -Z_fit.imag, '+', label=labels[1])
     if Z_comp is not None:
-        plt.plot(Z_comp.real, -Z_comp.imag, 'x', label="init fit")
+        plt.plot(Z_comp.real, -Z_comp.imag, 'x', label=labels[2])
     plt.legend()
     if Z_fit is not None:
-        plot_compare_to_data(omega, Z, Z_fit, subplot=224)
+        plot_compare_to_data(omega, Z, Z_fit, subplot=224, relative=True)
     plt.tight_layout()
     if save:
         plt.savefig(str(title) + "_results_overview.pdf")
@@ -147,9 +213,10 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.show()
 
 
-def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, save=False):
+def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, save=False,
+                         relative=True):
     '''
-    plots the relative difference of the fitted function to the data
+    plots the difference of the fitted function to the data
 
     Parameters
     ----------
@@ -167,22 +234,38 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         show figure (default is True). Only has an effect when `subplot` is None.
     save: bool, optional
         save figure to pdf (default is False). Name of figure starts with `title`.
+    relative: bool
+        Plot relative difference if True, else plot residual.
     '''
     if subplot is None:
         plt.figure()
     else:
         show = False
         plt.subplot(subplot)
+    if relative:
+        diff_real = 100. * np.abs((Z.real - Z_fit.real) / Z.real)
+        diff_imag = 100. * np.abs((Z.imag - Z_fit.imag) / Z.imag)
+        diff_abs = 100. * np.abs((Z - Z_fit) / Z)
+        lbl_prefix = 'rel. '
+    else:
+        diff_real = np.abs(Z.real - Z_fit.real)
+        diff_imag = np.abs(Z.imag - Z_fit.imag)
+        diff_abs = np.abs(Z - Z_fit)
+        lbl_prefix = ''
+
     plt.xscale('log')
     plt.title(str(title) + "relative difference to data")
     plt.xlabel('frequency [Hz]')
     plt.ylabel('rel. difference to data [%]')
-    plt.plot(omega / (2. * np.pi), 100. * np.abs((Z.real - Z_fit.real) / Z.real), 'g', label='rel .difference real part')
-    plt.plot(omega / (2. * np.pi), 100. * np.abs((Z.imag - Z_fit.imag) / Z.imag), 'r', label='rel. difference imag part')
-    plt.plot(omega / (2. * np.pi), 100. * np.abs((Z - Z_fit) / Z), 'b', label='rel. difference absolute value')
+    plt.plot(omega / (2. * np.pi), diff_real, 'g', label=lbl_prefix + 'difference real part')
+    plt.plot(omega / (2. * np.pi), diff_imag, 'r', label=lbl_prefix + 'difference imag part')
+    plt.plot(omega / (2. * np.pi), diff_abs, 'b', label=lbl_prefix + 'difference absolute value')
     plt.legend()
     if save:
-        plt.savefig(str(title) + "_relative difference to data.pdf")
+        if relative:
+            plt.savefig(str(title) + "_relative_difference_to_data.pdf")
+        else:
+            plt.savefig(str(title) + "_difference_to_data.pdf")
     if show:
         plt.show()
 
