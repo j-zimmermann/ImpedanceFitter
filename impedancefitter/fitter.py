@@ -711,7 +711,7 @@ class Fitter(object):
         for i in range(iters):
             logger.info("#########\nFitting round {}\n#########".format(i + 1))
             if i > 0:
-                params = self.fix_parameters(i, modelclass, params,
+                params = self._fix_parameters(i, modelclass, params,
                                              model_result)
             model_result = model.fit(self.Z, params, omega=self.omega,
                                      method=self.solvername,
