@@ -110,7 +110,7 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     plt.subplot(211)
     plt.xscale('log')
     plt.yscale('log')
-    plt.ylabel("|Z| $\Omega$")
+    plt.ylabel(r"|Z| $\Omega$")
     plt.xlabel("frequency [Hz]")
     plt.plot(omega / (2. * np.pi), np.abs(Z), 'r', label=labels[0])
     if Z_fit is not None:
@@ -136,7 +136,7 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
 
 
 def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
-                   labels=["data", "best fit", "init fit"], relative=True):
+                   labels=["data", "best fit", "init fit"], relative=True, sign=False):
     """Plot the `result` and compare it to data `Z`.
 
     Generates 4 subplots showing the real and imaginary parts over
@@ -165,6 +165,9 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         Is ordered like: `[Z, Z_fit, Z_comp]`
     relative: bool
         Plot relative difference if True, else plot residual.
+    sign: bool, optional
+        Use sign of residual. Default is False, i.e. absolute value is plotted.
+
     """
 
     plt.figure()
@@ -205,7 +208,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.plot(Z_comp.real, -Z_comp.imag, 'x', label=labels[2])
     plt.legend()
     if Z_fit is not None:
-        plot_compare_to_data(omega, Z, Z_fit, subplot=224, relative=True)
+        plot_compare_to_data(omega, Z, Z_fit, subplot=224, relative=True, sign=sign)
     plt.tight_layout()
     if save:
         plt.savefig(str(title) + "_results_overview.pdf")
@@ -214,7 +217,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
 
 
 def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, save=False,
-                         relative=True):
+                         relative=True, sign=False):
     '''
     plots the difference of the fitted function to the data
 
@@ -234,8 +237,10 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         show figure (default is True). Only has an effect when `subplot` is None.
     save: bool, optional
         save figure to pdf (default is False). Name of figure starts with `title`.
-    relative: bool
+    relative: bool, optional
         Plot relative difference if True, else plot residual.
+    sign: bool, optional
+        Use sign of residual. Default is False, i.e. absolute value is plotted.
     '''
     if subplot is None:
         plt.figure()
@@ -243,15 +248,18 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         show = False
         plt.subplot(subplot)
     if relative:
-        diff_real = 100. * np.abs((Z.real - Z_fit.real) / Z.real)
-        diff_imag = 100. * np.abs((Z.imag - Z_fit.imag) / Z.imag)
+        diff_real = 100. * (Z.real - Z_fit.real) / Z.real
+        diff_imag = 100. * (Z.imag - Z_fit.imag) / Z.imag
         diff_abs = 100. * np.abs((Z - Z_fit) / Z)
         lbl_prefix = 'rel. '
     else:
-        diff_real = np.abs(Z.real - Z_fit.real)
-        diff_imag = np.abs(Z.imag - Z_fit.imag)
+        diff_real = Z.real - Z_fit.real
+        diff_imag = Z.imag - Z_fit.imag
         diff_abs = np.abs(Z - Z_fit)
         lbl_prefix = ''
+    if not sign:
+        diff_real = np.abs(diff_real)
+        diff_imag = np.abs(diff_imag)
 
     plt.xscale('log')
     plt.title(str(title) + "relative difference to data")

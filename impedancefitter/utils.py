@@ -28,7 +28,7 @@ from .loss import Z_in, Z_loss
 from .cole_cole import cole_cole_model, cole_cole_R_model
 from .double_shell import double_shell_model
 from .randles import Z_randles, Z_randles_CPE
-from .RC import RC_model, rc_model, drc_model
+from .RC import RC_model, rc_model, drc_model, rc_tau_model
 from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model
 from .single_shell import single_shell_model
 from lmfit import Model, CompositeModel
@@ -119,9 +119,13 @@ def check_parameters(bufdict):
     taus = ['tau', 'tauE']
     zerotoones = ['p', 'a', 'alpha', 'beta']
     permittivities = ['em', 'ecp', 'emed', 'ene', 'enp', 'el', 'eh', 'eps']
+
+    # __lnsigma and Rk (Lin-KK test)
+    # can be negative and do not need to be checked
+    exceptions = ['__lnsigma', 'Rk']
     for p in bufdict:
-        # __lnsigma can be negative and does not need to be checked
-        if p == '__lnsigma':
+
+        if p in exceptions:
             continue
 
         tmp = p.split("_")
@@ -131,6 +135,9 @@ def check_parameters(bufdict):
             par = tmp[0]
         else:
             raise RuntimeError("The parameter {} cannot be split in prefix and suffix.".format(p))
+
+        if par in exceptions:
+            continue
 
         if par in capacitances:
             assert not np.isclose(bufdict[p].value, 0.0, atol=1e-5),\
@@ -285,6 +292,7 @@ def get_labels(params):
         'p': r'$p$',
         'dm': r'$d_\mathrm{m}$',
         'Rc': r'$R_\mathrm{c}$',
+        'Rk': r'$R_\mathrm{k}$',
         'ene': r'$\varepsilon_\mathrm{ne}$',
         'kne': r'$\sigma_\mathrm{ne}$',
         'knp': r'$\sigma_\mathrm{np}$',
@@ -295,6 +303,7 @@ def get_labels(params):
         'el': r'$\varepsilon_\mathrm{l}$',
         'tau': r'$\tau$',
         'tauE': r'$\tau_\mathrm{E}$',
+        'tauk': r'$\tau_\mathrm{k}$',
         'a': r'$a$',
         'alpha': r'$\alpha$',
         'kdc': r'$\sigma_\mathrm{DC}$',
@@ -419,6 +428,8 @@ def _model_function(modelname):
         model = RC_model
     elif modelname == 'RC':
         model = rc_model
+    elif modelname == 'RCtau':
+        model = rc_tau_model
     elif modelname == 'SingleShell':
         model = single_shell_model
     elif modelname == 'DoubleShell':

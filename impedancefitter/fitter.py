@@ -182,6 +182,10 @@ class Fitter(object):
         self.fileList = None
         self.savefig = False
         self.delimiter = "\t"
+        self.emcee_tag = False
+        self.protocol = None
+        self.solvername = "least_squares"
+        self.solver_kwargs = {}
 
         # for txt files
         self.trace_b = None
@@ -231,8 +235,8 @@ class Fitter(object):
             zarray = self.z_dict[key]
             if len(zarray.shape) > 1:
                 iters = zarray.shape[0]
-                logger.debug("Number of data sets to visualise:"
-                             + str(iters))
+                logger.debug("Number of data sets to visualise:" +
+                             str(iters))
             if self.data_sets is not None:
                 iters = self.data_sets
                 logger.debug("""Will only iterate
@@ -241,7 +245,7 @@ class Fitter(object):
                 plot_impedance(self.omega_dict[key], zarray[i],
                                key, save=savefig)
 
-    def _initialize_parameters(self, model, parameters):
+    def _initialize_parameters(self, model, parameters, emcee=False):
         """
         The `model_parameters` are initialized either based on a
         provided `parameterdict` or an input file.
@@ -252,6 +256,8 @@ class Fitter(object):
             Model name
         parameters: dict
             Parameter dictionary provided by user.
+        emcee: bool
+            Communicate if emcee was used.
 
         See also
         --------
@@ -261,7 +267,7 @@ class Fitter(object):
         """
 
         return set_parameters(model, parameterdict=parameters,
-                              emcee=self.emcee_tag)
+                              emcee=emcee)
 
     def initialize_model(self, modelname):
         """Interface to LMFIT model class.
@@ -325,14 +331,9 @@ class Fitter(object):
         self.modelclass = modelclass
 
         # initialize solver
-        if solver is None:
-            self.solvername = "least_squares"
-        else:
-            self.solvername = solver
+        self.solvername = solver
         if self.solvername == "emcee":
             self.emcee_tag = True
-        else:
-            self.emcee_tag = False
 
         self.solver_kwargs = solver_kwargs
 
@@ -344,7 +345,7 @@ class Fitter(object):
             assert isinstance(parameters, dict), "You need to provide an input dictionary!"
         self.parameters = deepcopy(parameters)
 
-        self.model_parameters = self._initialize_parameters(self.model, self.parameters)
+        self.model_parameters = self._initialize_parameters(self.model, self.parameters, self.emcee_tag)
         self.protocol = protocol
         if self.write_output is True:
             open('outfile.yaml', 'w')  # create output file
@@ -448,8 +449,8 @@ class Fitter(object):
             assert isinstance(parameters2, dict), "You need to provide an input dictionary!"
         self.parameters2 = deepcopy(parameters2)
 
-        self.model_parameters1 = self._initialize_parameters(self.model1, self.parameters1)
-        self.model_parameters2 = self._initialize_parameters(self.model2, self.parameters2)
+        self.model_parameters1 = self._initialize_parameters(self.model1, self.parameters1, self.emcee_tag)
+        self.model_parameters2 = self._initialize_parameters(self.model2, self.parameters2, self.emcee_tag)
 
         self.protocol = protocol
         if self.write_output is True:
@@ -671,7 +672,7 @@ class Fitter(object):
             params[parameter].set(vary=False)
         return params
 
-    def _fit_data(self, model, parameters, modelclass=None):
+    def _fit_data(self, model, parameters, modelclass=None, weights=None):
         """Fit data to model.
 
         Wrapper for LMFIT fitting routine.
@@ -715,7 +716,8 @@ class Fitter(object):
                                              model_result)
             model_result = model.fit(self.Z, params, omega=self.omega,
                                      method=self.solvername,
-                                     fit_kws=self.solver_kwargs)
+                                     fit_kws=self.solver_kwargs,
+                                     weights=weights)
             logger.info(model_result.fit_report())
 
             # return solver message (needed since lmfit handles messages
@@ -1015,3 +1017,171 @@ class Fitter(object):
 
            .. todo:: Implement.
         """
+
+    def linkk_test(self, capacitance=False, inductance=False, c=0.85, maxM=100,
+                   show=True):
+        """Lin-KK test to check Kramers-Kronig validity.
+
+        Parameters
+        ----------
+        capacitance: bool, optional
+            Add extra capacitance to circuit.
+        inductance: bool, optional
+            Add extra inductance to circuit.
+        c: double, optional
+            Set threshold for algorithm as described in [Schoenleber2014]_.
+            Must be between 0 and 1.
+        maxM: int, optional
+            Maximum number of RC elements. Default is 100.
+        show: bool
+            Show plots of test result. Default is True.
+
+
+       Notes
+       -----
+
+       The implementation of the algorithm follows [Schoenleber2014]_
+       closely.
+
+       References
+       ----------
+
+       .. [Schoenleber2014] Schönleber, M., Klotz, D., & Ivers-Tiffée, E. (2014).
+                            A Method for Improving the Robustness of linear Kramers-Kronig Validity Tests.
+                            Electrochimica Acta, 131, 20–27. https://doi.org/10.1016/j.electacta.2014.01.034
+        """
+
+        results = {}
+        for key in self.omega_dict:
+            self.omega = self.omega_dict[key]
+            self.zarray = self.z_dict[key]
+            # determine number of iterations if more than 1 data set is in file
+            if len(self.zarray.shape) > 1:
+                self.iters = self.zarray.shape[0]
+                logger.debug("Number of data sets:" + str(self.iters))
+            if self.data_sets is not None:
+                self.iters = self.data_sets
+                logger.debug("""Will only iterate
+                                over {} data sets.""".format(self.iters))
+            for i in range(self.iters):
+                self.Z = self.zarray[i]
+                results[key + str(i)], mus = self._linkk_core(self.omega, self.Z, capacitance,
+                                                              inductance, c, maxM)
+                if show:
+                    plot_impedance(self.omega, self.Z, key + str(i),
+                                   Z_fit=results[key + str(i)].best_fit,
+                                   show=True, save=self.savefig, sign=True)
+
+        return results, mus
+
+    def _linkk_core(self, omega, Z, capacitance=False, inductance=False, c=0.85, maxM=100):
+        """Core of Lin-KK algorithm.
+
+        Parameters
+        ----------
+        omega: :class:`numpy.ndarray`, double
+            list of frequencies
+        Z: :class:`numpy.ndarray`, impedance
+            impedance array
+        capacitance: bool, optional
+            Add extra capacitance to circuit.
+        inductance: bool, optional
+            Add extra inductance to circuit.
+        c: double, optional
+            Set threshold for algorithm as described in [Schoenleber2014]_.
+            Must be between 0 and 1.
+        maxM: int, optional
+            Maximum number of RC elements. Default is 100.
+
+        Notes
+        -----
+
+        The implementation of the algorithm follows [Schoenleber2014]_
+        closely.
+
+        Returns
+        -------
+
+        :class:`lmfit.model.ModelResult`
+            Result of Lin-KK test
+            as :class:`lmfit.model.ModelResult` object.
+
+        """
+        # initial value for M
+        M = 1
+
+        tau_min = 1. / omega[-1]
+        tau_max = 1. / omega[0]
+        mu = 1.0
+
+        # initialize initial resistor
+        modelstr = "R"
+        parameters = {'R': {'value': 1.0}}
+
+        # add capacitance and inductance if specified
+        if capacitance:
+            modelstr += " + Cstray"
+            parameters['C_stray'] = {'value': 1.0}
+
+        if inductance:
+            modelstr += " + L"
+            parameters['L'] = {'value': 1e-9}
+        mus = []
+        start = 0
+        while mu > c:
+            for m in range(M):
+                if m >= start:
+                    modelstr += " + RCtau_k" + str(m)
+                    parameters['k' + str(m) + '_Rk'] = {'value': 1.0}
+                    # first parameter is always the same
+                    if m == 0:
+                        parameters['k0_tauk'] = {'value': tau_min, 'vary': False}
+                if M > 1:
+                    # note that k - 1 is here m since Python uses zero-based indexing
+                    parameters['k' + str(m) + '_tauk'] = {'value': np.power(10, np.log10(tau_min) + m / (M - 1) * np.log10(tau_max / tau_min)),
+                                                          'vary': False}
+            start = M
+
+            model = self.initialize_model(modelstr)
+            model_parameters = self._initialize_parameters(model, parameters)
+            model_result = self._fit_data(model, model_parameters)  # , weights=1. / np.abs(self.Z))
+            mu = _compute_mu(model_result.best_values)
+            logger.debug("\nmu = {}, c = {}\n".format(mu, c))
+            mus.append(mu)
+            if M == maxM:
+                break
+            M += 1
+
+
+        logger.debug("Used M={} RC elements.".format(M - 1))
+        return model_result, mus
+
+
+def _compute_mu(fit_values):
+    r"""compute mu from Rk values
+
+    Parameters
+    ----------
+    fit_values: dict
+        Contains all fit values (also fixed taus).
+        Rks will be extracted and :math:`\mu` will be computed as
+        described in [Schoenleber2014]_.
+
+    Returns
+    -------
+    double
+        Value of :math:`\mu`.
+    """
+
+    neg = 0
+    pos = 0
+
+    print("fit values:", fit_values)
+    for value in fit_values:
+        if "_Rk" in value:
+            Rk = fit_values[value]
+            if Rk < 0:
+                neg += -Rk
+            else:
+                pos += Rk
+    return 1. - (neg / pos)
