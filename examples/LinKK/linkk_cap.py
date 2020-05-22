@@ -38,7 +38,7 @@ df.to_csv('test.csv', index=False)
 fitter = impedancefitter.Fitter('CSV')
 os.remove('test.csv')
 
-results, mus = fitter.linkk_test()
+results, mus = fitter.linkk_test(capacitance=True)
 print(results)
 
 plt.plot(mus)

@@ -23,7 +23,7 @@ import logging
 import pyparsing as pp
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
-from .elements import Z_C, Z_stray, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
+from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
 from .loss import Z_in, Z_loss
 from .cole_cole import cole_cole_model, cole_cole_R_model
 from .double_shell import double_shell_model
@@ -573,13 +573,15 @@ def _process_circuit(circuit):
     return c
 
 
-def get_equivalent_circuit_model(modelname):
+def get_equivalent_circuit_model(modelname, logscale=False):
     """Get LMFIT CompositeModel.
 
     Parameters
     ----------
     modelname: str
         String representation of the equivalent circuit.
+    logscale: bool
+        Convert to logscale.
 
     Returns
     -------
@@ -607,5 +609,11 @@ def get_equivalent_circuit_model(modelname):
     except pp.ParseException:
         raise ("You must provide a correct string!")
     circuit = _process_circuit(circuitstr.asList()[0])
+    if logscale:
+        circuit = CompositeModel(circuit, Model(dummy), log)
     logger.debug("Created composite model {}".format(circuit))
     return circuit
+
+
+def dummy(omega):
+    return np.ones(omega.shape)

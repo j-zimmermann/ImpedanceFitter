@@ -134,7 +134,6 @@ class Fitter(object):
 
         self.inputformat = inputformat
         self._parse_kwargs(kwargs)
-        print(self.skiprows_txt)
 
         if directory is None:
             directory = os.getcwd()
@@ -185,7 +184,9 @@ class Fitter(object):
         self.emcee_tag = False
         self.protocol = None
         self.solvername = "least_squares"
+        self.log = False
         self.solver_kwargs = {}
+        self.weighting = None
 
         # for txt files
         self.trace_b = None
@@ -222,28 +223,29 @@ class Fitter(object):
         if 'delimiter' in kwargs:
             self.delimiter = kwargs['delimiter']
 
-    def visualize_data(self, savefig=False):
+    def visualize_data(self, savefig=False, Zlog=False):
         """Visualize impedance data.
 
         Parameters
         ----------
         savefig: bool, optional
             Decide if plots should be saved as pdf. Default is False.
+        Zlog: bool, optional
+            Plot impedance on logscale.
         """
 
         for key in self.omega_dict:
             zarray = self.z_dict[key]
             if len(zarray.shape) > 1:
                 iters = zarray.shape[0]
-                logger.debug("Number of data sets to visualise:" +
-                             str(iters))
+                logger.debug("Number of data sets to visualise:" + str(iters))
             if self.data_sets is not None:
                 iters = self.data_sets
                 logger.debug("""Will only iterate
                                 over {} data sets.""".format(iters))
             for i in range(iters):
                 plot_impedance(self.omega_dict[key], zarray[i],
-                               key, save=savefig)
+                               key, save=savefig, Zlog=Zlog)
 
     def _initialize_parameters(self, model, parameters, emcee=False):
         """
@@ -269,7 +271,7 @@ class Fitter(object):
         return set_parameters(model, parameterdict=parameters,
                               emcee=emcee)
 
-    def initialize_model(self, modelname):
+    def initialize_model(self, modelname, log):
         """Interface to LMFIT model class.
 
         The equivalent circuit (represented as a string)
@@ -282,6 +284,8 @@ class Fitter(object):
 
         modelname: string
             Provide equivalent circuit model to be parsed.
+        log: bool
+            Decide, if logscale is used for the model.
 
         Returns
         -------
@@ -290,11 +294,11 @@ class Fitter(object):
             The resulting LMFIT model.
         """
 
-        model = get_equivalent_circuit_model(modelname)
+        model = get_equivalent_circuit_model(modelname, log)
         return model
 
     def run(self, modelname, solver=None, parameters=None, protocol=None,
-            solver_kwargs={}, modelclass="none"):
+            solver_kwargs={}, modelclass="none", log=False, weighting=None):
         """
         Main function that iterates through all data sets provided.
 
@@ -324,21 +328,35 @@ class Fitter(object):
             where parameters can be fixed during the fitting routine.
             In the future, a more intelligent approach could be found.
             See :meth:`impedancefitter.Fitter.model_iterations`
+        weighting: str, optional
+            Choose a weighting scheme. Default is unit weighting.
+            Also possible: proportional weighting. See [Barsoukov2018]_ for more information.
+
+        References
+        ----------
+
+        .. [Barsoukov2018] Barsoukov, E., & Macdonald, J. R. (Eds.). (2018).
+                           Impedance Spectroscopy: Theory, Experiment, and Applications.
+                           (3rd ed.). Hoboken, NJ: John Wiley & Sons, Inc.
+                           https://doi.org/10.1002/9781119381860
 
         """
 
         self.modelname = modelname
         self.modelclass = modelclass
+        self.log = log
+        self.weighting = weighting
 
         # initialize solver
-        self.solvername = solver
+        if solver is not None:
+            self.solvername = solver
         if self.solvername == "emcee":
             self.emcee_tag = True
 
         self.solver_kwargs = solver_kwargs
 
         # initialize model
-        self.model = self.initialize_model(self.modelname)
+        self.model = self.initialize_model(self.modelname, log=self.log)
         # initialize model parameters
         if parameters is not None:
             logger.debug("Using provided parameter dictionary.")
@@ -435,8 +453,8 @@ class Fitter(object):
             self.emcee_tag = False
         self.solver_kwargs = solver_kwargs
         # initialize model
-        self.model1 = self.initialize_model(model1)
-        self.model2 = self.initialize_model(model2)
+        self.model1 = self.initialize_model(model1, self.log)
+        self.model2 = self.initialize_model(model2, self.log)
 
         # initialize model parameters
         if parameters1 is not None:
@@ -672,7 +690,7 @@ class Fitter(object):
             params[parameter].set(vary=False)
         return params
 
-    def _fit_data(self, model, parameters, modelclass=None, weights=None):
+    def _fit_data(self, model, parameters, modelclass=None, weights=None, log=True):
         """Fit data to model.
 
         Wrapper for LMFIT fitting routine.
@@ -686,6 +704,9 @@ class Fitter(object):
             The model parameters to be used.
         modelclass: str, optional
             For an iterative scheme, the modelclass is passed to this function.
+        weights: None or :class:`numpy.ndarray`
+            Use weights to fit the data. Default is None (no weighting).
+            The weights need to have the same shape as the impedance data.
 
         Returns
         -------
@@ -713,8 +734,12 @@ class Fitter(object):
             logger.info("#########\nFitting round {}\n#########".format(i + 1))
             if i > 0:
                 params = self._fix_parameters(i, modelclass, params,
-                                             model_result)
-            model_result = model.fit(self.Z, params, omega=self.omega,
+                                              model_result)
+            if log:
+                Z = np.log10(self.Z)
+            else:
+                Z = self.Z
+            model_result = model.fit(Z, params, omega=self.omega,
                                      method=self.solvername,
                                      fit_kws=self.solver_kwargs,
                                      weights=weights)
@@ -727,12 +752,10 @@ class Fitter(object):
                     logger.info("Solver message: " + model_result.message)
             if hasattr(model_result, "lmdif_message"):
                 if model_result.lmdif_message is not None:
-                    logger.info("Solver message (leastsq): "
-                                + model_result.lmdif_message)
+                    logger.info("Solver message (leastsq): " + model_result.lmdif_message)
             if hasattr(model_result, "ampgo_msg"):
                 if model_result.ampgo_msg is not None:
-                    logger.info("Solver message (ampgo): "
-                                + model_result.ampgo_msg)
+                    logger.info("Solver message (ampgo): " + model_result.ampgo_msg)
         return model_result
 
     def process_data_from_file(self, filename, model, parameters,
@@ -764,8 +787,15 @@ class Fitter(object):
 
         """
         logger.debug("Going to fit")
-        fit_output = self._fit_data(model, parameters, modelclass)
-        Z_fit = fit_output.best_fit
+        weights = None
+        if self.weighting == "proportional":
+            weights = 1. / self.Z.real + 1j / self.Z.imag
+        fit_output = self._fit_data(model, parameters, modelclass, log=self.log,
+                                    weights=weights)
+        if self.log:
+            Z_fit = np.power(10, fit_output.best_fit)
+        else:
+            Z_fit = fit_output.best_fit
         logger.debug("Fit successful")
         if self.LogLevel == 'DEBUG':
             show = True
@@ -788,14 +818,21 @@ class Fitter(object):
 
         """
         if not sequential:
-            Z_fit = self.fittedValues.best_fit
-            Z_init = self.fittedValues.init_fit
+            if self.log:
+                Z_fit = np.power(10, self.fittedValues.best_fit)
+                Z_init = np.power(10, self.fittedValues.init_fit)
+            else:
+                Z_fit = self.fittedValues.best_fit
+                Z_init = self.fittedValues.init_fit
             plot_impedance(self.omega, self.Z, "", Z_fit=Z_fit,
                            show=True, save=False, Z_comp=Z_init)
         else:
             for i in range(2):
                 Z_fit = getattr(self, "fittedValues" + str(i + 1)).best_fit
                 Z_init = getattr(self, "fittedValues" + str(i + 1)).init_fit
+                if self.log:
+                    Z_fit = np.power(10, Z_fit)
+                    Z_init = np.power(10, Z_init)
                 plot_impedance(self.omega, self.Z, "", Z_fit=Z_fit,
                                show=True, save=False, Z_comp=Z_init)
 
@@ -1068,8 +1105,11 @@ class Fitter(object):
                 results[key + str(i)], mus = self._linkk_core(self.omega, self.Z, capacitance,
                                                               inductance, c, maxM)
                 if show:
+                    Z = results[key + str(i)].best_fit
+                    if self.log:
+                        Z = np.power(10, Z)
                     plot_impedance(self.omega, self.Z, key + str(i),
-                                   Z_fit=results[key + str(i)].best_fit,
+                                   Z_fit=Z,
                                    show=True, save=self.savefig, sign=True)
 
         return results, mus
@@ -1142,16 +1182,16 @@ class Fitter(object):
                                                           'vary': False}
             start = M
 
-            model = self.initialize_model(modelstr)
+            model = self.initialize_model(modelstr, log=self.log)
             model_parameters = self._initialize_parameters(model, parameters)
-            model_result = self._fit_data(model, model_parameters)  # , weights=1. / np.abs(self.Z))
+            model_result = self._fit_data(model, model_parameters, log=self.log)
             mu = _compute_mu(model_result.best_values)
             logger.debug("\nmu = {}, c = {}\n".format(mu, c))
             mus.append(mu)
             if M == maxM:
+                logger.warning("Reached maximum number of RC elements.")
                 break
             M += 1
-
 
         logger.debug("Used M={} RC elements.".format(M - 1))
         return model_result, mus

@@ -19,6 +19,21 @@
 import numpy as np
 
 
+def log(Z1, dummy):
+    """Return logarithm of impedance for LMFIT
+
+    Parameters
+    ----------
+    Z1: :class:`numpy.ndarray`, complex
+        Impedance 1
+    dummy : :class:`numpy.ndarray`, complex
+        Array full of ones, such that np.log10(dummy) is zero.
+    """
+
+    dummy = np.ones(Z1.shape)
+    return np.log10(Z1) + np.log10(dummy)
+
+
 def parallel(Z1, Z2):
     """Return values of parallel circuit.
 

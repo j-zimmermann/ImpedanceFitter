@@ -136,7 +136,8 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
 
 
 def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
-                   labels=["data", "best fit", "init fit"], relative=True, sign=False):
+                   labels=["data", "best fit", "init fit"], relative=True, sign=False,
+                   Zlog=False):
     """Plot the `result` and compare it to data `Z`.
 
     Generates 4 subplots showing the real and imaginary parts over
@@ -167,6 +168,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         Plot relative difference if True, else plot residual.
     sign: bool, optional
         Use sign of residual. Default is False, i.e. absolute value is plotted.
+    Zlog: bool, optional
+        Log-scale of impedance
 
     """
 
@@ -174,6 +177,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     plt.suptitle(title, y=1.05)
     # plot real part of impedance
     plt.subplot(221)
+    if Zlog:
+        plt.yscale('log')
     plt.xscale('log')
     plt.title("impedance real part")
     plt.ylabel(r"$\Re(Z) [\Omega]$")
@@ -190,17 +195,55 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     plt.xscale('log')
     plt.ylabel(r"$\Im(Z) [\Omega]$")
     plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z.imag, 'r', label=labels[0])
-    if Z_fit is not None:
-        plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label=labels[1])
-    if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
+    if Zlog:
+        plt.yscale('log')
+        print("Here")
+        if np.all(np.less_equal(Z.imag, 0)):
+            plt.ylabel(r"$-\Im(Z) [\Omega]$")
+            plt.plot(omega / (2. * np.pi), -Z.imag, 'r', label=labels[0])
+            if Z_fit is not None:
+                plt.plot(omega / (2. * np.pi), -Z_fit.imag, '+', label=labels[1])
+            if Z_comp is not None:
+                plt.plot(omega / (2. * np.pi), -Z_comp.imag, 'x', label=labels[2])
+
+        elif np.all(np.greater_equal(Z.imag, 0)):
+            plt.plot(omega / (2. * np.pi), Z.imag, 'r', label=labels[0])
+            if Z_fit is not None:
+                plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label=labels[1])
+            if Z_comp is not None:
+                plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
+
+        elif np.where(Z.imag < 0).size > np.where(Z.imag > 0).size:
+            plt.ylabel(r"$-\Im(Z) [\Omega]$")
+            plt.plot(omega / (2. * np.pi), -Z.imag, 'r', label=labels[0])
+            if Z_fit is not None:
+                plt.plot(omega / (2. * np.pi), -Z_fit.imag, '+', label=labels[1])
+            if Z_comp is not None:
+                plt.plot(omega / (2. * np.pi), -Z_comp.imag, 'x', label=labels[2])
+
+        else:
+            plt.plot(omega / (2. * np.pi), Z.imag, 'r', label=labels[0])
+            if Z_fit is not None:
+                plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label=labels[1])
+            if Z_comp is not None:
+                plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
+
+    else:
+        plt.plot(omega / (2. * np.pi), Z.imag, 'r', label=labels[0])
+
+        if Z_fit is not None:
+            plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label=labels[1])
+        if Z_comp is not None:
+            plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
     plt.legend()
     # plot real vs negative imaginary part
     plt.subplot(223)
     plt.title("Nyquist plot")
     plt.ylabel(r"$-\Im(Z) [\Omega]$")
     plt.xlabel(r"$\Re(Z) [\Omega]$")
+    if Zlog:
+        plt.xscale('log')
+        plt.yscale('log')
     plt.plot(Z.real, -Z.imag, 'o', label=labels[0])
     if Z_fit is not None:
         plt.plot(Z_fit.real, -Z_fit.imag, '+', label=labels[1])
