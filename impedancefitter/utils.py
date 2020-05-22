@@ -21,6 +21,7 @@ import numpy as np
 import yaml
 import logging
 import pyparsing as pp
+import re
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
@@ -573,6 +574,23 @@ def _process_circuit(circuit):
     return c
 
 
+def _check_circuit(circuit):
+    for c in circuit:
+        if isinstance(c, str):
+            match = bool(re.match(r"[a-zA-Z_0-9]", c))
+            if match or c == "+":
+                continue
+            else:
+                raise RuntimeError("You must have entered a wrong circuit!")
+        elif isinstance(c, list):
+            if ',' not in c:
+                raise RuntimeError("You must have entered a wrong circuit!")
+            else:
+                for subc in c:
+                    if subc != ',':
+                        _check_circuit(subc)
+
+
 def get_equivalent_circuit_model(modelname, logscale=False):
     """Get LMFIT CompositeModel.
 
@@ -608,6 +626,7 @@ def get_equivalent_circuit_model(modelname, logscale=False):
         circuitstr = expr.parseString(str2parse)
     except pp.ParseException:
         raise ("You must provide a correct string!")
+    _check_circuit(circuitstr.asList()[0])
     circuit = _process_circuit(circuitstr.asList()[0])
     if logscale:
         circuit = CompositeModel(circuit, Model(dummy), log)
