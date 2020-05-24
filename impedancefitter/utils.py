@@ -574,21 +574,37 @@ def _process_circuit(circuit):
     return c
 
 
-def _check_circuit(circuit):
+def _check_circuit(circuit, startpar=False):
+    if len(circuit) == 1:
+        match = bool(re.match(r"[a-zA-Z_0-9]", circuit))
+        if not match:
+            raise RuntimeError("You must have entered a wrong circuit!")
+        else:
+            return
+    # check for case with pure parallel or series
+    if all(isinstance(c, str) for c in circuit):
+        # check that only one type exists then
+        if '+' in circuit:
+            if ',' in circuit:
+                raise RuntimeError("You must have entered a wrong circuit!")
+            # if it started with parallel, raise an error.
+            # here we catch `parallel(R + C)`, for example
+            if startpar:
+                raise RuntimeError("You must have entered a wrong circuit!")
+        else:
+            if ',' not in circuit:
+                raise RuntimeError("You must have entered a wrong circuit!")
+
     for c in circuit:
         if isinstance(c, str):
             match = bool(re.match(r"[a-zA-Z_0-9]", c))
-            if match or c == "+":
+            if match or c == "," or c == "+":
                 continue
             else:
                 raise RuntimeError("You must have entered a wrong circuit!")
+            print(c)
         elif isinstance(c, list):
-            if ',' not in c:
-                raise RuntimeError("You must have entered a wrong circuit!")
-            else:
-                for subc in c:
-                    if subc != ',':
-                        _check_circuit(subc)
+            _check_circuit(c)
 
 
 def get_equivalent_circuit_model(modelname, logscale=False):
@@ -626,7 +642,7 @@ def get_equivalent_circuit_model(modelname, logscale=False):
         circuitstr = expr.parseString(str2parse)
     except pp.ParseException:
         raise ("You must provide a correct string!")
-    _check_circuit(circuitstr.asList()[0])
+    _check_circuit(circuitstr.asList()[0], startpar=modelname.startswith("parallel"))
     circuit = _process_circuit(circuitstr.asList()[0])
     if logscale:
         circuit = CompositeModel(circuit, Model(dummy), log)

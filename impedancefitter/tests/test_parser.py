@@ -1,4 +1,5 @@
 from impedancefitter.utils import get_equivalent_circuit_model
+import pytest
 from lmfit import CompositeModel, Model
 import numpy as np
 
@@ -50,3 +51,15 @@ def test_logscale():
     Z1 = model.eval(omega=omega, **parameters)
     Z2 = logmodel.eval(omega=omega, **parameters)
     assert np.all(np.isclose(np.log10(Z1), Z2))
+
+
+def test_wrong_circuit():
+    model1 = "R, L , C"
+    with pytest.raises(Exception):
+        model = get_equivalent_circuit_model(model1)
+
+
+def test_wrong_circuit2():
+    model1 = "parallel(R + L + C)"
+    with pytest.raises(Exception):
+        model = get_equivalent_circuit_model(model1)

@@ -223,7 +223,7 @@ class Fitter(object):
         if 'delimiter' in kwargs:
             self.delimiter = kwargs['delimiter']
 
-    def visualize_data(self, savefig=False, Zlog=False):
+    def visualize_data(self, savefig=False, Zlog=False, allinone=False):
         """Visualize impedance data.
 
         Parameters
@@ -233,19 +233,32 @@ class Fitter(object):
         Zlog: bool, optional
             Plot impedance on logscale.
         """
+        totaliters = 0
+        savefigtmp = savefig
+        labels = ["data", None, None]
+
+        for key in self.z_dict:
+            zarray = self.z_dict[key]
+            totaliters += zarray.shape[0]
 
         for key in self.omega_dict:
+            append = False
             zarray = self.z_dict[key]
-            if len(zarray.shape) > 1:
-                iters = zarray.shape[0]
-                logger.debug("Number of data sets to visualise:" + str(iters))
-            if self.data_sets is not None:
-                iters = self.data_sets
-                logger.debug("""Will only iterate
-                                over {} data sets.""".format(iters))
+            iters = zarray.shape[0]
+            logger.debug("Number of data sets in file {} to visualise: {}".format(key, iters))
+
             for i in range(iters):
-                plot_impedance(self.omega_dict[key], zarray[i],
-                               key, save=savefig, Zlog=Zlog)
+                if allinone and totaliters > 1:
+                    append = True
+                    savefigtmp = False
+                    labels = [key, None, None]
+                elif allinone and totaliters == 1:
+                    labels = [key, None, None]
+                    savefigtmp = savefig
+
+                plot_impedance(self.omega_dict[key], zarray[i], key, show=not append,
+                               save=savefigtmp, Zlog=Zlog, append=append, labels=labels)
+                totaliters -= 1
 
     def _initialize_parameters(self, model, parameters, emcee=False):
         """
@@ -731,7 +744,7 @@ class Fitter(object):
                                   to trigger possible iterative scheme.""")
                 pass
         for i in range(iters):
-            logger.info("#########\nFitting round {}\n#########".format(i + 1))
+            logger.debug("#########\nFitting round {}\n#########".format(i + 1))
             if i > 0:
                 params = self._fix_parameters(i, modelclass, params,
                                               model_result)
@@ -743,19 +756,19 @@ class Fitter(object):
                                      method=self.solvername,
                                      fit_kws=self.solver_kwargs,
                                      weights=weights)
-            logger.info(model_result.fit_report())
+            logger.debug(model_result.fit_report())
 
             # return solver message (needed since lmfit handles messages
             # differently for the various solvers)
             if hasattr(model_result, "message"):
                 if model_result.message is not None:
-                    logger.info("Solver message: " + model_result.message)
+                    logger.debug("Solver message: " + model_result.message)
             if hasattr(model_result, "lmdif_message"):
                 if model_result.lmdif_message is not None:
-                    logger.info("Solver message (leastsq): " + model_result.lmdif_message)
+                    logger.debug("Solver message (leastsq): " + model_result.lmdif_message)
             if hasattr(model_result, "ampgo_msg"):
                 if model_result.ampgo_msg is not None:
-                    logger.info("Solver message (ampgo): " + model_result.ampgo_msg)
+                    logger.debug("Solver message (ampgo): " + model_result.ampgo_msg)
         return model_result
 
     def process_data_from_file(self, filename, model, parameters,
@@ -799,10 +812,12 @@ class Fitter(object):
         logger.debug("Fit successful")
         if self.LogLevel == 'DEBUG':
             show = True
-        # plots if LogLevel is INFO or DEBUG or figure should be saved
-        if getattr(logging, self.LogLevel) <= 20 or self.savefig:
+        else:
+            show = False
+        # plots if LogLevel is DEBUG or figure should be saved
+        if getattr(logging, self.LogLevel) < 20 or self.savefig:
             logger.debug("Going to plot results")
-            plot_impedance(self.omega, self.Z, filename, Z_fit=Z_fit,
+            plot_impedance(self.omega, fit_output.data, title=filename, Z_fit=Z_fit,
                            show=show, save=self.savefig)
         return fit_output
 
@@ -1056,7 +1071,7 @@ class Fitter(object):
         """
 
     def linkk_test(self, capacitance=False, inductance=False, c=0.85, maxM=100,
-                   show=True):
+                   show=True, weighting=None):
         """Lin-KK test to check Kramers-Kronig validity.
 
         Parameters
@@ -1087,8 +1102,9 @@ class Fitter(object):
                             A Method for Improving the Robustness of linear Kramers-Kronig Validity Tests.
                             Electrochimica Acta, 131, 20–27. https://doi.org/10.1016/j.electacta.2014.01.034
         """
-
+        self.weighting = weighting
         results = {}
+        mus = {}
         for key in self.omega_dict:
             self.omega = self.omega_dict[key]
             self.zarray = self.z_dict[key]
@@ -1102,14 +1118,15 @@ class Fitter(object):
                                 over {} data sets.""".format(self.iters))
             for i in range(self.iters):
                 self.Z = self.zarray[i]
-                results[key + str(i)], mus = self._linkk_core(self.omega, self.Z, capacitance,
-                                                              inductance, c, maxM)
+                results[key + str(i)], mus[key + str(i)] = self._linkk_core(self.omega, self.Z, capacitance,
+                                                                            inductance, c, maxM)
                 if show:
                     Z = results[key + str(i)].best_fit
+                    Zdata = results[key + str(i)].data
                     if self.log:
                         Z = np.power(10, Z)
-                    plot_impedance(self.omega, self.Z, key + str(i),
-                                   Z_fit=Z,
+                    plot_impedance(self.omega, Zdata, title=key + str(i),
+                                   Z_fit=Z, residual="absolute",
                                    show=True, save=self.savefig, sign=True)
 
         return results, mus
@@ -1168,6 +1185,7 @@ class Fitter(object):
             parameters['L'] = {'value': 1e-9}
         mus = []
         start = 0
+
         while mu > c:
             for m in range(M):
                 if m >= start:
@@ -1184,7 +1202,13 @@ class Fitter(object):
 
             model = self.initialize_model(modelstr, log=self.log)
             model_parameters = self._initialize_parameters(model, parameters)
-            model_result = self._fit_data(model, model_parameters, log=self.log)
+
+            weights = None
+            if self.weighting == "proportional":
+                weights = 1. / self.Z.real + 1j / self.Z.imag
+
+            model_result = self._fit_data(model, model_parameters, log=self.log,
+                                          weights=weights)
             mu = _compute_mu(model_result.best_values)
             logger.debug("\nmu = {}, c = {}\n".format(mu, c))
             mus.append(mu)
@@ -1193,8 +1217,14 @@ class Fitter(object):
                 break
             M += 1
 
-        logger.debug("Used M={} RC elements.".format(M - 1))
+        logger.info("Used M={} RC elements.".format(M - 1))
         return model_result, mus
+
+    def update_logLevel(self, LogLevel):
+        self.LogLevel = LogLevel
+        logger.setLevel(self.LogLevel)
+        for h in logger.handlers:
+            h.setLevel(self.LogLevel)
 
 
 def _compute_mu(fit_values):
@@ -1216,7 +1246,6 @@ def _compute_mu(fit_values):
     neg = 0
     pos = 0
 
-    print("fit values:", fit_values)
     for value in fit_values:
         if "_Rk" in value:
             Rk = fit_values[value]
