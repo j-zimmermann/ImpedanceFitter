@@ -25,17 +25,17 @@ Overview
 ========
 
 Impedance spectroscopy (IS) is a great tool to analyse the behaviour of an electrical circuit,
-characterise the response of a sample (e.g. biological tissue) or determine the dielectric 
-properties of a sample [Barsoukov2018]_.
+to characterise the response of a sample (e.g. biological tissue), to determine the dielectric 
+properties of a sample, and much more [Barsoukov2018]_.
 
 Data analysis in IS relies often on non-linear least squares for parameter estimation
 of equivalent circuit models.
-ImpedanceFitter is a software that facilitates parameter estimation for various mechanistic models.
-The mechanistic model is based on an equivalent circuit that may comprise different standard elements or 
+ImpedanceFitter is a software that facilitates parameter estimation for arbitrary equivalent circuit models.
+The equivalent circuit may comprise different standard elements or 
 other models that have been formulated in the context of impedance spectroscopy.
-The unknown parameters are found by fitting to experimental impedance data.
+The unknown parameters are found by fitting the model to experimental impedance data.
 The underlying fitting software is LMFIT [Newville2019]_, which offers an interface to different optimization and curve-fitting 
-methods.
+methods going beyond standard least-squares.
 ImpedanceFitter allows one to build a custom equivalent circuit, fit an arbitrary amount of data sets and 
 perform statistical analysis of the results.
 

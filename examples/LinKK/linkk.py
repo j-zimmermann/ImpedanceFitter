@@ -44,7 +44,13 @@ os.remove('test.csv')
 
 results, mus = fitter.linkk_test()
 
+plt.xlabel("RC elements")
+plt.ylabel(r"$\mu$")
+plt.plot(mus['test.csv0'])
+plt.show()
 RCperdec = numpy.linspace(1.0, len(mus['test.csv0']), num=len(mus['test.csv0'])) / decades
 print(RCperdec)
 plt.plot(RCperdec, mus['test.csv0'])
+plt.xlabel("RC elements per decade")
+plt.ylabel(r"$\mu$")
 plt.show()
