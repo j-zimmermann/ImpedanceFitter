@@ -9,7 +9,12 @@ rcParams['figure.figsize'] = [15, 10]
 
 
 # parameters
-frequencies = numpy.logspace(0, 8, num=500)
+lowExp = -5
+highExp = 5
+decades = numpy.log10(10**highExp / 10**lowExp)
+pointsperdecade = int(10. * decades)
+frequencies = numpy.logspace(lowExp, highExp, num=pointsperdecade)
+
 Rs1 = 100.
 Rs2 = 200.
 Cs3 = 0.8e-6
@@ -39,7 +44,8 @@ fitter = impedancefitter.Fitter('CSV')
 os.remove('test.csv')
 
 results, mus = fitter.linkk_test(capacitance=True)
-print(results)
 
-plt.plot(mus)
+RCperdec = numpy.linspace(1.0, len(mus['test.csv0']), num=len(mus['test.csv0'])) / decades
+print(RCperdec)
+plt.plot(RCperdec, mus['test.csv0'])
 plt.show()

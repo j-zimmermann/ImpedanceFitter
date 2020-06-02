@@ -575,7 +575,8 @@ def _process_circuit(circuit):
 
 
 def _check_circuit(circuit, startpar=False):
-    if len(circuit) == 1:
+    # check if circuit contains just one element
+    if isinstance(circuit, str):
         match = bool(re.match(r"[a-zA-Z_0-9]", circuit))
         if not match:
             raise RuntimeError("You must have entered a wrong circuit!")

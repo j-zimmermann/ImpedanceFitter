@@ -232,6 +232,8 @@ class Fitter(object):
             Decide if plots should be saved as pdf. Default is False.
         Zlog: bool, optional
             Plot impedance on logscale.
+        allinone: bool, optional
+            Visualize all data sets in one plot
         """
         totaliters = 0
         savefigtmp = savefig

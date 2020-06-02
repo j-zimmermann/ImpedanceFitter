@@ -10,6 +10,12 @@ def test_single():
     assert isinstance(model, Model)
 
 
+def test_single2():
+    model1 = 'Randles'
+    model = get_equivalent_circuit_model(model1)
+    assert isinstance(model, Model)
+
+
 def test_parallel():
     model1 = "parallel(R, C)"
     model = get_equivalent_circuit_model(model1)
