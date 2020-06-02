@@ -1,4 +1,4 @@
-from impedancefitter.RC import rc_model, RC_model, drc_model
+from impedancefitter.RC import rc_model, RC_model, drc_model, rc_tau_model
 from impedancefitter.cole_cole import cole_cole_R_model
 from scipy.constants import epsilon_0 as e0
 import numpy as np
@@ -7,6 +7,9 @@ omega = 2. * np.pi * np.logspace(1, 8, num=20)
 # for RCfull
 Rd = 100
 Cd = 1e-6
+
+# for Rctau
+tauk = Rd * Cd
 
 # for RC
 c0 = 1.0
@@ -66,3 +69,19 @@ def test_equality_drc_cole_cole():
     Z_cole = cole_cole_R_model(omega, Rinf, R0, tau, a)
     Z_drc = drc_model(omega, RE, tauE, alpha, beta)
     assert np.all(np.isclose(Z_cole, Z_drc))
+
+
+def test_RCtau_type():
+    Z = rc_tau_model(omega, Rd, tauk)
+    assert isinstance(Z, np.ndarray)
+
+
+def test_RCtau_shape():
+    Z = rc_tau_model(omega, Rd, tauk)
+    assert Z.shape == omega.shape
+
+
+def test_equality_rc_rc_tau():
+    Z_rc = RC_model(omega, Rd, Cd)
+    Z_tau = rc_tau_model(omega, Rd, tauk)
+    assert np.all(np.isclose(Z_tau, Z_rc))
