@@ -49,4 +49,14 @@ RCperdec = numpy.linspace(1.0, len(mus['test.csv0']), num=len(mus['test.csv0']))
 print(RCperdec)
 plt.plot(RCperdec, mus['test.csv0'])
 plt.show()
-print(results['test.csv0'].best_values['C'])
+
+# compute residual again
+# note that lmfit takes model - data
+# we stick to data - model
+plt.xscale('log')
+plt.xlabel("f [kHz]")
+plt.ylabel("relative difference [%]")
+plt.plot(frequencies, -100. * results['test.csv0'].residual[::2] / numpy.abs(results['test.csv0'].best_fit), label="real")
+plt.plot(frequencies, -100. * results['test.csv0'].residual[1::2] / numpy.abs(results['test.csv0'].best_fit), label="imag")
+plt.legend()
+plt.show()
