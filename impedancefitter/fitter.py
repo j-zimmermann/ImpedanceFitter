@@ -1115,6 +1115,9 @@ class Fitter(object):
        The implementation of the algorithm follows [Schoenleber2014]_
        closely.
 
+       If the option `savefig` is generally enabled, the plot result
+       of the LinKK-Test will be saved to a pdf-file.
+
        References
        ----------
 
@@ -1125,6 +1128,11 @@ class Fitter(object):
         self.weighting = weighting
         results = {}
         mus = {}
+        titlebegin = "Lin-KK test "
+        if capacitance:
+            titlebegin += "capacitance "
+        if inductance:
+            titlebegin += "inductance "
         for key in self.omega_dict:
             self.omega = self.omega_dict[key]
             self.zarray = self.z_dict[key]
@@ -1145,7 +1153,7 @@ class Fitter(object):
                     Zdata = results[key + str(i)].data
                     if self.log:
                         Z = np.power(10, Z)
-                    plot_impedance(self.omega, Zdata, title="Lin-KK test " + str(key) + str(i),
+                    plot_impedance(self.omega, Zdata, title=titlebegin + str(key) + str(i),
                                    Z_fit=Z, residual="absolute",
                                    show=show, save=self.savefig, sign=True)
 
@@ -1197,8 +1205,8 @@ class Fitter(object):
 
         # add capacitance and inductance if specified
         if capacitance:
-            modelstr += " + Cstray"
-            parameters['Cs'] = {'value': 1.0}
+            modelstr += " + C"
+            parameters['C'] = {'value': 1e-3}
 
         if inductance:
             modelstr += " + L"
