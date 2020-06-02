@@ -223,20 +223,30 @@ class Fitter(object):
         if 'delimiter' in kwargs:
             self.delimiter = kwargs['delimiter']
 
-    def visualize_data(self, savefig=False, Zlog=False, allinone=False):
+    def visualize_data(self, savefig=False, Zlog=False,
+                       allinone=False, show=True):
         """Visualize impedance data.
 
         Parameters
         ----------
         savefig: bool, optional
             Decide if plots should be saved as pdf. Default is False.
+            Saves the file as `filename` + index of dataset + `_impedance_overview.pdf`.
+            If `allinone` is True, then it is `allinone_impedance_overview.pdf`.
         Zlog: bool, optional
             Plot impedance on logscale.
+        show: bool, optional
+            Decide if you want to immediately see the plot.
         allinone: bool, optional
             Visualize all data sets in one plot
         """
+        if not savefig and not show:
+            logger.warning("""visualize_data does not have any effect if you
+                              neither save nor show the plot.""")
+            return
         totaliters = 0
         savefigtmp = savefig
+        showtmp = show
         labels = ["data", None, None]
 
         for key in self.z_dict:
@@ -250,15 +260,19 @@ class Fitter(object):
             logger.debug("Number of data sets in file {} to visualise: {}".format(key, iters))
 
             for i in range(iters):
+                title = key + str(i)
                 if allinone and totaliters > 1:
                     append = True
                     savefigtmp = False
-                    labels = [key, None, None]
+                    labels = [key + str(i), None, None]
+                    showtmp = False
                 elif allinone and totaliters == 1:
-                    labels = [key, None, None]
+                    labels = [key + str(i), None, None]
                     savefigtmp = savefig
+                    title = "allinone"
+                    showtmp = show
 
-                plot_impedance(self.omega_dict[key], zarray[i], key, show=not append,
+                plot_impedance(self.omega_dict[key], zarray[i], title=title, show=showtmp,
                                save=savefigtmp, Zlog=Zlog, append=append, labels=labels)
                 totaliters -= 1
 
@@ -396,7 +410,7 @@ class Fitter(object):
                                 over {} data sets.""".format(self.iters))
             for i in range(self.iters):
                 self.Z = self.zarray[i]
-                self.fittedValues = self.process_data_from_file(key,
+                self.fittedValues = self.process_data_from_file(key + str(i),
                                                                 self.model,
                                                                 self.model_parameters,
                                                                 self.modelclass)
@@ -502,7 +516,7 @@ class Fitter(object):
                                 over {} data sets.""".format(self.iters))
             for i in range(self.iters):
                 self.Z = self.zarray[i]
-                self.fittedValues1 = self.process_data_from_file(key,
+                self.fittedValues1 = self.process_data_from_file(key + str(i),
                                                                  self.model1,
                                                                  self.model_parameters1,
                                                                  modelclass1)
@@ -514,7 +528,7 @@ class Fitter(object):
                         logger.error("""Key {} you want to
                                         communicate is not a valid model key.""".format(c))
                         raise
-                self.fittedValues2 = self.process_data_from_file(key,
+                self.fittedValues2 = self.process_data_from_file(key + str(i),
                                                                  self.model2,
                                                                  self.model_parameters2,
                                                                  modelclass2)
@@ -818,8 +832,12 @@ class Fitter(object):
             show = False
         # plots if LogLevel is DEBUG or figure should be saved
         if getattr(logging, self.LogLevel) < 20 or self.savefig:
-            logger.debug("Going to plot results")
-            plot_impedance(self.omega, fit_output.data, title=filename, Z_fit=Z_fit,
+            if getattr(logging, self.LogLevel) < 20:
+                logger.debug("Going to plot results")
+            if self.savefig:
+                logger.info("Going to save plot of fit result to file.")
+            title = "fit_result_" + filename
+            plot_impedance(self.omega, fit_output.data, title=title, Z_fit=Z_fit,
                            show=show, save=self.savefig)
         return fit_output
 
@@ -1122,14 +1140,14 @@ class Fitter(object):
                 self.Z = self.zarray[i]
                 results[key + str(i)], mus[key + str(i)] = self._linkk_core(self.omega, self.Z, capacitance,
                                                                             inductance, c, maxM)
-                if show:
+                if show or self.savefig:
                     Z = results[key + str(i)].best_fit
                     Zdata = results[key + str(i)].data
                     if self.log:
                         Z = np.power(10, Z)
-                    plot_impedance(self.omega, Zdata, title=key + str(i),
+                    plot_impedance(self.omega, Zdata, title="Lin-KK test " + str(key) + str(i),
                                    Z_fit=Z, residual="absolute",
-                                   show=True, save=self.savefig, sign=True)
+                                   show=show, save=self.savefig, sign=True)
 
         return results, mus
 
@@ -1180,7 +1198,7 @@ class Fitter(object):
         # add capacitance and inductance if specified
         if capacitance:
             modelstr += " + Cstray"
-            parameters['C_stray'] = {'value': 1.0}
+            parameters['Cs'] = {'value': 1.0}
 
         if inductance:
             modelstr += " + L"

@@ -115,7 +115,7 @@ def check_parameters(bufdict):
     """
 
     # capacitances in pF
-    capacitances = ['c0', 'C_stray']
+    capacitances = ['c0', 'Cs']
     # taus in ns
     taus = ['tau', 'tauE']
     zerotoones = ['p', 'a', 'alpha', 'beta']
@@ -283,7 +283,7 @@ def get_labels(params):
     """
     all_labels = {
         'c0': r'$C_0$',
-        'C_stray': r'$C_\mathrm{stray}$',
+        'Cs': r'$C_\mathrm{stray}$',
         'em': r'$\varepsilon_\mathrm{m}$',
         'km': r'$\sigma_\mathrm{m}$',
         'kcp': r'$\sigma_\mathrm{cp}$',
@@ -575,6 +575,10 @@ def _process_circuit(circuit):
 
 
 def _check_circuit(circuit, startpar=False):
+    if circuit.count("(") != circuit.count(")"):
+        raise RuntimeError("""You must have entered a wrong circuit!
+                              There are parentheses that do not match!
+                              For example, `parallel(R, C`""")
     # check if circuit contains just one element
     if isinstance(circuit, str):
         match = bool(re.match(r"[a-zA-Z_0-9]", circuit))

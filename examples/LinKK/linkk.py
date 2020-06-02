@@ -9,8 +9,8 @@ rcParams['figure.figsize'] = [15, 10]
 
 
 # parameters
-lowExp = 0
-highExp = 8
+lowExp = -5
+highExp = 5
 decades = numpy.log10(10**highExp / 10**lowExp)
 pointsperdecade = int(10. * decades)
 frequencies = numpy.logspace(lowExp, highExp, num=pointsperdecade)

@@ -14,9 +14,10 @@ Welcome to ImpedanceFitter's documentation!
    examples
    fitting
    statistics
-   utils
    elements
    circuits
+   utils
+   plotting
 
 .. _Overview:
 

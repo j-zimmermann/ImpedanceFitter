@@ -41,7 +41,8 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     show: bool, optional
         show figure (default is True)
     save: bool, optional
-        save figure to pdf (default is False). Name of figure starts with `title`.
+        save figure to pdf (default is False). Name of figure starts with `title`
+        and ends with `_dielectric_properties.pdf`.
 
     '''
     eps_r, cond_fit = return_diel_properties(omega, Z, c0)
@@ -71,7 +72,7 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
         plt.legend()
     plt.tight_layout()
     if save:
-        plt.savefig(str(title) + "_dielectric_properties.pdf")
+        plt.savefig(str(title).replace(" ", "_") + "_dielectric_properties.pdf")
     if show:
         plt.show()
     else:
@@ -104,6 +105,9 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     labels: list
         List of labels for three plots. Must have length 3 always.
         Is ordered like: `[Z, Z_fit, Z_comp]`
+    save: bool, optional
+        save figure to pdf (default is False). Name of figure starts with `title`
+        and ends with `_bode_plot.pdf`.
     """
 
     plt.figure()
@@ -132,7 +136,7 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     plt.legend()
     plt.tight_layout()
     if save:
-        plt.savefig(str(title) + "_bode_plot.pdf")
+        plt.savefig(str(title).replace(" ", "_") + "_bode_plot.pdf")
     if show:
         plt.show()
     else:
@@ -162,7 +166,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     show: bool, optional
         Show figure (default is True).
     save: bool, optional
-        Save figure to pdf (default is False). Name of figure starts with `title`.
+        Save figure to pdf (default is False). Name of figure starts with `title`
+        and ends with `_impedance_overview.pdf`.
     Z_comp: optional
         Complex-valued impedance array. Might be used to compare the properties of two data sets.
     labels: list
@@ -271,7 +276,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plot_compare_to_data(omega, Z, Z_fit, subplot=224, residual=residual, sign=sign)
     plt.tight_layout()
     if save and not append:
-        plt.savefig(str(title) + "_results_overview.pdf")
+        plt.savefig(str(title).replace(" ", "_") + "_impedance_overview.pdf")
     if show:
         plt.show()
     elif not show and not append:
@@ -298,7 +303,8 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
     show: bool, optional
         show figure (default is True). Only has an effect when `subplot` is None.
     save: bool, optional
-        save figure to pdf (default is False). Name of figure starts with `title`.
+        save figure to pdf (default is False). Name of figure starts with `title`
+        and ends with `_relative_difference_to_data.pdf` or `_difference_to_data.pdf`.
     relative: str, optional
         Plot relative difference if True, else plot residual (i.e. just difference).
     sign: bool, optional
@@ -345,9 +351,9 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
     plt.legend()
     if save:
         if residual != "diff":
-            plt.savefig(str(title) + "_relative_difference_to_data.pdf")
+            plt.savefig(str(title).replace(" ", "_") + "_relative_difference_to_data.pdf")
         else:
-            plt.savefig(str(title) + "_difference_to_data.pdf")
+            plt.savefig(str(title).replace(" ", "_") + "_difference_to_data.pdf")
     if show:
         plt.show()
     elif not show and subplot is None:

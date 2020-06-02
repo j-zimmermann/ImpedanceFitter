@@ -3,6 +3,9 @@ import os
 import pandas as pd
 from collections import OrderedDict
 from impedancefitter import get_equivalent_circuit_model, PostProcess, Fitter
+from matplotlib import rcParams
+
+rcParams['figure.figsize'] = [20, 10]
 
 # parameters
 f = np.logspace(1, 8)

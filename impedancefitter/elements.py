@@ -157,25 +157,25 @@ def Z_w(omega, Aw):
     return Aw * (1. - 1j) / np.sqrt(omega)
 
 
-def Z_stray(omega, C_stray):
+def Z_stray(omega, Cs):
     """Stray capacitance in pF
 
     Parameters
     ----------
     omega: :class:`numpy.ndarray`
         List of frequencies.
-    C_stray: double
+    Cs: double
         Stray capacitance, for numerical reasons in pF.
     Returns
     -------
     :class:`numpy.ndarray`, complex
         Impedance array
     """
-    if np.isclose(C_stray, 0, atol=1e-5):
+    if np.isclose(Cs, 0, atol=1e-5):
         raise RuntimeError("""Stray capacitance is too small to be added.
                           Did you maybe forget to enter it in terms of pF?""")
 
-    return Z_C(omega, C_stray * 1e-12)
+    return Z_C(omega, Cs * 1e-12)
 
 
 def Z_ws(omega, Aw, B):
