@@ -151,7 +151,12 @@ class Fitter(object):
         # read in all data and store it
         if self.fileList is None:
             self.fileList = os.listdir(self.directory)
+        read_data_sets = 0
         for filename in self.fileList:
+            if self.data_sets:
+                if read_data_sets == self.data_sets:
+                    logger.debug("Reached maximum number of data sets.")
+                    break
             filename = os.fsdecode(filename)
             if filename.endswith(self.excludeEnding):
                 logger.info("""Skipped file {}
@@ -163,6 +168,7 @@ class Fitter(object):
             if status:
                 self.omega_dict[str(filename)] = omega
                 self.z_dict[str(filename)] = zarray
+                read_data_sets += 1
 
     def _parse_kwargs(self, kwargs):
         """parses the different kwargs when the Fitter object
