@@ -22,8 +22,8 @@ import yaml
 import logging
 import pyparsing as pp
 import re
-import schemdraw
-import schemdraw.elements as elm
+import SchemDraw
+import SchemDraw.elements as elm
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
@@ -695,7 +695,7 @@ def _model_label(model):
 
 def _get_element(name):
     resistors = ["R"]
-    capacitors = ["C", "Cs"]
+    capacitors = ["C", "Cstray"]
     resistorlike = ['ColeCole',
                     'ColeColeR',
                     'Randles',
@@ -764,11 +764,97 @@ def draw_scheme(modelname, show=True, save=False):
     _check_circuit(circuitstr.asList()[0], startpar=modelname.startswith("parallel"))
 
     # start drawing
-    d = schemdraw.Drawing()
-    d.add(elm.LINE, d='right')
-
+    d = SchemDraw.Drawing()
+    source = d.add(elm.DOT)
+    _cycle_circuit(circuitstr.asList()[0], d)
     # finalize drawing
-    d.add(elm.LINE, d='right')
+    d.add(elm.DOT)
+    d.add(elm.LINE, d='up', theta=90)
+    source = d.add(elm.SOURCE_SIN, d='left', label="Impedance analyzer", tox=source.start)
+    d.add(elm.LINE, d='down')
     d.draw(showplot=show)
     if save:
         d.save('scheme.svg')
+
+
+def _cycle_circuit(circuit, d, **kwargs):
+    """Generate sketch for (sub-)circuit.
+
+    Parameters
+    ----------
+    circuit: list
+        Nested list representation of circuit.
+    d: Drawing
+        SchemDraw Drawing object.
+
+    Returns
+    -------
+    Drawing:
+        the final drawing of the entire (sub-)circuit
+    """
+    logger.debug("circuit: {}".format(circuit))
+    print("circuit: {}".format(circuit))
+    print(kwargs)
+    if isinstance(circuit, str):
+        circuit = [circuit]
+    if not isinstance(circuit, list):
+        raise RuntimeError("You must have entered a wrong circuit!")
+
+    # if there are elements in series or only one element
+    if '+' in circuit or len(circuit) == 1:
+        d = _add_series_drawing(circuit, d, **kwargs)
+    elif ',' in circuit:
+        d = _add_parallel_drawing(circuit, d, **kwargs)
+    else:
+        raise RuntimeError("You must have entered a wrong circuit!")
+    return d
+
+
+def _draw_element(c, d, **kwargs):
+    if isinstance(c, str):
+        element, label = _get_element(c)
+        e = d.add(element, d="right", label=label, **kwargs)
+        print(e.start, e.end)
+    elif isinstance(c, list):
+        d = _cycle_circuit(c, d, **kwargs)
+    return d
+
+
+def _add_series_drawing(circuit, d, **kwargs):
+    for c in circuit:
+        if c == '+':
+            continue
+        d = _draw_element(c, d, **kwargs)
+    return d
+
+
+def _add_parallel_drawing(circuit, d, **kwargs):
+    assert len(circuit) == 3, "The model must be [model1, ',' , model2]"
+    first_element = circuit[0]
+    second_element = circuit[2]
+    # add first element
+    d.push()
+    d = _draw_element(first_element, d, **kwargs)
+    if 'tox' not in kwargs:
+        tox = d.here[0]
+    else:
+        tox = kwargs['tox']
+    if 'toy' not in kwargs:
+        toy = d.here[1]
+    else:
+        toy = kwargs['toy']
+    d.pop()
+
+    # add second element
+    d.add(elm.LINE, d='down')  #, toy=toy)
+    d.push()
+    d = _draw_element(second_element, d, tox=tox)
+    print(d.here[1])
+    toytmp = toy
+    if toy > d.here[1]:
+        toytmp = d.here[1]
+    d.add(elm.LINE, d='up', toy=toy)
+    toy = toytmp
+    d.pop()
+
+    return d
