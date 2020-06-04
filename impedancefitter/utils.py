@@ -22,6 +22,8 @@ import yaml
 import logging
 import pyparsing as pp
 import re
+import schemdraw
+import schemdraw.elements as elm
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
@@ -273,7 +275,7 @@ def get_labels(params):
     ----------
 
     params: list of string
-        list with parameters names (possible prefixes included
+        list with parameters names (possible prefixes included)
 
     Returns
     -------
@@ -362,6 +364,8 @@ def available_models():
               'C',
               'W',
               'Wo',
+              'LCR',
+              'LR',
               'Ws']
     return models
 
@@ -657,3 +661,114 @@ def get_equivalent_circuit_model(modelname, logscale=False):
 
 def dummy(omega):
     return np.ones(omega.shape)
+
+
+def _model_label(model):
+    labels = {'ColeCole': 'Cole-Cole',
+              'ColeColeR': 'Cole-Cole w/ R',
+              'Randles': 'Randles',
+              'RandlesCPE': 'Randles w/ CPE',
+              'RCfull': 'RC',
+              'RC': 'RC micro',
+              'SingleShell': 'Single Shell',
+              'DoubleShell': 'DoubleShell',
+              'CPE': 'CPE',
+              'CPECT': 'CPE',
+              'CPECTW': 'CPE',
+              'DRC': 'DRC',
+              'L': 'L',
+              'R': 'R',
+              'C': 'C',
+              'Cstray': 'C [pF]',
+              'W': 'W',
+              'Wo': 'W open',
+              'Ws': 'W short',
+              'LCR': 'LCR',
+              'LR': 'LR'}
+
+    try:
+        label = labels[model]
+    except KeyError:
+        print("There has not yet been a label defined for the model {}".format(model))
+    return label
+
+
+def _get_element(name):
+    resistors = ["R"]
+    capacitors = ["C", "Cs"]
+    resistorlike = ['ColeCole',
+                    'ColeColeR',
+                    'Randles',
+                    'RandlesCPE',
+                    'RCfull',
+                    'RC',
+                    'DRC',
+                    'SingleShell',
+                    'DoubleShell']
+    capacitorlike = ['CPE',
+                     'CPECT',
+                     'CPECTW',
+                     'W',
+                     'Wo',
+                     'Ws']
+    inductors = ["L"]
+    inductorlike = ["LR", "LCR"]
+
+    tmp = name.split("_")
+    par = tmp[0]
+    label = _model_label(par)
+    if len(tmp) == 2:
+        pre = tmp[1]
+        label += "_" + pre
+
+    if par in resistors:
+        element = elm.RBOX
+    elif par in resistorlike:
+        element = elm.RES
+    elif par in capacitors:
+        element = elm.CAP
+    elif par in capacitorlike:
+        element = elm.CAP2
+    elif par in inductors:
+        element = elm.INDUCTOR
+    elif par in inductorlike:
+        element = elm.INDUCTOR2
+    return element, label
+
+
+def draw_scheme(modelname, show=True, save=False):
+    """Show (and save) SchemDraw drawing.
+
+    Parameters
+    ----------
+    modelname: str
+        String representation of the equivalent circuit.
+    show: bool, optional
+        Show scheme in matplotlib window.
+    save: bool, optional
+        Save scheme to file. File is called `scheme.svg`.
+    """
+
+    # read and check circuit
+    str2parse = modelname.replace("parallel", "")
+    circuit_elements = pp.Word(pp.srange("[a-zA-Z_0-9]"))
+    plusop = pp.Literal('+')
+    commaop = pp.Literal(',')
+    expr = pp.infixNotation(circuit_elements,
+                            [(plusop, 2, pp.opAssoc.LEFT),
+                             (commaop, 2, pp.opAssoc.LEFT)])
+    try:
+        circuitstr = expr.parseString(str2parse)
+    except pp.ParseException:
+        raise ("You must provide a correct string!")
+    _check_circuit(circuitstr.asList()[0], startpar=modelname.startswith("parallel"))
+
+    # start drawing
+    d = schemdraw.Drawing()
+    d.add(elm.LINE, d='right')
+
+    # finalize drawing
+    d.add(elm.LINE, d='right')
+    d.draw(showplot=show)
+    if save:
+        d.save('scheme.svg')
