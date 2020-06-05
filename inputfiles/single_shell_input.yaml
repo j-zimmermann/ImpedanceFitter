@@ -1,4 +1,0 @@
-km: {value: 0.0003, min: 4e-10, max: 1000, vary: True} 
-em: {value: 11, min: 2, max: 1000, vary: True}
-kcp: {value: 0.4, min: 0.1, max: 500, vary: True}
-kmed: {value: 0.05, min: 0.04, max: 10000, vary: True}
