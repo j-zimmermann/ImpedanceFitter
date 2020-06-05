@@ -16,6 +16,19 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
+from logging import NullHandler
+
+logger = logging.getLogger('impedancefitter')
+logger.addHandler(NullHandler())
+
+
+def log_impedancefitter(level=logging.INFO):
+    logger.setLevel(level)
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+    logger.addHandler(ch)
+
 from .fitter import Fitter
 from .postprocess import PostProcess
 from .utils import get_labels, available_models, get_equivalent_circuit_model, draw_scheme

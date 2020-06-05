@@ -38,14 +38,6 @@ def Z_loss(omega, L, C, R):
     :class:`numpy.ndarray`, complex
         Impedance array
 
-    References
-    ----------
-    .. [Kordzadeh2016] Kordzadeh, A., & De Zanche, N. (2016).
-           Permittivity measurement of liquids, powders, and suspensions
-           using a parallel-plate cell.
-           Concepts in Magnetic Resonance Part B: Magnetic Resonance Engineering,
-           46(1), 19–24. https://doi.org/10.1002/cmr.b.21318
-
     Notes
     -----
 

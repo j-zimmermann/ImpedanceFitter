@@ -17,7 +17,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import logging
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,9 +31,7 @@ from .readin import (readin_Data_from_TXT_file,
                      readin_Data_from_collection,
                      readin_Data_from_csv_E4980AL)
 from .plotting import plot_impedance, plot_uncertainty
-
-# create logger
-logger = logging.getLogger('impedancefitter-logger')
+from . import logger, log_impedancefitter
 
 
 class Fitter(object):
@@ -86,6 +83,8 @@ class Fitter(object):
         No other files will be processed.
         This option is particularly good if you have a common
         fileending of your data (e.g., `.csv`)
+    show: bool, optional
+        Decide if you want to see the plots during the fitting procedure.
     savefig: bool, optional
         Decide if you want to save the plots. Default is False.
     trace_b: string, optional
@@ -138,13 +137,8 @@ class Fitter(object):
         if directory is None:
             directory = os.getcwd()
         self.directory = directory + '/'
-        logger.setLevel(self.LogLevel)
 
-        if not len(logger.handlers):
-            # create console handler and set level to debug
-            ch = logging.StreamHandler()
-            ch.setLevel(logging.DEBUG)
-            logger.addHandler(ch)
+        log_impedancefitter(self.LogLevel)
 
         self.omega_dict = {}
         self.z_dict = {}
@@ -193,6 +187,7 @@ class Fitter(object):
         self.log = False
         self.solver_kwargs = {}
         self.weighting = None
+        self.show = False
 
         # for txt files
         self.trace_b = None
@@ -224,6 +219,8 @@ class Fitter(object):
             self.skiprows_txt = kwargs['skiprows_txt']
         if 'skiprows_trace' in kwargs:
             self.skiprows_trace = kwargs['skiprows_trace']
+        if 'show' in kwargs:
+            self.show = kwargs['show']
         if 'savefig' in kwargs:
             self.savefig = kwargs['savefig']
         if 'delimiter' in kwargs:
@@ -798,8 +795,6 @@ class Fitter(object):
         """Fit data from input file to model.
 
         Wrapper for LMFIT fitting routine.
-        If :attr:`LogLevel` is `DEBUG`, the fit result is
-        visualised.
 
         Parameters
         ----------
@@ -832,19 +827,15 @@ class Fitter(object):
         else:
             Z_fit = fit_output.best_fit
         logger.debug("Fit successful")
-        if self.LogLevel == 'DEBUG':
-            show = True
-        else:
-            show = False
         # plots if LogLevel is DEBUG or figure should be saved
-        if getattr(logging, self.LogLevel) < 20 or self.savefig:
-            if getattr(logging, self.LogLevel) < 20:
-                logger.debug("Going to plot results")
+        if self.show or self.savefig:
+            if self.show:
+                logger.info("Going to plot results")
             if self.savefig:
                 logger.info("Going to save plot of fit result to file.")
             title = "fit_result_" + filename
             plot_impedance(self.omega, fit_output.data, title=title, Z_fit=Z_fit,
-                           show=show, save=self.savefig)
+                           show=self.show, save=self.savefig)
         return fit_output
 
     def plot_initial_best_fit(self, sequential=False):
@@ -877,7 +868,7 @@ class Fitter(object):
                 plot_impedance(self.omega, self.Z, "", Z_fit=Z_fit,
                                show=True, save=False, Z_comp=Z_init)
 
-    def cluster_emcee_result(self, constant=1e2):
+    def cluster_emcee_result(self, constant=1e2, show=False):
         r"""Apply clustering to eliminate low-probability samples.
 
         Parameters
@@ -886,6 +877,8 @@ class Fitter(object):
         constant: float
             The constant, which is used to define the threshold
             from which on walkers are eliminated.
+        show: bool, optional
+            Plot clustering result.
 
         Notes
         -----
@@ -924,7 +917,7 @@ class Fitter(object):
             walker_prob = []
             for i in range(lnprob.shape[0]):
                 walker_prob.append(-np.mean(lnprob[i]))
-            if self.LogLevel == "DEBUG":
+            if show:
                 plt.title("walkers sorted by probability")
                 plt.xlabel("walker")
                 plt.ylabel("negative mean ln probability")
@@ -934,7 +927,7 @@ class Fitter(object):
             sorted_fields = np.sort(walker_prob)
             l0 = sorted_fields[0]
             differences = np.diff((sorted_fields))
-            if self.LogLevel == "DEBUG":
+            if show:
                 plt.title("difference between adjacent walkers")
                 plt.xlabel("walker")
                 plt.ylabel("difference")
@@ -943,7 +936,7 @@ class Fitter(object):
             # numerator with j + 1 since enumerate starts from 0
             average_differences = [(x - l0) / (j + 1) for j, x
                                    in enumerate((sorted_fields[1::]))]
-            if self.LogLevel == "DEBUG":
+            if show:
                 plt.title("average difference between current and first walker")
                 plt.ylabel("average difference")
                 plt.xlabel("walker")
@@ -958,7 +951,7 @@ class Fitter(object):
                     cut = i
                     logger.debug("Cut off at walker {}".format(cut))
                     break
-            if self.LogLevel == "DEBUG":
+            if show:
                 plt.title("Acceptance fractions after clustering")
                 plt.xlabel("walker")
                 plt.ylabel("acceptance fraction")
@@ -1253,12 +1246,6 @@ class Fitter(object):
 
         logger.info("Used M={} RC elements.".format(M - 1))
         return model_result, mus
-
-    def update_logLevel(self, LogLevel):
-        self.LogLevel = LogLevel
-        logger.setLevel(self.LogLevel)
-        for h in logger.handlers:
-            h.setLevel(self.LogLevel)
 
 
 def _compute_mu(fit_values):

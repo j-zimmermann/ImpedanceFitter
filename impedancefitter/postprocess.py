@@ -22,10 +22,8 @@ from math import ceil
 import openturns as ot
 from openturns.viewer import View
 import yaml
-import logging
 from .utils import get_labels
-
-logger = logging.getLogger('impedancefitter-logger')
+from . import logger
 
 
 class PostProcess(object):

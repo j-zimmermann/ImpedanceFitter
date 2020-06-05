@@ -28,8 +28,8 @@ data = {'freq': frequencies, 'real': Z.real,
 df = pandas.DataFrame(data=data)
 df.to_csv('test.csv', index=False)
 
-# initialise fitter with verbose output
-fitter = impedancefitter.Fitter('CSV', LogLevel='DEBUG')
+# initialise fitter with verbose output and show fit result
+fitter = impedancefitter.Fitter('CSV', LogLevel='DEBUG', show=True)
 os.remove('test.csv')
 
 # define model and initial guess

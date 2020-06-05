@@ -16,10 +16,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import logging
 import pandas as pd
 import numpy as np
-logger = logging.getLogger('impedancefitter-logger')
+from . import logger
 
 
 def readin_Data_from_collection(filepath, fileformat, minimumFrequency=None, maximumFrequency=None):

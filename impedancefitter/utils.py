@@ -19,7 +19,6 @@
 
 import numpy as np
 import yaml
-import logging
 import pyparsing as pp
 import re
 import SchemDraw
@@ -36,8 +35,7 @@ from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model
 from .single_shell import single_shell_model
 from lmfit import Model, CompositeModel
 from copy import deepcopy
-
-logger = logging.getLogger('impedancefitter-logger')
+from . import logger
 
 
 def return_diel_properties(omega, Z, c0):

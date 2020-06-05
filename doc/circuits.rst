@@ -77,3 +77,10 @@ RC circuits
 
 .. automodule:: impedancefitter.RC
 	:members:
+
+Randles circuits
+----------------
+
+.. automodule:: impedancefitter.randles
+	:members:
+

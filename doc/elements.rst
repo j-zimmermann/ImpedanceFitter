@@ -23,11 +23,11 @@ Names for building the model
 +-------+------------------------------------------+
 | L     | :meth:`impedancefitter.elements.Z_L`     |
 +-------+------------------------------------------+
-| W     | :meth:`impedancefitter.elements.Z_W`     |
+| W     | :meth:`impedancefitter.elements.Z_w`     |
 +-------+------------------------------------------+
-| Wo    | :meth:`impedancefitter.elements.Z_Wo`    |
+| Wo    | :meth:`impedancefitter.elements.Z_wo`    |
 +-------+------------------------------------------+
-| Ws    | :meth:`impedancefitter.elements.Z_Ws`    |
+| Ws    | :meth:`impedancefitter.elements.Z_ws`    |
 +-------+------------------------------------------+
 | Cstray| :meth:`impedancefitter.elements.Z_stray` |
 +-------+------------------------------------------+

@@ -137,14 +137,6 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
 
         Z = \frac{1}{j \varepsilon_\mathrm{sus}^\ast \omega c_0}
 
-    References
-    ----------
-
-    .. [Feldman2003] Feldman, Y., Ermolina, I., & Hayashi, Y. (2003).
-           Time domain dielectric spectroscopy study of biological systems.
-           IEEE Transactions on Dielectrics and Electrical Insulation, 10, 728–753.
-           https://doi.org/10.1109/TDEI.2003.1237324
-
     In [Ermolina2000]_ , there have been reported upper/lower limits for certain parameters.
     They could act as a first guess for the bounds of the optimization method.
 

@@ -55,8 +55,6 @@ refer to :meth:`impedancefitter.fitter.Fitter.sequential_run`.
 This method allows one to communicate inferered parameters to the second model.
 In [Sabuncu2012]_, an example of such a sequential procedure has been presented.
 
-.. [Sabuncu2012] Sabuncu, A. C., Zhuang, J., Kolb, J. F., & Beskok, A. (2012). Microfluidic impedance spectroscopy as a tool for quantitative biology and biotechnology. Biomicrofluidics, 6(3). https://doi.org/10.1063/1.4737121
-
 Add a custom model
 ------------------
 

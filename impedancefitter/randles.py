@@ -19,9 +19,6 @@
 
 import numpy as np
 from .elements import Z_CPE, parallel
-import logging
-
-logger = logging.getLogger('impedancefitter-logger')
 
 
 def Z_randles(omega, Rct, Rs, Aw, C0):

@@ -154,13 +154,6 @@ def rc_tau_model(omega, Rk, tauk):
 
         Z = \frac{R_\mathrm{k}}{1+ j \omega \tau_\mathrm{k}}
 
-    References
-    ----------
-
-    .. [Schoenleber2014] Schönleber, M., Klotz, D., & Ivers-Tiffée, E. (2014).
-                         A Method for Improving the Robustness of linear Kramers-Kronig Validity Tests.
-                         Electrochimica Acta, 131, 20–27. https://doi.org/10.1016/j.electacta.2014.01.034
-
     """
 
     return Rk / (1. + 1j * omega * tauk)
