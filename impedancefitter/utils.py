@@ -35,6 +35,7 @@ from .RC import RC_model, rc_model, drc_model, rc_tau_model
 from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model
 from .single_shell import single_shell_model
 from lmfit import Model, CompositeModel
+from copy import deepcopy
 
 logger = logging.getLogger('impedancefitter-logger')
 
@@ -611,7 +612,6 @@ def _check_circuit(circuit, startpar=False):
                 continue
             else:
                 raise RuntimeError("You must have entered a wrong circuit!")
-            print(c)
         elif isinstance(c, list):
             _check_circuit(c)
 
@@ -640,6 +640,7 @@ def get_equivalent_circuit_model(modelname, logscale=False):
     """
 
     circuit = []
+    assert isinstance(modelname, str), "Pass the model as a string"
     str2parse = modelname.replace("parallel", "")
     circuit_elements = pp.Word(pp.srange("[a-zA-Z_0-9]"))
     plusop = pp.Literal('+')
@@ -750,6 +751,7 @@ def draw_scheme(modelname, show=True, save=False):
     """
 
     # read and check circuit
+    assert isinstance(modelname, str), "Pass the model as a string"
     str2parse = modelname.replace("parallel", "")
     circuit_elements = pp.Word(pp.srange("[a-zA-Z_0-9]"))
     plusop = pp.Literal('+')
@@ -766,18 +768,21 @@ def draw_scheme(modelname, show=True, save=False):
     # start drawing
     d = SchemDraw.Drawing()
     source = d.add(elm.DOT)
-    _cycle_circuit(circuitstr.asList()[0], d)
+    start = deepcopy(source.start)
+    d, endpts = _cycle_circuit(circuitstr.asList()[0], d, endpts=(source.start, source.end), depth=0)
     # finalize drawing
-    d.add(elm.DOT)
-    d.add(elm.LINE, d='up', theta=90)
-    source = d.add(elm.SOURCE_SIN, d='left', label="Impedance analyzer", tox=source.start)
+    endpts[0][1] = 0.0
+    endpts[1][1] = 0.0
+    d.add(elm.DOT, endpts=endpts)
+    d.add(elm.LINE, d='up')
+    d.add(elm.SOURCE_SIN, d='left', label="Impedance analyzer", tox=start)
     d.add(elm.LINE, d='down')
     d.draw(showplot=show)
     if save:
         d.save('scheme.svg')
 
 
-def _cycle_circuit(circuit, d, **kwargs):
+def _cycle_circuit(circuit, d, endpts, step=3.0, depth=0):
     """Generate sketch for (sub-)circuit.
 
     Parameters
@@ -793,8 +798,6 @@ def _cycle_circuit(circuit, d, **kwargs):
         the final drawing of the entire (sub-)circuit
     """
     logger.debug("circuit: {}".format(circuit))
-    print("circuit: {}".format(circuit))
-    print(kwargs)
     if isinstance(circuit, str):
         circuit = [circuit]
     if not isinstance(circuit, list):
@@ -802,59 +805,119 @@ def _cycle_circuit(circuit, d, **kwargs):
 
     # if there are elements in series or only one element
     if '+' in circuit or len(circuit) == 1:
-        d = _add_series_drawing(circuit, d, **kwargs)
+        d, endpts = _add_series_drawing(circuit, d, endpts, step=step, depth=depth)
     elif ',' in circuit:
-        d = _add_parallel_drawing(circuit, d, **kwargs)
+        d, endpts = _add_parallel_drawing(circuit, d, endpts, depth=depth)
     else:
         raise RuntimeError("You must have entered a wrong circuit!")
-    return d
+    return d, endpts
 
 
-def _draw_element(c, d, **kwargs):
+def _draw_element(c, d, endpts, step=3.0, depth=0):
     if isinstance(c, str):
         element, label = _get_element(c)
-        e = d.add(element, d="right", label=label, **kwargs)
-        print(e.start, e.end)
+        endpts = (endpts[0], [endpts[0][0] + step, endpts[1][1]])
+        e = d.add(element, d="right", label=label, endpts=endpts)
+        # increment position
+        endpts = (e.end, e.end)
     elif isinstance(c, list):
-        d = _cycle_circuit(c, d, **kwargs)
-    return d
+        d, endpts = _cycle_circuit(c, d, endpts, step, depth=depth + 1)
+    return d, endpts
 
 
-def _add_series_drawing(circuit, d, **kwargs):
+def _add_series_drawing(circuit, d, endpts, step=3.0, depth=0):
     for c in circuit:
         if c == '+':
             continue
-        d = _draw_element(c, d, **kwargs)
-    return d
+        if depth == 0:
+            endpts[0][1] = 0.0
+            endpts[1][1] = 0.0
+        d, endpts = _draw_element(c, d, endpts, step, depth=depth)
+    return d, endpts
 
 
-def _add_parallel_drawing(circuit, d, **kwargs):
+def _add_parallel_drawing(circuit, d, endpts, depth=0):
     assert len(circuit) == 3, "The model must be [model1, ',' , model2]"
+
     first_element = circuit[0]
     second_element = circuit[2]
+
     # add first element
-    d.push()
-    d = _draw_element(first_element, d, **kwargs)
-    if 'tox' not in kwargs:
-        tox = d.here[0]
-    else:
-        tox = kwargs['tox']
-    if 'toy' not in kwargs:
-        toy = d.here[1]
-    else:
-        toy = kwargs['toy']
-    d.pop()
+    anchorx1 = deepcopy(endpts[0][0])
+    anchory1 = deepcopy(endpts[0][1])
 
+    # default
+    step = 3.0
+    # account for possible overlength of previous element
+    distance = endpts[1][0] - endpts[0][0]
+    if distance > 0:
+        step = _get_step_width(first_element, distance)
+
+    d, endpts = _draw_element(first_element, d, endpts, step=step, depth=depth)
+
+    anchorx2 = deepcopy(endpts[0][0])
+    anchory2 = deepcopy(endpts[1][1])
+
+    distance = anchorx2 - anchorx1
+    assert distance > 0, "There is something wrong with your circuit."
+    # find longest series in 2nd element
+    longest = _determine_longest_length(second_element)
+    if not np.less_equal(longest * 3.0, distance):
+        raise RuntimeError("""There is a subcircuit in a parallel circuit
+                              that is longer than the first circuit.
+                              For example: `parallel(R_f1, C + R)`.
+                              If you want to draw such a circus, reformulate it
+                              as `parallel(C + R, R_f1)`""")
+
+    step = _get_step_width(second_element, distance)
     # add second element
-    d.add(elm.LINE, d='down')  #, toy=toy)
-    d.push()
-    d = _draw_element(second_element, d, tox=tox)
-    print(d.here[1])
-    toytmp = toy
-    if toy > d.here[1]:
-        toytmp = d.here[1]
-    d.add(elm.LINE, d='up', toy=toy)
-    toy = toytmp
-    d.pop()
+    endpts = ([anchorx1, anchory1], [anchorx1, anchory2 - 3.0])
 
-    return d
+    d.add(elm.LINE, d='down', endpts=endpts)
+
+    endpts = ([anchorx1, anchory2 - 3.0], [anchorx2, anchory2 - 3.0])
+
+    d, endpts = _draw_element(second_element, d, endpts=endpts, step=step, depth=depth)
+
+    anchory2 = deepcopy(endpts[1][1])
+    endpts = ([endpts[1][0], endpts[1][1]], [endpts[1][0], anchory1])
+    d.add(elm.LINE, d='up', endpts=endpts)
+    endpts = ([anchorx2, anchory2], [anchorx2, anchory2])
+
+    return d, endpts
+
+
+def _determine_longest_length(circuit):
+    longest_length = 0
+    counter = [0, 0]
+    side = 0
+    if isinstance(circuit, str):
+        return 1
+    for c in circuit:
+        if isinstance(c, str):
+            if c != '+' and c != ',':
+                counter[side] += 1
+            elif c == ",":
+                side += 1
+        elif isinstance(c, list):
+            tmp = _determine_longest_length(circuit)
+            if tmp > longest_length:
+                longest_length = tmp
+
+    if max(counter) > longest_length:
+        return max(counter)
+    else:
+        return longest_length
+
+
+def _get_step_width(circuit, distance):
+    counter = 0
+    if isinstance(circuit, str):
+        return distance
+    for c in circuit:
+        if c == ',':
+            break
+        elif c != '+':
+            counter += 1
+    step = distance / counter
+    return step

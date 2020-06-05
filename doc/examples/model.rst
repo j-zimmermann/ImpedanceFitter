@@ -17,6 +17,21 @@ can be formulated in ImpedanceFitter as:
  
 The model consists of the basic elements
 `R`, `W`, and `C` with respective suffix.
+
+It can be drawn by 
+
+.. code-block:: python
+
+      impedancefitter.draw_scheme(model)
+
+Note that the interface to draw the equivalent circuit is quite simplistic
+and might not be correct for very complicated circuits!
+
+For this circuit it yields
+
+.. image:: scheme.*
+        :width: 600
+
 The impedance for a list of frequencies can the be 
 computed by calling
 

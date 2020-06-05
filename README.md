@@ -1,5 +1,5 @@
-How to use this package
-=======================
+ImpedanceFitter
+===============
 
 Documentation
 -------------
@@ -39,5 +39,14 @@ Simply run `pytest` inside the repository main directory.
 Use ImpedanceFitter
 -------------------
 
-Check out the `examples` directory to see how 
+Check out the `examples` directory and the documentation to see how 
 ImpedanceFitter is supposed to work.
+
+
+Contribute
+----------
+
+This project started during Julius' PhD studies.
+Hence, there might be bugs or missing functionality.
+Please, feel free to raise an issue here on github
+or create a pull request!
