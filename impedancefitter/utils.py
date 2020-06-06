@@ -116,7 +116,8 @@ def check_parameters(bufdict):
     """
 
     # capacitances in pF
-    capacitances = ['c0', 'Cs']
+    capacitancespF = ['c0', 'Cs']
+    capacitances = ['C']
     # taus in ns
     taus = ['tau', 'tauE']
     zerotoones = ['p', 'a', 'alpha', 'beta']
@@ -141,7 +142,7 @@ def check_parameters(bufdict):
         if par in exceptions:
             continue
 
-        if par in capacitances:
+        if par in capacitancespF:
             assert not np.isclose(bufdict[p].value, 0.0, atol=1e-5),\
                 """{} is used in pF, do you really want it to be that small?
                    It will be ignored in the analysis""".format(p)
@@ -185,6 +186,9 @@ def check_parameters(bufdict):
             if bufdict[p].min < 0.0:
                 logger.debug("{} needs to be positive. Changed your min value to 0.".format(p))
                 bufdict[p].set(min=0.0)
+                if par in capacitances:
+                    # to avoid division by zero
+                    bufdict[p].set(min=1e-12)
             if bufdict[p].max < 0.0:
                 logger.debug("{} needs to be positive. Changed your max value to inf.".format(p))
                 bufdict[p].set(max=np.inf)

@@ -145,7 +145,7 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
 
 def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
                    labels=["data", "best fit", "init fit"], residual="parts", sign=False,
-                   Zlog=False, append=False):
+                   Zlog=False, append=False, limits_residual=None):
     """Plot the `result` and compare it to data `Z`.
 
     Generates 4 subplots showing the real and imaginary parts over
@@ -273,7 +273,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.plot(Z_comp.real, -Z_comp.imag, 'x', label=labels[2])
     plt.legend()
     if Z_fit is not None:
-        plot_compare_to_data(omega, Z, Z_fit, subplot=224, residual=residual, sign=sign)
+        plot_compare_to_data(omega, Z, Z_fit, subplot=224, residual=residual, sign=sign,
+                             limits=limits_residual)
     plt.tight_layout()
     if save and not append:
         plt.savefig(str(title).replace(" ", "_") + "_impedance_overview.pdf")
@@ -284,7 +285,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
 
 
 def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, save=False,
-                         residual="parts", sign=False):
+                         residual="parts", sign=False, limits=None):
     '''
     plots the difference of the fitted function to the data
 
@@ -313,6 +314,8 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         Plot relative difference w.r.t. real and imaginary part if `parts`.
         Plot relative difference w.r.t. absolute value if `absolute`.
         Plot difference (residual) if `diff`.
+    limits: list, optional
+        List with entries `[bottom, top]` for y-axis of residual plot.
     '''
     if subplot is None:
         plt.figure()
@@ -327,7 +330,6 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
     elif residual == "absolute":
         diff_real = 100. * (Z.real - Z_fit.real) / np.abs(Z)
         diff_imag = 100. * (Z.imag - Z_fit.imag) / np.abs(Z)
-        diff_abs = 100. * np.abs((Z - Z_fit) / Z)
         lbl_prefix = 'rel. '
     elif residual == "diff":
         diff_real = Z.real - Z_fit.real
@@ -347,7 +349,11 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
     plt.ylabel('rel. difference to data [%]')
     plt.plot(omega / (2. * np.pi), diff_real, 'g', label=lbl_prefix + 'difference real part')
     plt.plot(omega / (2. * np.pi), diff_imag, 'r', label=lbl_prefix + 'difference imag part')
-    plt.plot(omega / (2. * np.pi), diff_abs, 'b', label=lbl_prefix + 'difference absolute value')
+    if residual != "absolute":
+        plt.plot(omega / (2. * np.pi), diff_abs, 'b', label=lbl_prefix + 'difference w.r.t. abs value')
+    if limits is not None:
+        assert len(limits) == 2, "You need to provide upper and lower limit!"
+        plt.ylim(limits)
     plt.legend()
     if save:
         if residual != "diff":

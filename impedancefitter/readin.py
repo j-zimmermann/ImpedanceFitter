@@ -68,8 +68,8 @@ def readin_Data_from_collection(filepath, fileformat, minimumFrequency=None, max
         minimumFrequency = values[0, 0]
     if maximumFrequency is None:
         maximumFrequency = values[-1, 0]
-    logger.debug("minimumFrequency is {}".format(minimumFrequency))
-    logger.debug("maximumFrequency is {}".format(maximumFrequency))
+    logger.info("minimumFrequency is {}".format(minimumFrequency))
+    logger.info("maximumFrequency is {}".format(maximumFrequency))
 
     for i in range(values.shape[0]):
         if np.greater_equal(values[i, 0], minimumFrequency):
@@ -105,11 +105,11 @@ def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequen
 
     filepath: string
         Provide the full filepath
-    minimumFrequency: optional
+    minimumFrequency: float, optional
         Provide a minimum frequency. All values below this frequency will be ignored.
-    maximumFrequency: optional
+    maximumFrequency: float, optional
         Provide a maximum frequency. All values above this frequencies will be ignored.
-    current_threshold: optional
+    current_threshold: float, optional
         Provides a current that the device had to pass through the sample. This threshold has
         to be met with 1% accuracy.
 
@@ -133,8 +133,6 @@ def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequen
         minimumFrequency = values[0, 0]
     if maximumFrequency is None:
         maximumFrequency = values[-1, 0]
-    logger.debug("minimumFrequency is {}".format(minimumFrequency))
-    logger.debug("maximumFrequency is {}".format(maximumFrequency))
 
     for i in range(values.shape[0]):
         if np.greater_equal(values[i, 0], minimumFrequency):
@@ -153,6 +151,11 @@ def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequen
 
     f = values[:, 0]
     omega = 2. * np.pi * f
+
+    if f.size > 0:
+        logger.info("minimumFrequency is {}".format(f.min()))
+        logger.info("maximumFrequency is {}".format(f.max()))
+
     # construct complex-valued array from float data
     zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
 
@@ -214,7 +217,7 @@ def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None,
         Contains collection of impedance spectra. Has shape (1, number of frequencies).
 
     """
-    logger.debug('going to process  text file: ' + filepath)
+    logger.info('going to process  text file: ' + filepath)
     max_rows = None  # numpy default
     if trace_b is not None:
         max_rows = _get_max_rows(filepath, trace_b, skiprows_txt, skiprows_trace)
@@ -228,10 +231,10 @@ def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None,
     filteredvalues = np.empty((0, fileDataArray.shape[1]))
     if minimumFrequency is None:
         minimumFrequency = fileDataArray[0, 0].astype(np.float)
-        logger.debug("minimumFrequency is {}".format(minimumFrequency))
+        logger.info("minimumFrequency is {}".format(minimumFrequency))
     if maximumFrequency is None:
         maximumFrequency = fileDataArray[-1, 0].astype(np.float)
-        logger.debug("maximumFrequency is {}".format(maximumFrequency))
+        logger.info("maximumFrequency is {}".format(maximumFrequency))
     for i in range(fileDataArray.shape[0]):
         if (np.greater_equal(fileDataArray[i, 0], minimumFrequency)
                and np.less_equal(fileDataArray[i, 0], maximumFrequency)):

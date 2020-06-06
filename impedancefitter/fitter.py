@@ -576,6 +576,13 @@ class Fitter(object):
                                                          current_threshold=self.current_threshold)
         else:
             return False, None, None
+
+        if zarray.size == 0:
+            raise RuntimeError("""In file {} an empty data set was provided.
+                                  If you used the E4980AL and set a current_threshold,
+                                  the reason might be that there was no data point that matched
+                                  the current_threshold.""".format(filename))
+
         return True, omega, zarray
 
     def _process_fitting_results(self, filename):
@@ -1128,6 +1135,7 @@ class Fitter(object):
         results = {}
         mus = {}
         titlebegin = "Lin-KK test "
+
         if capacitance:
             titlebegin += "capacitance "
         if inductance:
@@ -1153,7 +1161,7 @@ class Fitter(object):
                     if self.log:
                         Z = np.power(10, Z)
                     plot_impedance(self.omega, Zdata, title=titlebegin + str(key) + str(i),
-                                   Z_fit=Z, residual="absolute",
+                                   Z_fit=Z, residual="absolute", limits_residual=[-2, 2],
                                    show=show, save=self.savefig, sign=True)
 
         return results, mus
@@ -1200,7 +1208,11 @@ class Fitter(object):
 
         # initialize initial resistor
         modelstr = "R"
-        parameters = {'R': {'value': 1.0}}
+
+        wi = 1. / (self.Z.real * self.Z.real + self.Z.imag * self.Z.imag)
+        sumwi = np.sum(wi)
+        ROhm = np.sum(wi * self.Z.real) / sumwi
+        parameters = {'R': {'value': ROhm, 'vary': False}}
 
         # add capacitance and inductance if specified
         if capacitance:
@@ -1217,10 +1229,13 @@ class Fitter(object):
             for m in range(M):
                 if m >= start:
                     modelstr += " + RCtau_k" + str(m)
-                    parameters['k' + str(m) + '_Rk'] = {'value': 1.0}
+                    if m == 0:
+                        parameters['k' + str(m) + '_Rk'] = {'value': 0}
+                    else:
+                        parameters['k' + str(m) + '_Rk'] = {'value': parameters['k' + str(m - 1) + '_Rk']['value']}
                     # first parameter is always the same
                     if m == 0:
-                        parameters['k0_tauk'] = {'value': tau_min, 'vary': False}
+                        parameters['k0_tauk'] = {'value': tau_max, 'vary': False}
                 if M > 1:
                     # note that k - 1 is here m since Python uses zero-based indexing
                     parameters['k' + str(m) + '_tauk'] = {'value': np.power(10, np.log10(tau_min) + m / (M - 1) * np.log10(tau_max / tau_min)),
@@ -1237,12 +1252,17 @@ class Fitter(object):
             model_result = self._fit_data(model, model_parameters, log=self.log,
                                           weights=weights)
             mu = _compute_mu(model_result.best_values)
+            # update initial guess
+            for p in parameters:
+                parameters[p]['value'] = model_result.best_values[p]
             logger.debug("\nmu = {}, c = {}\n".format(mu, c))
             mus.append(mu)
             if M == maxM:
                 logger.warning("Reached maximum number of RC elements.")
                 break
             M += 1
+            ROhm = np.sum(wi * (self.Z.real - model_result.best_fit.real + ROhm)) / sumwi
+            parameters['R']['value'] = ROhm
 
         logger.info("Used M={} RC elements.".format(M - 1))
         return model_result, mus
