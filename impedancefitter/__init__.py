@@ -25,9 +25,18 @@ logger.addHandler(NullHandler())
 
 def log_impedancefitter(level=logging.INFO):
     logger.setLevel(level)
-    ch = logging.StreamHandler()
-    ch.setLevel(level)
-    logger.addHandler(ch)
+    # to avoid multiple output in Jupyter notebooks
+    if len(logger.handlers) == 1:
+        ch = logging.StreamHandler()
+        ch.setLevel(level)
+        logger.addHandler(ch)
+
+
+def update_loglevel(level):
+    logger = logging.getLogger()
+    logger.setLevel(level)
+    for handler in logger.handlers:
+        handler.setLevel(level)
 
 from .fitter import Fitter
 from .postprocess import PostProcess
