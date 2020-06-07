@@ -303,7 +303,7 @@ class Fitter(object):
         return set_parameters(model, parameterdict=parameters,
                               emcee=emcee)
 
-    def initialize_model(self, modelname, log):
+    def initialize_model(self, modelname, log=False):
         """Interface to LMFIT model class.
 
         The equivalent circuit (represented as a string)
@@ -1097,7 +1097,8 @@ class Fitter(object):
         """
 
     def linkk_test(self, capacitance=False, inductance=False, c=0.85, maxM=100,
-                   show=True, weighting=None):
+                   show=True,
+                   limits=[-2, 2]):
         """Lin-KK test to check Kramers-Kronig validity.
 
         Parameters
@@ -1113,6 +1114,8 @@ class Fitter(object):
             Maximum number of RC elements. Default is 100.
         show: bool
             Show plots of test result. Default is True.
+        limits: list, optional
+            Lower and upper limit of residual.
 
 
        Notes
@@ -1131,9 +1134,9 @@ class Fitter(object):
                             A Method for Improving the Robustness of linear Kramers-Kronig Validity Tests.
                             Electrochimica Acta, 131, 20–27. https://doi.org/10.1016/j.electacta.2014.01.034
         """
-        self.weighting = weighting
         results = {}
         mus = {}
+        residuals = {}
         titlebegin = "Lin-KK test "
 
         if capacitance:
@@ -1153,18 +1156,16 @@ class Fitter(object):
                                 over {} data sets.""".format(self.iters))
             for i in range(self.iters):
                 self.Z = self.zarray[i]
-                results[key + str(i)], mus[key + str(i)] = self._linkk_core(self.omega, self.Z, capacitance,
-                                                                            inductance, c, maxM)
+                results[key + str(i)], mus[key + str(i)], residuals[key + str(i)] = (
+                    self._linkk_core(self.omega, self.Z, capacitance,
+                                     inductance, c, maxM))
                 if show or self.savefig:
-                    Z = results[key + str(i)].best_fit
-                    Zdata = results[key + str(i)].data
-                    if self.log:
-                        Z = np.power(10, Z)
-                    plot_impedance(self.omega, Zdata, title=titlebegin + str(key) + str(i),
-                                   Z_fit=Z, residual="absolute", limits_residual=[-2, 2],
+                    Z_fit = results[key + str(i)]
+                    plot_impedance(self.omega, self.Z, title=titlebegin + str(key) + str(i),
+                                   Z_fit=Z_fit, residual="absolute", limits_residual=limits,
                                    show=show, save=self.savefig, sign=True)
 
-        return results, mus
+        return results, mus, residuals
 
     def _linkk_core(self, omega, Z, capacitance=False, inductance=False, c=0.85, maxM=100):
         """Core of Lin-KK algorithm.
@@ -1207,65 +1208,92 @@ class Fitter(object):
         mu = 1.0
 
         # initialize initial resistor
-        modelstr = "R"
+        modelR = "R"
 
-        wi = 1. / (self.Z.real * self.Z.real + self.Z.imag * self.Z.imag)
-        sumwi = np.sum(wi)
-        ROhm = np.sum(wi * self.Z.real) / sumwi
-        parameters = {'R': {'value': ROhm, 'vary': False}}
+        R = self.initialize_model(modelR)
 
+        # initialize matrix for linear least-squares
+
+        weight = 1. / np.abs(self.Z)
+
+        weightM = np.diag(weight)
+        Abase = R.eval(omega=self.omega, R=1.0).real
+        start = 1
         # add capacitance and inductance if specified
         if capacitance:
-            modelstr += " + C"
-            parameters['C'] = {'value': 1e-3}
+            modelC = "C"
+            C = self.initialize_model(modelC)
+            Abase = np.c_[Abase, C.eval(omega=self.omega, C=1.0)]
+            start += 1
 
         if inductance:
-            modelstr += " + L"
-            parameters['L'] = {'value': 1e-9}
+            modelL = "L"
+            L = self.initialize_model(modelL)
+            Abase = np.c_[Abase, L.eval(omega=self.omega, L=1.0)]
+            start += 1
         mus = []
-        start = 0
+        res = []
+
+        modelRC = "RCtau"
+        tauk = tau_max
+
+        RC = self.initialize_model(modelRC)
 
         while mu > c:
-            for m in range(M):
-                if m >= start:
-                    modelstr += " + RCtau_k" + str(m)
-                    if m == 0:
-                        parameters['k' + str(m) + '_Rk'] = {'value': 0}
-                    else:
-                        parameters['k' + str(m) + '_Rk'] = {'value': parameters['k' + str(m - 1) + '_Rk']['value']}
-                    # first parameter is always the same
-                    if m == 0:
-                        parameters['k0_tauk'] = {'value': tau_max, 'vary': False}
-                if M > 1:
-                    # note that k - 1 is here m since Python uses zero-based indexing
-                    parameters['k' + str(m) + '_tauk'] = {'value': np.power(10, np.log10(tau_min) + m / (M - 1) * np.log10(tau_max / tau_min)),
-                                                          'vary': False}
-            start = M
+            A = np.copy(Abase)
+            if M > 1:
+                for m in range(M):
+                    tauk = np.power(10, np.log10(tau_min) + m / (M - 1) * np.log10(tau_max / tau_min))
+                    A = np.c_[A, RC.eval(omega=self.omega, Rk=1.0, tauk=tauk)]
+            else:
+                A = np.c_[A, RC.eval(omega=self.omega, Rk=1.0, tauk=tauk)]
 
-            model = self.initialize_model(modelstr, log=self.log)
-            model_parameters = self._initialize_parameters(model, parameters)
+            real = weightM.dot(A.real)
+            imag = weightM.dot(A.imag)
 
-            weights = None
-            if self.weighting == "proportional":
-                weights = 1. / self.Z.real + 1j / self.Z.imag
+            # solve least-squares problem for real and imaginary part
 
-            model_result = self._fit_data(model, model_parameters, log=self.log,
-                                          weights=weights)
-            mu = _compute_mu(model_result.best_values)
-            # update initial guess
-            for p in parameters:
-                parameters[p]['value'] = model_result.best_values[p]
+            X = np.linalg.inv(real.T.dot(real) + imag.T.dot(imag))
+            Z = real.T.dot(weightM.dot(self.Z.real)) + imag.T.dot(weightM.dot(self.Z.imag))
+            b = X.dot(Z)
+
+            rks = b[start:]
+
+            mu = _compute_mu(rks)
+
             logger.debug("\nmu = {}, c = {}\n".format(mu, c))
             mus.append(mu)
-            if M == maxM:
+
+            Z_fit = R.eval(omega=omega, R=b[0])
+
+            if capacitance and not inductance:
+                Z_fit = np.sum([Z_fit, C.eval(omega=omega, C=1. / b[1])], axis=0)
+            elif capacitance and inductance:
+                Z_fit = np.sum([Z_fit, C.eval(omega=omega, C=1. / b[1])], axis=0)
+                Z_fit = np.sum([Z_fit, L.eval(omega=omega, L=b[2])], axis=0)
+            elif inductance and not capacitance:
+                Z_fit = np.sum([Z_fit, L.eval(omega=omega, L=b[1])], axis=0)
+
+            if M > 2:
+                taus = np.array([np.power(10, np.log10(tau_min) + m / (M - 1) * np.log10(tau_max / tau_min)) for m in range(M)])
+                RCtaus = np.array([RC.eval(omega=self.omega, Rk=rks[m], tauk=taus[m]) for m in range(M)])
+                add = np.sum(RCtaus, axis=0)
+                Z_fit = np.sum([Z_fit, add], axis=0)
+
+            else:
+                add = RC.eval(omega=self.omega, Rk=b[start], tauk=tauk)
+                Z_fit = np.sum([Z_fit, add], axis=0)
+            res.append(np.sum(np.abs(Z_fit - self.Z)))
+
+            M += 1
+            if M > maxM:
                 logger.warning("Reached maximum number of RC elements.")
                 break
-            M += 1
-            ROhm = np.sum(wi * (self.Z.real - model_result.best_fit.real + ROhm)) / sumwi
-            parameters['R']['value'] = ROhm
+
+        logger.debug("Exited loop after {} iterations.".format(M))
 
         logger.info("Used M={} RC elements.".format(M - 1))
-        return model_result, mus
+        return Z_fit, mus, res
 
 
 def _compute_mu(fit_values):
@@ -1273,9 +1301,9 @@ def _compute_mu(fit_values):
 
     Parameters
     ----------
-    fit_values: dict
-        Contains all fit values (also fixed taus).
-        Rks will be extracted and :math:`\mu` will be computed as
+    fit_values: list
+        Contains Rk fit values.
+        Rks are used to compute :math:`\mu` as
         described in [Schoenleber2014]_.
 
     Returns
@@ -1288,10 +1316,8 @@ def _compute_mu(fit_values):
     pos = 0
 
     for value in fit_values:
-        if "_Rk" in value:
-            Rk = fit_values[value]
-            if Rk < 0:
-                neg += -Rk
-            else:
-                pos += Rk
+        if value < 0:
+            neg += -value
+        else:
+            pos += value
     return 1. - (neg / pos)
