@@ -26,19 +26,16 @@ Then, the LinKK test can be performed for all data sets by running
 
 .. code-block:: python
 
-	results, mus = fitter.linkk_test()
+	results, mus, residuals = fitter.linkk_test()
 
-`results` contains the fit results as a dictionary with all :class:`lmfit.model.ModelResult` instances.
+`results` contains the fit results as a dictionary.
 `mus` is a dictionary with all :math:`\mu` values for an increasing number of RC-elements used in the LinKK-test. 
+`residuals` is a dictionary containing all residuals during the least-squares fit.
 
 The result of the fit looks like this:
 
 .. image:: impedance-linkk.*
         :width: 600
-
-All residuals are very small (as expected for artifical data).
-If the relative difference exceeds 1%, concerns about the validity of
-the experimental data could be raised.  
 
 The parameter :math:`\mu` decays with an increased number of RC elements
 as described in [Schoenleber2014]_.
@@ -47,6 +44,14 @@ It is used to detect overfitting. The threshold for overfitting is set to
 
 .. image:: mu-linkk.*
         :width: 600
+
+In this example, all residuals are very small (as expected for artifical data).
+If the relative difference exceeds 1% or if there is a drift
+in the residuals, concerns about the validity of
+the experimental data could be raised.  
+If you observe sinusoidal oscillations in your residuals,
+increase the number of RC-elements either manually or by decreasing
+the threshold to values below `0.85`.
 
 If there is an inductive or capacitive element present, it can be benefitial
 to add an extra capacitance or inductance to the circuit.
@@ -57,6 +62,9 @@ This can be done by
 	results, mus = fitter.linkk_test(capacitance=True)
 	results, mus = fitter.linkk_test(inductance=True)
 	results, mus = fitter.linkk_test(capacitance=True, inductance=True)
+
+Especially if you observe large residuals at high frequencies, an inductive element
+should be added.
 
 See Also
 ^^^^^^^^

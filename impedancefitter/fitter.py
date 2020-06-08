@@ -1146,6 +1146,12 @@ class Fitter(object):
         for key in self.omega_dict:
             self.omega = self.omega_dict[key]
             self.zarray = self.z_dict[key]
+            if self.omega.size < maxM:
+                logger.warning("""
+                                  The maximal number of RC elements is greater than
+                                  the number of frequencies ({}). This does not make sense.
+                                  Consider decreasing the maximal number of RC elements if
+                                  the LinKK test uses more RC elements than frequencies.""".format(self.omega.size))
             # determine number of iterations if more than 1 data set is in file
             if len(self.zarray.shape) > 1:
                 self.iters = self.zarray.shape[0]
@@ -1248,22 +1254,39 @@ class Fitter(object):
             else:
                 A = np.c_[A, RC.eval(omega=self.omega, Rk=1.0, tauk=tauk)]
 
+            # solve least-squares problem for real and imaginary part together
             real = weightM.dot(A.real)
             imag = weightM.dot(A.imag)
+            Zweighted = weightM.dot(self.Z)
 
-            # solve least-squares problem for real and imaginary part
-
-            X = np.linalg.inv(real.T.dot(real) + imag.T.dot(imag))
-            Z = real.T.dot(weightM.dot(self.Z.real)) + imag.T.dot(weightM.dot(self.Z.imag))
-            b = X.dot(Z)
+            a = np.concatenate((real, imag))
+            y = np.concatenate((Zweighted.real, Zweighted.imag))
+            # note that rcond=-1 means that singular values are hardly reached
+            b, residualslstsq, rank, s = np.linalg.lstsq(a, y, rcond=-1)
 
             rks = b[start:]
 
             mu = _compute_mu(rks)
 
-            logger.debug("\nmu = {}, c = {}\n".format(mu, c))
+            # when M is greater than the number of frequencies,
+            # the residual is not computed by numpy thus we put a -1 there
+            if len(residualslstsq) == 1:
+                res.append(residualslstsq[0])
+            else:
+                print(residualslstsq)
+                logger.warning("""
+                               No residual was computed for either of 2 reasons:
+                               1.) M is greater than number of frequencies.
+                               2.) Singular values were detected and removed.
+                               Will add -1 to list of residuals.""")
+                res.append(-1)
+
             mus.append(mu)
 
+            # Note by Julius: to show that code worked, I computed the residual as given in Schönleber paper
+            # Then, I compared to the lstsq residual computed by numpy.
+            # for documentation reasons, I kept the lines commented.
+            """
             Z_fit = R.eval(omega=omega, R=b[0])
 
             if capacitance and not inductance:
@@ -1274,25 +1297,49 @@ class Fitter(object):
             elif inductance and not capacitance:
                 Z_fit = np.sum([Z_fit, L.eval(omega=omega, L=b[1])], axis=0)
 
-            if M > 2:
+            if M > 1:
                 taus = np.array([np.power(10, np.log10(tau_min) + m / (M - 1) * np.log10(tau_max / tau_min)) for m in range(M)])
                 RCtaus = np.array([RC.eval(omega=self.omega, Rk=rks[m], tauk=taus[m]) for m in range(M)])
                 add = np.sum(RCtaus, axis=0)
                 Z_fit = np.sum([Z_fit, add], axis=0)
 
-            else:
-                add = RC.eval(omega=self.omega, Rk=b[start], tauk=tauk)
+            elif M == 1:
+                add = RC.eval(omega=self.omega, Rk=rks[0], tauk=tauk)
                 Z_fit = np.sum([Z_fit, add], axis=0)
-            res.append(np.sum(np.abs(Z_fit - self.Z)))
+            rescomp = np.sum(((Z_fit.real - self.Z.real) * weight)**2 + ((Z_fit.imag - self.Z.imag) * weight)**2)
+            if not np.isclose(res[-1], rescomp):
+                print("Detected difference between lstlsq and residual at M=", M, res[-1], rescomp)
+            """
 
             M += 1
             if M > maxM:
                 logger.warning("Reached maximum number of RC elements.")
                 break
 
-        logger.debug("Exited loop after {} iterations.".format(M))
+        logger.debug("\nmu = {}, c = {}\n".format(mu, c))
 
-        logger.info("Used M={} RC elements.".format(M - 1))
+        Z_fit = R.eval(omega=omega, R=b[0])
+
+        if capacitance and not inductance:
+            Z_fit = np.sum([Z_fit, C.eval(omega=omega, C=1. / b[1])], axis=0)
+        elif capacitance and inductance:
+            Z_fit = np.sum([Z_fit, C.eval(omega=omega, C=1. / b[1])], axis=0)
+            Z_fit = np.sum([Z_fit, L.eval(omega=omega, L=b[2])], axis=0)
+        elif inductance and not capacitance:
+            Z_fit = np.sum([Z_fit, L.eval(omega=omega, L=b[1])], axis=0)
+
+        M -= 1
+        if M > 1:
+            taus = np.array([np.power(10, np.log10(tau_min) + m / (M - 1) * np.log10(tau_max / tau_min)) for m in range(M)])
+            RCtaus = np.array([RC.eval(omega=self.omega, Rk=rks[m], tauk=taus[m]) for m in range(M)])
+            add = np.sum(RCtaus, axis=0)
+            Z_fit = np.sum([Z_fit, add], axis=0)
+
+        elif M == 1:
+            add = RC.eval(omega=self.omega, Rk=rks[0], tauk=tauk)
+            Z_fit = np.sum([Z_fit, add], axis=0)
+
+        logger.info("Used M={} RC elements.".format(M))
         return Z_fit, mus, res
 
 

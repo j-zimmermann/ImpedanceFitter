@@ -390,6 +390,7 @@ def plot_uncertainty(omega, Zdata, Z, Z1, Z2, sigma, show=True, model=None):
     """
     .. todo::
         documentation
+
     Parameters
     ----------
 

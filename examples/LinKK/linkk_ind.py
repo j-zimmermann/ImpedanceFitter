@@ -44,9 +44,15 @@ df.to_csv('test.csv', index=False)
 fitter = impedancefitter.Fitter('CSV')
 os.remove('test.csv')
 
-results, mus = fitter.linkk_test(inductance=True)
+results, mus, residuals = fitter.linkk_test(inductance=True)
+resultswo, mus, residuals = fitter.linkk_test(inductance=False)
 
 RCperdec = numpy.linspace(1.0, len(mus['test.csv0']), num=len(mus['test.csv0'])) / decades
 print(RCperdec)
 plt.plot(RCperdec, mus['test.csv0'])
 plt.show()
+
+# plot differences between two approaches
+impedancefitter.plot_impedance(2. * numpy.pi * frequencies,
+                               results['test.csv0'], Z_fit=resultswo['test.csv0'],
+                               labels=["w/ L", "w/o", ""])
