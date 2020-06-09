@@ -1380,13 +1380,24 @@ class Fitter(object):
 
         fitresult = {'R': b[0]}
 
+        # Found negative inductance and / or capacitance values when fitting.
+        # I am not sure if this is correct.
+
         if capacitance and not inductance:
             fitresult['C'] = 1. / b[1]
+            if b[1] < 0:
+                logger.warning("The LinKK-fitted capacitance is negative!")
         elif capacitance and inductance:
             fitresult['C'] = 1. / b[1]
+            if b[1] < 0:
+                logger.warning("The LinKK-fitted capacitance is negative!")
             fitresult['L'] = b[2]
+            if b[2] < 0:
+                logger.warning("The LinKK-fitted inductance is negative!")
         elif inductance and not capacitance:
             fitresult['L'] = b[1]
+            if b[1] < 0:
+                logger.warning("The LinKK-fitted inductance is negative!")
 
         M -= 1
         if M > 1:
