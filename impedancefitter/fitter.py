@@ -1096,13 +1096,12 @@ class Fitter(object):
            .. todo:: Implement.
         """
 
-    def linkk_test(self, capacitance=False, inductance=False, c=0.85, maxM=100,
-                   show=True,
-                   limits=[-2, 2]):
+    def linkk_test(self, capacitance=False, inductance=False, c=0.85, maxM=100, show=True, limits=[-2, 2]):
         """Lin-KK test to check Kramers-Kronig validity.
 
         Parameters
         ----------
+
         capacitance: bool, optional
             Add extra capacitance to circuit.
         inductance: bool, optional
@@ -1117,23 +1116,33 @@ class Fitter(object):
         limits: list, optional
             Lower and upper limit of residual.
 
+        Returns
+        -------
 
-       Notes
-       -----
+        results : dict
+            Values of Lin-KK test for each file.
+        mus: dict
+            All `mu` values during Lin-KK run for each file.
+        residuals: dict
+            Least-squares residuals during Lin-KK run for each file.
 
-       The implementation of the algorithm follows [Schoenleber2014]_
-       closely.
+        Notes
+        -----
 
-       If the option `savefig` is generally enabled, the plot result
-       of the LinKK-Test will be saved to a pdf-file.
+        The implementation of the algorithm follows [Schoenleber2014]_
+        closely.
 
-       References
-       ----------
+        If the option `savefig` is generally enabled, the plot result
+        of the LinKK-Test will be saved to a pdf-file.
 
-       .. [Schoenleber2014] Schönleber, M., Klotz, D., & Ivers-Tiffée, E. (2014).
-                            A Method for Improving the Robustness of linear Kramers-Kronig Validity Tests.
-                            Electrochimica Acta, 131, 20–27. https://doi.org/10.1016/j.electacta.2014.01.034
+        References
+        ----------
+
+        .. [Schoenleber2014] Schönleber, M., Klotz, D., & Ivers-Tiffée, E. (2014).
+                             A Method for Improving the Robustness of linear Kramers-Kronig Validity Tests.
+                             Electrochimica Acta, 131, 20–27. https://doi.org/10.1016/j.electacta.2014.01.034
         """
+
         results = {}
         mus = {}
         residuals = {}
@@ -1166,12 +1175,61 @@ class Fitter(object):
                     self._linkk_core(self.omega, self.Z, capacitance,
                                      inductance, c, maxM))
                 if show or self.savefig:
-                    Z_fit = results[key + str(i)]
+                    Z_fit = self._get_linkk_impedance(results[key + str(i)])
                     plot_impedance(self.omega, self.Z, title=titlebegin + str(key) + str(i),
                                    Z_fit=Z_fit, residual="absolute", limits_residual=limits,
                                    show=show, save=self.savefig, sign=True)
 
         return results, mus, residuals
+
+    def _get_linkk_impedance(self, params):
+        """Compute Lin-KK impedance.
+
+        Parameters
+        ----------
+
+        params: dict
+            Parameter returned from Lin-KK test.
+
+
+        Returns
+        -------
+        :class:`numpy.ndarray`, complex
+            impedances
+
+        """
+
+        modelR = "R"
+        R = self.initialize_model(modelR)
+        Z_fit = R.eval(omega=self.omega, R=params['R'])
+
+        start = 1
+
+        if 'C' in params:
+            modelC = "C"
+            C = self.initialize_model(modelC)
+            Z_fit = np.sum([Z_fit, C.eval(omega=self.omega, C=params['C'])], axis=0)
+            start += 1
+
+        if 'L' in params:
+            modelL = "L"
+            L = self.initialize_model(modelL)
+            Z_fit = np.sum([Z_fit, L.eval(omega=self.omega, L=params['L'])], axis=0)
+            start += 1
+
+        M = int((len(params) - start) / 2)
+
+        modelRC = "RCtau"
+        RC = self.initialize_model(modelRC)
+
+        RCtaus = np.array([RC.eval(omega=self.omega, Rk=params['R_' + str(m)],
+                           tauk=params['tau_' + str(m)]) for m in range(M)])
+        if M > 1:
+            add = np.sum(RCtaus, axis=0)
+            Z_fit = np.sum([Z_fit, add], axis=0)
+        else:
+            Z_fit = np.sum([Z_fit, RCtaus], axis=0)
+        return Z_fit
 
     def _linkk_core(self, omega, Z, capacitance=False, inductance=False, c=0.85, maxM=100):
         """Core of Lin-KK algorithm.
@@ -1201,9 +1259,12 @@ class Fitter(object):
         Returns
         -------
 
-        :class:`lmfit.model.ModelResult`
-            Result of Lin-KK test
-            as :class:`lmfit.model.ModelResult` object.
+        fitresult : dict
+            Values of Lin-KK test.
+        mus: list
+            All `mu` values during Lin-KK run.
+        residuals: list
+            Least-squares residuals during Lin-KK run.
 
         """
         # initial value for M
@@ -1215,7 +1276,6 @@ class Fitter(object):
 
         # initialize initial resistor
         modelR = "R"
-
         R = self.initialize_model(modelR)
 
         # initialize matrix for linear least-squares
@@ -1318,29 +1378,28 @@ class Fitter(object):
 
         logger.debug("\nmu = {}, c = {}\n".format(mu, c))
 
-        Z_fit = R.eval(omega=omega, R=b[0])
+        fitresult = {'R': b[0]}
 
         if capacitance and not inductance:
-            Z_fit = np.sum([Z_fit, C.eval(omega=omega, C=1. / b[1])], axis=0)
+            fitresult['C'] = 1. / b[1]
         elif capacitance and inductance:
-            Z_fit = np.sum([Z_fit, C.eval(omega=omega, C=1. / b[1])], axis=0)
-            Z_fit = np.sum([Z_fit, L.eval(omega=omega, L=b[2])], axis=0)
+            fitresult['C'] = 1. / b[1]
+            fitresult['L'] = b[2]
         elif inductance and not capacitance:
-            Z_fit = np.sum([Z_fit, L.eval(omega=omega, L=b[1])], axis=0)
+            fitresult['L'] = b[1]
 
         M -= 1
         if M > 1:
             taus = np.array([np.power(10, np.log10(tau_min) + m / (M - 1) * np.log10(tau_max / tau_min)) for m in range(M)])
-            RCtaus = np.array([RC.eval(omega=self.omega, Rk=rks[m], tauk=taus[m]) for m in range(M)])
-            add = np.sum(RCtaus, axis=0)
-            Z_fit = np.sum([Z_fit, add], axis=0)
-
+            for m in range(M):
+                fitresult['R_' + str(m)] = rks[m]
+                fitresult['tau_' + str(m)] = taus[m]
         elif M == 1:
-            add = RC.eval(omega=self.omega, Rk=rks[0], tauk=tauk)
-            Z_fit = np.sum([Z_fit, add], axis=0)
+            fitresult['R_' + str(0)] = rks[0]
+            fitresult['tau_' + str(0)] = taus[0]
 
         logger.info("Used M={} RC elements.".format(M))
-        return Z_fit, mus, res
+        return fitresult, mus, res
 
 
 def _compute_mu(fit_values):

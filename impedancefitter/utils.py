@@ -798,6 +798,28 @@ def _cycle_circuit(circuit, d, endpts, step=3.0, depth=0):
     -------
     Drawing:
         the final drawing of the entire (sub-)circuit
+
+    Notes
+    -----
+
+    The following circuits were tested with this code:
+
+    .. code-block::
+
+        import impedancefitter as ifit
+
+        models = ["RC + R + parallel(R, C) + parallel(R, C)",
+                  "parallel(R + C, parallel(R, C))",
+                  "RC + R + parallel(R + C, C + R) + parallel(R, C)",
+                  "RC + R + parallel(R, parallel(R, CPE))",
+                  "RC + R + parallel(parallel(R,C), parallel(R, C))",
+                  "RC + R + parallel(R + C, parallel(R, C))",
+                  "RC + R + parallel(R + C, parallel(R, C))",
+                  "parallel(RC_f1 + parallel(R_f3, C_f4),  Cstray)"]
+        for m in models:
+            ifit.utils.draw_scheme(m)
+
+    Please file an issue if one of your circuits is not drawn properly.
     """
     logger.debug("circuit: {}".format(circuit))
     if isinstance(circuit, str):
