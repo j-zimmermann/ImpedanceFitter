@@ -1096,7 +1096,8 @@ class Fitter(object):
            .. todo:: Implement.
         """
 
-    def linkk_test(self, capacitance=False, inductance=False, c=0.85, maxM=100, show=True, limits=[-2, 2]):
+    def linkk_test(self, capacitance=False, inductance=False,
+                   c=0.85, maxM=100, show=True, limits=[-2, 2], weighting="modulus"):
         """Lin-KK test to check Kramers-Kronig validity.
 
         Parameters
@@ -1115,6 +1116,9 @@ class Fitter(object):
             Show plots of test result. Default is True.
         limits: list, optional
             Lower and upper limit of residual.
+        weighting: "modulus" or None
+            Apply modulus weighting (as in [Schoenleber2014]_) or process
+            unweighted data.
 
         Returns
         -------
@@ -1173,7 +1177,7 @@ class Fitter(object):
                 self.Z = self.zarray[i]
                 results[key + str(i)], mus[key + str(i)], residuals[key + str(i)] = (
                     self._linkk_core(self.omega, self.Z, capacitance,
-                                     inductance, c, maxM))
+                                     inductance, c, maxM, weighting=weighting))
                 if show or self.savefig:
                     Z_fit = self._get_linkk_impedance(results[key + str(i)])
                     plot_impedance(self.omega, self.Z, title=titlebegin + str(key) + str(i),
@@ -1228,10 +1232,11 @@ class Fitter(object):
             add = np.sum(RCtaus, axis=0)
             Z_fit = np.sum([Z_fit, add], axis=0)
         else:
-            Z_fit = np.sum([Z_fit, RCtaus], axis=0)
+            Z_fit = np.sum([Z_fit, RCtaus[0]], axis=0)
         return Z_fit
 
-    def _linkk_core(self, omega, Z, capacitance=False, inductance=False, c=0.85, maxM=100):
+    def _linkk_core(self, omega, Z, capacitance=False, inductance=False, c=0.85, maxM=100,
+                    weighting="modulus"):
         """Core of Lin-KK algorithm.
 
         Parameters
@@ -1249,6 +1254,10 @@ class Fitter(object):
             Must be between 0 and 1.
         maxM: int, optional
             Maximum number of RC elements. Default is 100.
+        weighting: "modulus" or None
+            Apply modulus weighting (as in [Schoenleber2014]_) or process
+            unweighted data.
+
 
         Notes
         -----
@@ -1280,7 +1289,13 @@ class Fitter(object):
 
         # initialize matrix for linear least-squares
 
-        weight = 1. / np.abs(self.Z)
+        if weighting == "modulus":
+            weight = 1. / np.abs(self.Z)
+        elif weighting is None:
+            weight = np.ones(self.Z.size)
+            print(weight)
+        else:
+            raise RuntimeError("This is not a valid weighting option.")
 
         weightM = np.diag(weight)
         Abase = R.eval(omega=self.omega, R=1.0).real
@@ -1407,7 +1422,7 @@ class Fitter(object):
                 fitresult['tau_' + str(m)] = taus[m]
         elif M == 1:
             fitresult['R_' + str(0)] = rks[0]
-            fitresult['tau_' + str(0)] = taus[0]
+            fitresult['tau_' + str(0)] = tau_max
 
         logger.info("Used M={} RC elements.".format(M))
         return fitresult, mus, res
@@ -1437,4 +1452,9 @@ def _compute_mu(fit_values):
             neg += -value
         else:
             pos += value
-    return 1. - (neg / pos)
+
+    if np.greater(pos, 0):
+        mu = 1. - (neg / pos)
+    else:
+        mu = -np.inf
+    return mu
