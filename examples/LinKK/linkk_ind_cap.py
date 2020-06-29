@@ -9,8 +9,8 @@ rcParams['figure.figsize'] = [15, 10]
 
 
 # parameters
-lowExp = 0
-highExp = 8
+lowExp = -5
+highExp = 5
 decades = numpy.log10(10**highExp / 10**lowExp)
 pointsperdecade = int(10. * decades)
 frequencies = numpy.logspace(lowExp, highExp, num=pointsperdecade)
@@ -44,7 +44,7 @@ df.to_csv('test.csv', index=False)
 fitter = impedancefitter.Fitter('CSV')
 os.remove('test.csv')
 
-results, mus = fitter.linkk_test(capacitance=True, inductance=True)
+results, mus, residuals = fitter.linkk_test(capacitance=True, inductance=True)
 
 RCperdec = numpy.linspace(1.0, len(mus['test.csv0']), num=len(mus['test.csv0'])) / decades
 print(RCperdec)

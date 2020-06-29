@@ -1096,13 +1096,13 @@ class Fitter(object):
            .. todo:: Implement.
         """
 
-    def linkk_test(self, capacitance=False, inductance=False, c=0.85, maxM=100,
-                   show=True,
-                   limits=[-2, 2]):
+    def linkk_test(self, capacitance=False, inductance=False,
+                   c=0.85, maxM=100, show=True, limits=[-2, 2], weighting="modulus"):
         """Lin-KK test to check Kramers-Kronig validity.
 
         Parameters
         ----------
+
         capacitance: bool, optional
             Add extra capacitance to circuit.
         inductance: bool, optional
@@ -1116,24 +1116,37 @@ class Fitter(object):
             Show plots of test result. Default is True.
         limits: list, optional
             Lower and upper limit of residual.
+        weighting: "modulus" or None
+            Apply modulus weighting (as in [Schoenleber2014]_) or process
+            unweighted data.
 
+        Returns
+        -------
 
-       Notes
-       -----
+        results : dict
+            Values of Lin-KK test for each file.
+        mus: dict
+            All `mu` values during Lin-KK run for each file.
+        residuals: dict
+            Least-squares residuals during Lin-KK run for each file.
 
-       The implementation of the algorithm follows [Schoenleber2014]_
-       closely.
+        Notes
+        -----
 
-       If the option `savefig` is generally enabled, the plot result
-       of the LinKK-Test will be saved to a pdf-file.
+        The implementation of the algorithm follows [Schoenleber2014]_
+        closely.
 
-       References
-       ----------
+        If the option `savefig` is generally enabled, the plot result
+        of the LinKK-Test will be saved to a pdf-file.
 
-       .. [Schoenleber2014] Schönleber, M., Klotz, D., & Ivers-Tiffée, E. (2014).
-                            A Method for Improving the Robustness of linear Kramers-Kronig Validity Tests.
-                            Electrochimica Acta, 131, 20–27. https://doi.org/10.1016/j.electacta.2014.01.034
+        References
+        ----------
+
+        .. [Schoenleber2014] Schönleber, M., Klotz, D., & Ivers-Tiffée, E. (2014).
+                             A Method for Improving the Robustness of linear Kramers-Kronig Validity Tests.
+                             Electrochimica Acta, 131, 20–27. https://doi.org/10.1016/j.electacta.2014.01.034
         """
+
         results = {}
         mus = {}
         residuals = {}
@@ -1146,6 +1159,12 @@ class Fitter(object):
         for key in self.omega_dict:
             self.omega = self.omega_dict[key]
             self.zarray = self.z_dict[key]
+            if self.omega.size < maxM:
+                logger.warning("""
+                                  The maximal number of RC elements is greater than
+                                  the number of frequencies ({}). This does not make sense.
+                                  Consider decreasing the maximal number of RC elements if
+                                  the LinKK test uses more RC elements than frequencies.""".format(self.omega.size))
             # determine number of iterations if more than 1 data set is in file
             if len(self.zarray.shape) > 1:
                 self.iters = self.zarray.shape[0]
@@ -1158,16 +1177,66 @@ class Fitter(object):
                 self.Z = self.zarray[i]
                 results[key + str(i)], mus[key + str(i)], residuals[key + str(i)] = (
                     self._linkk_core(self.omega, self.Z, capacitance,
-                                     inductance, c, maxM))
+                                     inductance, c, maxM, weighting=weighting))
                 if show or self.savefig:
-                    Z_fit = results[key + str(i)]
+                    Z_fit = self._get_linkk_impedance(results[key + str(i)])
                     plot_impedance(self.omega, self.Z, title=titlebegin + str(key) + str(i),
                                    Z_fit=Z_fit, residual="absolute", limits_residual=limits,
                                    show=show, save=self.savefig, sign=True)
 
         return results, mus, residuals
 
-    def _linkk_core(self, omega, Z, capacitance=False, inductance=False, c=0.85, maxM=100):
+    def _get_linkk_impedance(self, params):
+        """Compute Lin-KK impedance.
+
+        Parameters
+        ----------
+
+        params: dict
+            Parameter returned from Lin-KK test.
+
+
+        Returns
+        -------
+        :class:`numpy.ndarray`, complex
+            impedances
+
+        """
+
+        modelR = "R"
+        R = self.initialize_model(modelR)
+        Z_fit = R.eval(omega=self.omega, R=params['R'])
+
+        start = 1
+
+        if 'C' in params:
+            modelC = "C"
+            C = self.initialize_model(modelC)
+            Z_fit = np.sum([Z_fit, C.eval(omega=self.omega, C=params['C'])], axis=0)
+            start += 1
+
+        if 'L' in params:
+            modelL = "L"
+            L = self.initialize_model(modelL)
+            Z_fit = np.sum([Z_fit, L.eval(omega=self.omega, L=params['L'])], axis=0)
+            start += 1
+
+        M = int((len(params) - start) / 2)
+
+        modelRC = "RCtau"
+        RC = self.initialize_model(modelRC)
+
+        RCtaus = np.array([RC.eval(omega=self.omega, Rk=params['R_' + str(m)],
+                           tauk=params['tau_' + str(m)]) for m in range(M)])
+        if M > 1:
+            add = np.sum(RCtaus, axis=0)
+            Z_fit = np.sum([Z_fit, add], axis=0)
+        else:
+            Z_fit = np.sum([Z_fit, RCtaus[0]], axis=0)
+        return Z_fit
+
+    def _linkk_core(self, omega, Z, capacitance=False, inductance=False, c=0.85, maxM=100,
+                    weighting="modulus"):
         """Core of Lin-KK algorithm.
 
         Parameters
@@ -1185,6 +1254,10 @@ class Fitter(object):
             Must be between 0 and 1.
         maxM: int, optional
             Maximum number of RC elements. Default is 100.
+        weighting: "modulus" or None
+            Apply modulus weighting (as in [Schoenleber2014]_) or process
+            unweighted data.
+
 
         Notes
         -----
@@ -1195,9 +1268,12 @@ class Fitter(object):
         Returns
         -------
 
-        :class:`lmfit.model.ModelResult`
-            Result of Lin-KK test
-            as :class:`lmfit.model.ModelResult` object.
+        fitresult : dict
+            Values of Lin-KK test.
+        mus: list
+            All `mu` values during Lin-KK run.
+        residuals: list
+            Least-squares residuals during Lin-KK run.
 
         """
         # initial value for M
@@ -1209,12 +1285,17 @@ class Fitter(object):
 
         # initialize initial resistor
         modelR = "R"
-
         R = self.initialize_model(modelR)
 
         # initialize matrix for linear least-squares
 
-        weight = 1. / np.abs(self.Z)
+        if weighting == "modulus":
+            weight = 1. / np.abs(self.Z)
+        elif weighting is None:
+            weight = np.ones(self.Z.size)
+            print(weight)
+        else:
+            raise RuntimeError("This is not a valid weighting option.")
 
         weightM = np.diag(weight)
         Abase = R.eval(omega=self.omega, R=1.0).real
@@ -1248,22 +1329,39 @@ class Fitter(object):
             else:
                 A = np.c_[A, RC.eval(omega=self.omega, Rk=1.0, tauk=tauk)]
 
+            # solve least-squares problem for real and imaginary part together
             real = weightM.dot(A.real)
             imag = weightM.dot(A.imag)
+            Zweighted = weightM.dot(self.Z)
 
-            # solve least-squares problem for real and imaginary part
-
-            X = np.linalg.inv(real.T.dot(real) + imag.T.dot(imag))
-            Z = real.T.dot(weightM.dot(self.Z.real)) + imag.T.dot(weightM.dot(self.Z.imag))
-            b = X.dot(Z)
+            a = np.concatenate((real, imag))
+            y = np.concatenate((Zweighted.real, Zweighted.imag))
+            # note that rcond=-1 means that singular values are hardly reached
+            b, residualslstsq, rank, s = np.linalg.lstsq(a, y, rcond=-1)
 
             rks = b[start:]
 
             mu = _compute_mu(rks)
 
-            logger.debug("\nmu = {}, c = {}\n".format(mu, c))
+            # when M is greater than the number of frequencies,
+            # the residual is not computed by numpy thus we put a -1 there
+            if len(residualslstsq) == 1:
+                res.append(residualslstsq[0])
+            else:
+                print(residualslstsq)
+                logger.warning("""
+                               No residual was computed for either of 2 reasons:
+                               1.) M is greater than number of frequencies.
+                               2.) Singular values were detected and removed.
+                               Will add -1 to list of residuals.""")
+                res.append(-1)
+
             mus.append(mu)
 
+            # Note by Julius: to show that code worked, I computed the residual as given in Schönleber paper
+            # Then, I compared to the lstsq residual computed by numpy.
+            # for documentation reasons, I kept the lines commented.
+            """
             Z_fit = R.eval(omega=omega, R=b[0])
 
             if capacitance and not inductance:
@@ -1274,26 +1372,60 @@ class Fitter(object):
             elif inductance and not capacitance:
                 Z_fit = np.sum([Z_fit, L.eval(omega=omega, L=b[1])], axis=0)
 
-            if M > 2:
+            if M > 1:
                 taus = np.array([np.power(10, np.log10(tau_min) + m / (M - 1) * np.log10(tau_max / tau_min)) for m in range(M)])
                 RCtaus = np.array([RC.eval(omega=self.omega, Rk=rks[m], tauk=taus[m]) for m in range(M)])
                 add = np.sum(RCtaus, axis=0)
                 Z_fit = np.sum([Z_fit, add], axis=0)
 
-            else:
-                add = RC.eval(omega=self.omega, Rk=b[start], tauk=tauk)
+            elif M == 1:
+                add = RC.eval(omega=self.omega, Rk=rks[0], tauk=tauk)
                 Z_fit = np.sum([Z_fit, add], axis=0)
-            res.append(np.sum(np.abs(Z_fit - self.Z)))
+            rescomp = np.sum(((Z_fit.real - self.Z.real) * weight)**2 + ((Z_fit.imag - self.Z.imag) * weight)**2)
+            if not np.isclose(res[-1], rescomp):
+                print("Detected difference between lstlsq and residual at M=", M, res[-1], rescomp)
+            """
 
             M += 1
             if M > maxM:
                 logger.warning("Reached maximum number of RC elements.")
                 break
 
-        logger.debug("Exited loop after {} iterations.".format(M))
+        logger.debug("\nmu = {}, c = {}\n".format(mu, c))
 
-        logger.info("Used M={} RC elements.".format(M - 1))
-        return Z_fit, mus, res
+        fitresult = {'R': b[0]}
+
+        # Found negative inductance and / or capacitance values when fitting.
+        # I am not sure if this is correct.
+
+        if capacitance and not inductance:
+            fitresult['C'] = 1. / b[1]
+            if b[1] < 0:
+                logger.warning("The LinKK-fitted capacitance is negative!")
+        elif capacitance and inductance:
+            fitresult['C'] = 1. / b[1]
+            if b[1] < 0:
+                logger.warning("The LinKK-fitted capacitance is negative!")
+            fitresult['L'] = b[2]
+            if b[2] < 0:
+                logger.warning("The LinKK-fitted inductance is negative!")
+        elif inductance and not capacitance:
+            fitresult['L'] = b[1]
+            if b[1] < 0:
+                logger.warning("The LinKK-fitted inductance is negative!")
+
+        M -= 1
+        if M > 1:
+            taus = np.array([np.power(10, np.log10(tau_min) + m / (M - 1) * np.log10(tau_max / tau_min)) for m in range(M)])
+            for m in range(M):
+                fitresult['R_' + str(m)] = rks[m]
+                fitresult['tau_' + str(m)] = taus[m]
+        elif M == 1:
+            fitresult['R_' + str(0)] = rks[0]
+            fitresult['tau_' + str(0)] = tau_max
+
+        logger.info("Used M={} RC elements.".format(M))
+        return fitresult, mus, res
 
 
 def _compute_mu(fit_values):
@@ -1320,4 +1452,9 @@ def _compute_mu(fit_values):
             neg += -value
         else:
             pos += value
-    return 1. - (neg / pos)
+
+    if np.greater(pos, 0):
+        mu = 1. - (neg / pos)
+    else:
+        mu = -np.inf
+    return mu

@@ -42,7 +42,7 @@ df.to_csv('test.csv', index=False)
 fitter = impedancefitter.Fitter('CSV')
 os.remove('test.csv')
 
-results, mus = fitter.linkk_test()
+results, mus, residuals = fitter.linkk_test()
 
 plt.xlabel("RC elements")
 plt.ylabel(r"$\mu$")
