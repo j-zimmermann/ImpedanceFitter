@@ -38,6 +38,11 @@ from copy import deepcopy
 from . import logger
 
 
+def convert_diel_properties_to_impedance(omega, eps, sigma, c0):
+    epsc = omega * eps - 1j * sigma / e0
+    return 1. / (1j * epsc * c0)
+
+
 def return_diel_properties(omega, Z, c0):
     r"""Return relative permittivity and conductivity
     from impedance spectrum in cavity with known unit capacitance.
