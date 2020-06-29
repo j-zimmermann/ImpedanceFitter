@@ -49,7 +49,7 @@ def return_diel_properties(omega, Z, c0):
 
     .. math::
 
-        Z = (j \omega \varepsilon^\ast)^{-1} ,
+        Z = (j \omega \varepsilon^\ast c_0)^{-1} ,
 
     where :math:`\varepsilon^\ast` is the complex permittivity (see for instance [Grant1958]_
     for further explanation).
