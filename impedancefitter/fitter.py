@@ -426,7 +426,8 @@ class Fitter(object):
 
     def sequential_run(self, model1, model2, communicate, solver=None,
                        solver_kwargs={}, parameters1=None, parameters2=None,
-                       modelclass1=None, modelclass2=None, protocol=None):
+                       modelclass1=None, modelclass2=None, protocol=None,
+                       weighting=None):
         """Main function that iterates through all data sets provided.
 
         Here, two models are fitted sequentially and fitted parameters can
@@ -472,6 +473,9 @@ class Fitter(object):
             Choose 'Iterative' for repeated fits with changing parameter sets,
             customized approach. If not specified, there is always just
             one fit for each data set.
+        weighting: str, optional
+            Choose a weighting scheme. Default is unit weighting.
+            Also possible: proportional weighting. See [Barsoukov2018]_ for more information.
         """
 
         # initialize solver
