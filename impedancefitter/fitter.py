@@ -330,7 +330,8 @@ class Fitter(object):
         return model
 
     def run(self, modelname, solver=None, parameters=None, protocol=None,
-            solver_kwargs={}, modelclass="none", log=False, weighting=None):
+            solver_kwargs={}, modelclass="none", log=False, weighting=None,
+            show=False, report=False):
         """
         Main function that iterates through all data sets provided.
 
@@ -378,6 +379,8 @@ class Fitter(object):
         self.modelclass = modelclass
         self.log = log
         self.weighting = weighting
+        self.show = show
+        self.report = report
 
         # initialize solver
         if solver is not None:
@@ -786,7 +789,10 @@ class Fitter(object):
                                      method=self.solvername,
                                      fit_kws=self.solver_kwargs,
                                      weights=weights)
-            logger.debug(model_result.fit_report())
+            if not self.report:
+                logger.debug(model_result.fit_report())
+            else:
+                logger.info(model_result.fit_report())
 
             # return solver message (needed since lmfit handles messages
             # differently for the various solvers)
