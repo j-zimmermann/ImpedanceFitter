@@ -20,68 +20,6 @@ from scipy.constants import epsilon_0 as e0
 import numpy as np
 
 
-def _Z_sus(omega, es, kdc, c0):
-    r"""Impedance of suspension.
-
-    Described for example in [Sabuncu2012]_.
-
-    Parameters
-    -----------
-
-    omega: double or array of double
-        list of frequencies
-    es: complex
-        complex valued permittivity, check e.g. :func:e_sus
-    kdc: double
-        conductivity
-    c0: double
-        unit capacitance
-
-    Returns
-    -------
-    :class:`numpy.ndarray`, complex
-        Impedance array
-
-    References
-    ----------
-    .. [Sabuncu2012] Sabuncu, A. C., Zhuang, J., Kolb, J. F., & Beskok, A. (2012).
-           Microfluidic impedance spectroscopy as a tool for quantitative biology and biotechnology.
-           Biomicrofluidics, 6(3). https://doi.org/10.1063/1.4737121
-    """
-
-    return 1. / (1j * es * omega * c0 + (kdc * c0 / e0))
-
-
-def _e_sus(omega, eh, el, tau, a):
-    r"""
-    Complex permitivity after Cole-Cole.
-    See the original paper of the Cole brothers [Cole1941]_.
-    Difference: the exponent :math:`1 - \alpha` is here named `a`.
-
-    Parameters
-    -----------
-
-    omega: :class:`numpy.ndarray`, double
-        list of frequencies
-    eh: double
-        value for :math:`\varepsilon_\infty`
-    el: double
-        value for :math:`\varepsilon_0`
-    tau: double
-        value for :math:`\tau_0`
-    a: double
-        value for :math:`1 - \alpha`
-
-    References
-    ----------
-
-    [Cole1941]_ Cole, K. S., & Cole, R. H. (1941). Dispersion and absorption in dielectrics I.
-         Alternating current characteristics. The Journal of Chemical Physics,
-         9(4), 341–351. https://doi.org/10.1063/1.1750906
-    """
-    return eh + (el - eh) / (1. + np.power((1j * omega * tau), a))
-
-
 def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
     r"""Cole-Cole model for dielectric properties.
 
@@ -142,8 +80,9 @@ def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
     """
     tau *= 1e-9  # use ns as unit
     c0 *= 1e-12  # use pF as unit
-    es = _e_sus(omega, eh, el, tau, a)
-    Z_fit = _Z_sus(omega, es, kdc, c0)
+    es = eh + (el - eh) / (1. + np.power((1j * omega * tau), a)) - 1j * kdc / (omega * e0)
+
+    Z_fit = 1. / (1j * omega * c0 * es)
 
     return Z_fit
 
@@ -198,3 +137,202 @@ def cole_cole_R_model(omega, Rinf, R0, tau, a):
     tau *= 1e-9  # use ns as unit
     Z_fit = Rinf + (R0 - Rinf) / (1. + np.power(1j * omega * tau, a))
     return Z_fit
+
+
+def cole_cole_4_model(omega, c0, epsinf, deps1, deps2, deps3, deps4, tau1, tau2, tau3, tau4, a1, a2, a3, a4, sigma):
+    r"""Standard 4-Cole-Cole impedance model.
+
+
+    Parameters
+    -----------
+
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for unit capacitance, in pF
+    epsinf: double
+        value for :math:`\varepsilon_\infty`
+    deps1: double
+        value for :math:`\Delta\varepsilon_1`
+    deps2: double
+        value for :math:`\Delta\varepsilon_2`
+    deps3: double
+        value for :math:`\Delta\varepsilon_3`
+    deps4: double
+        value for :math:`\Delta\varepsilon_4`
+    tau1: double
+        value for :math:`\tau_1`, in ps
+    tau2: double
+        value for :math:`\tau_2`, in ns
+    tau3: double
+        value for :math:`\tau_3`, in us
+    tau4: double
+        value for :math:`\tau_4`, in ms
+    a1: double
+        value for :math:`1 - \alpha_1 = a`
+    a2: double
+        value for :math:`1 - \alpha_2 = a`
+    a3: double
+        value for :math:`1 - \alpha_3 = a`
+    a4: double
+        value for :math:`1 - \alpha_4 = a`
+    sigma: double
+        conductivity value
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+    The original model has been described in [Gabriel1996]_.
+
+    References
+    ----------
+    .. [Gabriel1996] Gabriel, S., Lau, R. W., & Gabriel, C. (1996).
+                    The dielectric properties of biological tissues: III. Parametric models for the dielectric spectrum of tissues.
+                    Physics in Medicine and Biology, 41(11), 2271–2293.
+                    https://doi.org/10.1088/0031-9155/41/11/003
+    """
+
+    c0 *= 1e-12
+    tau1 *= 1e-12
+    tau2 *= 1e-9
+    tau3 *= 1e-6
+    tau4 *= 1e-3
+    epsc = epsinf - 1j * sigma / omega / e0
+
+    epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
+    epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
+    epsc += deps3 / (1. + np.power((1j * omega * tau3), a3))
+    epsc += deps4 / (1. + np.power((1j * omega * tau4), a4))
+
+    Z = 1. / (1j * omega * epsc * c0)
+    return Z
+
+
+def cole_cole_3_model(omega, c0, epsinf, deps1, deps2, deps3, tau1, tau2, tau3, a1, a2, a3, sigma):
+    r"""Standard 4-Cole-Cole impedance model.
+
+
+    Parameters
+    -----------
+
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for unit capacitance, in pF
+    epsinf: double
+        value for :math:`\varepsilon_\infty`
+    deps1: double
+        value for :math:`\Delta\varepsilon_1`
+    deps2: double
+        value for :math:`\Delta\varepsilon_2`
+    deps3: double
+        value for :math:`\Delta\varepsilon_3`
+    tau1: double
+        value for :math:`\tau_1`, in ps
+    tau2: double
+        value for :math:`\tau_2`, in ns
+    tau3: double
+        value for :math:`\tau_3`, in us
+    a1: double
+        value for :math:`1 - \alpha_1 = a`
+    a2: double
+        value for :math:`1 - \alpha_2 = a`
+    a3: double
+        value for :math:`1 - \alpha_3 = a`
+    sigma: double
+        conductivity value
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+    The original model has been described in [Gabriel1996]_.
+    Here, three instead of four dispersions are used.
+
+    References
+    ----------
+    .. [Gabriel1996] Gabriel, S., Lau, R. W., & Gabriel, C. (1996).
+                    The dielectric properties of biological tissues: III. Parametric models for the dielectric spectrum of tissues.
+                    Physics in Medicine and Biology, 41(11), 2271–2293.
+                    https://doi.org/10.1088/0031-9155/41/11/003
+    """
+
+    c0 *= 1e-12
+    tau1 *= 1e-12
+    tau2 *= 1e-9
+    tau3 *= 1e-6
+    epsc = epsinf - 1j * sigma / omega / e0
+
+    epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
+    epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
+    epsc += deps3 / (1. + np.power((1j * omega * tau3), a3))
+
+    Z = 1. / (1j * omega * epsc * c0)
+    return Z
+
+
+def cole_cole_2_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2, sigma):
+    r"""Standard 4-Cole-Cole impedance model.
+
+
+    Parameters
+    -----------
+
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for unit capacitance, in pF
+    epsinf: double
+        value for :math:`\varepsilon_\infty`
+    deps1: double
+        value for :math:`\Delta\varepsilon_1`
+    deps2: double
+        value for :math:`\Delta\varepsilon_2`
+    deps3: double
+        value for :math:`\Delta\varepsilon_3`
+    tau1: double
+        value for :math:`\tau_1`, in ps
+    tau2: double
+        value for :math:`\tau_2`, in ns
+    a1: double
+        value for :math:`1 - \alpha_1 = a`
+    a2: double
+        value for :math:`1 - \alpha_2 = a`
+    sigma: double
+        conductivity value
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+    The original model has been described in [Gabriel1996]_.
+    Here, two instead of four dispersions are used.
+
+    References
+    ----------
+    .. [Gabriel1996] Gabriel, S., Lau, R. W., & Gabriel, C. (1996).
+                    The dielectric properties of biological tissues: III. Parametric models for the dielectric spectrum of tissues.
+                    Physics in Medicine and Biology, 41(11), 2271–2293.
+                    https://doi.org/10.1088/0031-9155/41/11/003
+    """
+
+    c0 *= 1e-12
+    tau1 *= 1e-12
+    tau2 *= 1e-9
+    epsc = epsinf - 1j * sigma / omega / e0
+
+    epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
+    epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
+
+    Z = 1. / (1j * omega * epsc * c0)
+    return Z

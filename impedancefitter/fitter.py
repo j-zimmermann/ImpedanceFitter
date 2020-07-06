@@ -26,7 +26,7 @@ import pandas as pd
 import yaml
 from copy import deepcopy
 
-from .utils import set_parameters, get_equivalent_circuit_model
+from .utils import set_parameters, get_equivalent_circuit_model, get_labels
 from .readin import (readin_Data_from_TXT_file,
                      readin_Data_from_collection,
                      readin_Data_from_csv_E4980AL)
@@ -188,6 +188,8 @@ class Fitter(object):
         self.solver_kwargs = {}
         self.weighting = None
         self.show = False
+        self.savemodelresult = True
+        self.report = False
 
         # for txt files
         self.trace_b = None
@@ -331,7 +333,7 @@ class Fitter(object):
 
     def run(self, modelname, solver=None, parameters=None, protocol=None,
             solver_kwargs={}, modelclass="none", log=False, weighting=None,
-            show=False, report=False):
+            show=False, report=False, savemodelresult=True):
         """
         Main function that iterates through all data sets provided.
 
@@ -364,6 +366,9 @@ class Fitter(object):
         weighting: str, optional
             Choose a weighting scheme. Default is unit weighting.
             Also possible: proportional weighting. See [Barsoukov2018]_ for more information.
+        savemodelresult: bool, optional
+            Saves all :class:`lmfit.model.ModelResult` instances to plot or evaluate uncertainty later.
+
 
         References
         ----------
@@ -607,6 +612,10 @@ class Fitter(object):
             # conversion into python native type
             values[key] = float(values[key])
         self.fit_data[str(filename)] = values
+        if self.savemodelresult:
+            if not hasattr(self, "model_results"):
+                self.model_results = {}
+            self.model_results[str(filename)] = self.fittedValues
 
     def _process_sequential_fitting_results(self, filename):
         '''Write output to yaml file to prepare statistical analysis of the results.
@@ -629,6 +638,12 @@ class Fitter(object):
         self.fit_data[str(filename)] = {}
         self.fit_data[str(filename)]['model1'] = values1
         self.fit_data[str(filename)]['model2'] = values2
+        if self.savemodelresult:
+            if not hasattr(self, "model_results"):
+                self.model_results = {}
+            self.model_results[str(filename)] = {}
+            self.model_results[str(filename)]['model1'] = self.fittedValues1
+            self.model_results[str(filename)]['model2'] = self.fittedValues2
 
     def model_iterations(self, modelclass):
         r"""Information about number of iterations
@@ -988,21 +1003,56 @@ class Fitter(object):
                             as a solver to use this function""")
             return
 
-        if hasattr(self.fittedValues, 'acor'):
-            i = 0
-            logger.info("Correlation times per parameter")
-            for p in self.fittedValues.params:
-                if self.fittedValues.params[p].vary:
-                    print(p, self.fittedValues.acor[i])
-                    i += 1
-        else:
-            logger.warning("""No autocorrelation data available.
-                              Maybe run a longer chain?""")
+        assert hasattr(self, "model_results"), "You need to have saved the LMFIT model results."
+        for fits in self.model_results:
+            fittedValues = self.model_results[fits]
+            if hasattr(fittedValues, 'acor'):
+                i = 0
+                logger.info("Correlation times per parameter")
+                for p in fittedValues.params:
+                    if fittedValues.params[p].vary:
+                        print(p, fittedValues.acor[i])
+                        i += 1
+            else:
+                logger.warning("""No autocorrelation data available.
+                                  Maybe run a longer chain?""")
 
-        plt.xlabel("walker")
-        plt.ylabel("acceptance fraction")
-        plt.plot(self.fittedValues.acceptance_fraction)
-        plt.show()
+            plt.xlabel("walker")
+            plt.ylabel("acceptance fraction")
+            plt.plot(fittedValues.acceptance_fraction)
+            plt.show()
+
+            highest_prob = np.argmax(fittedValues.lnprob)
+            hp_loc = np.unravel_index(highest_prob, fittedValues.lnprob.shape)
+            mle_soln = fittedValues.chain[hp_loc]
+            paramsmle = {}
+            for i, par in enumerate(fittedValues.var_names):
+                paramsmle[par] = mle_soln[i]
+
+            print('\nMaximum Likelihood Estimation from emcee       ')
+            print('-------------------------------------------------')
+            print('Parameter  MLE Value   Median Value   Uncertainty')
+            fmt = '  {:5s}  {:11.5f} {:11.5f}   {:11.5f}'.format
+            for name in fittedValues.var_names:
+                print(fmt(name, paramsmle[name], fittedValues.params[name].value,
+                          fittedValues.params[name].stderr))
+
+    def plot_emcee_chains(self):
+        for fits in self.model_results:
+            fittedValues = self.model_results[fits]
+            ndim = len(fittedValues.var_names)
+            fig, axes = plt.subplots(ndim, figsize=(15, 10), sharex=True)
+            samples = fittedValues.chain
+            labels = get_labels(fittedValues.var_names)
+            for i in range(ndim):
+                ax = axes[i]
+                ax.plot(samples[:, :, i], "k", alpha=0.3)
+                ax.set_xlim(0, len(samples))
+                ax.set_ylabel(labels[fittedValues.var_names[i]])
+                ax.yaxis.set_label_coords(-0.1, 0.5)
+
+            axes[-1].set_xlabel("step number")
+            plt.show()
 
     def plot_uncertainty_interval(self, sigma=1, sequential=False):
         """Plot uncertainty interval around best fit.
@@ -1019,37 +1069,41 @@ class Fitter(object):
         assert isinstance(sigma, int), "Sigma needs to be integer and range between 1 and 3."
         assert sigma >= 1, "Sigma needs to be integer and range between 1 and 3."
         assert sigma <= 3, "Sigma needs to be integer and range between 1 and 3."
+        assert hasattr(self, "model_results"), "You need to have saved the LMFIT model results."
 
-        if sequential:
-            iters = 2
-            endings = ["1", "2"]
-        else:
-            iters = 1
-            endings = [""]
-        for i in range(iters):
-            fit_values = getattr(self, "fittedValues{}".format(endings[i]))
-            if self.solvername != "emcee":
-                logger.debug("Not Using emcee")
-                ci = fit_values.conf_interval()
+        for d in self.fit_data:
+            if sequential:
+                iters = 2
+                endings = ["1", "2"]
             else:
-                logger.debug("Using emcee")
-                ci = self.emcee_conf_interval(fit_values)
-            eval1 = lmfit.Parameters()
-            eval2 = lmfit.Parameters()
-            for p in fit_values.params:
-                if p == "__lnsigma":
-                    continue
-                eval1.add(p, value=fit_values.best_values[p])
-                eval2.add(p, value=fit_values.best_values[p])
-                if p in ci:
-                    eval1[p].set(value=ci[p][3 - sigma][1])
-                    eval2[p].set(value=ci[p][3 + sigma][1])
+                iters = 1
+                endings = [""]
+            for i in range(iters):
+                modelresult = self.model_results[d]
+                if sequential:
+                    modelresult = modelresult['model' + endings[i]]
+                if self.solvername != "emcee":
+                    logger.debug("Not Using emcee")
+                    ci = modelresult.conf_interval()
+                else:
+                    logger.debug("Using emcee")
+                    ci = self.emcee_conf_interval(modelresult)
+                eval1 = lmfit.Parameters()
+                eval2 = lmfit.Parameters()
+                for p in modelresult.params:
+                    if p == "__lnsigma":
+                        continue
+                    eval1.add(p, value=modelresult.best_values[p])
+                    eval2.add(p, value=modelresult.best_values[p])
+                    if p in ci:
+                        eval1[p].set(value=ci[p][3 - sigma][1])
+                        eval2[p].set(value=ci[p][3 + sigma][1])
 
-            Z1 = fit_values.eval(params=eval1)
-            Z2 = fit_values.eval(params=eval2)
-            Z = fit_values.best_fit
-            plot_uncertainty(fit_values.userkws['omega'], fit_values.data,
-                             Z, Z1, Z2, sigma, model=i)
+                Z1 = modelresult.eval(params=eval1)
+                Z2 = modelresult.eval(params=eval2)
+                Z = modelresult.best_fit
+                plot_uncertainty(modelresult.userkws['omega'], modelresult.data,
+                                 Z, Z1, Z2, sigma, model=i)
 
     def emcee_conf_interval(self, result):
         r"""Compute emcee confidence intervals.
@@ -1100,11 +1154,62 @@ class Fitter(object):
             ci[p] = list(zip(percentiles, quantile))
         return ci
 
-    def prepare_emcee_run(self):
-        """Prepare initial configuration.
+    def prepare_emcee_run(self, leastsquaresresult,
+                          lnsigma={'value': np.log(0.1), 'min': np.log(0.001), 'max': np.log(2)},
+                          nwalkers=100,
+                          radius=1e-4, weighted=False,
+                          burn=500,
+                          steps=10e3,
+                          thin=10):
+        """Prepare initial configuration based on previous least squares run.
 
-           .. todo:: Implement.
+
+        Parameters
+        ----------
+
+        leastsquaresresult: :class:`lmfit.ModelResult`
+            Result of previous least squares run on same model.
+
+        Notes
+        -----
+            .. todo:: Document.
+
+        Returns
+        -------
+
+        dict
+            dictionary, which can be passed to run method via `solver_kwargs` keyword.
         """
+        # take results from least squares
+        parameters_dict = {}
+        for l in leastsquaresresult.params:
+            parameters_dict[l] = {}
+            parameters_dict[l]['value'] = leastsquaresresult.params[l].value
+            parameters_dict[l]['min'] = leastsquaresresult.params[l].min
+            parameters_dict[l]['max'] = leastsquaresresult.params[l].max
+            parameters_dict[l]['vary'] = leastsquaresresult.params[l].vary
+
+        # get parameters in right order
+        parameters = []
+        for p in leastsquaresresult.var_names:
+            parameters.append(p)
+
+        # and assemble tiny gaussian ball around least squares result
+        ls_values = [parameters_dict[p]['value'] for p in parameters]
+        # for__lnsigma
+        ls_values.append(lnsigma['value'])
+        parameters_dict['__lnsigma'] = lnsigma
+        nvarys = len(parameters) + 1
+        pos = (np.array(ls_values) * (1. + radius * np.random.randn(nwalkers, nvarys)))
+        solver_kwargs = {'seed': 42,
+                         # 'nan_policy': 'omit',
+                         'burn': burn,
+                         'steps': steps,
+                         'nwalkers': nwalkers,
+                         'thin': thin,
+                         'pos': pos,
+                         'is_weighted': weighted}
+        return solver_kwargs, parameters_dict
 
     def linkk_test(self, capacitance=False, inductance=False,
                    c=0.85, maxM=100, show=True, limits=[-2, 2], weighting="modulus"):

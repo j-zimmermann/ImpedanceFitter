@@ -27,7 +27,7 @@ from collections import Counter
 from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
 from .loss import Z_in, Z_loss
-from .cole_cole import cole_cole_model, cole_cole_R_model
+from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model
 from .double_shell import double_shell_model
 from .randles import Z_randles, Z_randles_CPE
 from .RC import RC_model, rc_model, drc_model, rc_tau_model
@@ -124,8 +124,8 @@ def check_parameters(bufdict):
     capacitancespF = ['c0', 'Cs']
     capacitances = ['C']
     # taus in ns
-    taus = ['tau', 'tauE']
-    zerotoones = ['p', 'a', 'alpha', 'beta']
+    taus = ['tau', 'tauE', 'tau1', 'tau2', 'tau3', 'tau4']
+    zerotoones = ['p', 'a', 'alpha', 'beta', 'a1', 'a2', 'a3', 'a4']
     permittivities = ['em', 'ecp', 'emed', 'ene', 'enp', 'el', 'eh', 'eps']
 
     # __lnsigma and Rk (Lin-KK test)
@@ -296,6 +296,7 @@ def get_labels(params):
         'Cs': r'$C_\mathrm{stray}$',
         'em': r'$\varepsilon_\mathrm{m}$',
         'km': r'$\sigma_\mathrm{m}$',
+        'sigma': r'$\sigma$',
         'kcp': r'$\sigma_\mathrm{cp}$',
         'ecp': r'$\varepsilon_\mathrm{cp}$',
         'kmed': r'$\sigma_\mathrm{med}$',
@@ -326,9 +327,16 @@ def get_labels(params):
         'R': r'$R$',
         'Rd': r'$R_\mathrm{d}$',
         'Rinf': r'$R_\infty$',
+        'epsinf': r'$\varepsilon_\infty$',
         'R0': r'$R_0$',
         'RE': r'$R_\mathrm{E}$',
         'eps': r'$\varepsilon_\mathrm{r}$'}
+
+    # for 4 cole cole model
+    for i in range(1, 5):
+        all_labels['tau' + str(i)] = r'$\tau_{}$'.format(i)
+        all_labels['deps' + str(i)] = r'$\Delta\varepsilon_{}$'.format(i)
+        all_labels['a' + str(i)] = r'$a_{}$'.format(i)
 
     labels = {}
     for p in params:
@@ -357,6 +365,9 @@ def available_models():
     """
     models = ['ColeCole',
               'ColeColeR',
+              'ColeCole4',
+              'ColeCole3',
+              'ColeCole2',
               'Randles',
               'RandlesCPE',
               'RCfull',
@@ -429,6 +440,12 @@ def _model_function(modelname):
     """
     if modelname == 'ColeCole':
         model = cole_cole_model
+    elif modelname == "ColeCole4":
+        model = cole_cole_4_model
+    elif modelname == "ColeCole3":
+        model = cole_cole_3_model
+    elif modelname == "ColeCole2":
+        model = cole_cole_2_model
     elif modelname == 'ColeColeR':
         model = cole_cole_R_model
     elif modelname == 'Randles':
@@ -674,6 +691,9 @@ def dummy(omega):
 def _model_label(model):
     labels = {'ColeCole': 'Cole-Cole',
               'ColeColeR': 'Cole-Cole w/ R',
+              'ColeCole4': '4 Cole-Cole',
+              'ColeCole3': '3 Cole-Cole',
+              'ColeCole2': '2 Cole-Cole',
               'Randles': 'Randles',
               'RandlesCPE': 'Randles w/ CPE',
               'RCfull': 'RC',
@@ -706,6 +726,9 @@ def _get_element(name):
     capacitors = ["C", "Cstray"]
     resistorlike = ['ColeCole',
                     'ColeColeR',
+                    'ColeCole4',
+                    'ColeCole3',
+                    'ColeCole2',
                     'Randles',
                     'RandlesCPE',
                     'RCfull',

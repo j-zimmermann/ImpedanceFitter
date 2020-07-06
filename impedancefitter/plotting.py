@@ -23,7 +23,8 @@ import corner
 from .utils import return_diel_properties, get_labels
 
 
-def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, save=False):
+def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, save=False, logscale="permittivity",
+                               labels=None):
     '''
     Parameters
     ----------
@@ -43,9 +44,16 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     save: bool, optional
         save figure to pdf (default is False). Name of figure starts with `title`
         and ends with `_dielectric_properties.pdf`.
-
+    logscale: str, optional
+        Decide what you want to plot using log scale.
+        Possible are `permittivity`, `conductivity` and `both`
+    labels: list, optional
+        Give custom labels. Needs to be a list of length 2.
     '''
     eps_r, cond_fit = return_diel_properties(omega, Z, c0)
+    if labels is None:
+        labels = [r'$Z_1$', r'$Z_2$']
+    assert len(labels) == 2, "You need to provide lables as a list containing 2 strings!"
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
     plt.figure()
@@ -54,21 +62,24 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.title("relative permittivity")
     plt.ylabel("relative permittivity")
     plt.xlabel('frequency [Hz]')
+    if logscale == 'permittivity' or logscale == 'both':
+        plt.yscale('log')
     plt.xscale('log')
-    plt.yscale('log')
-    plt.plot(omega / (2. * np.pi), eps_r, label="Z_1")
+    plt.plot(omega / (2. * np.pi), eps_r, label=labels[0])
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), eps_r2, label="Z_2")
+        plt.plot(omega / (2. * np.pi), eps_r2, label=labels[1])
         plt.legend()
 
     plt.subplot(212)
     plt.title("conductivity")
     plt.ylabel("conductivity [S/m]")
     plt.xlabel('frequency [Hz]')
+    if logscale == 'conductivity' or logscale == 'both':
+        plt.yscale('log')
     plt.xscale('log')
-    plt.plot(omega / (2. * np.pi), cond_fit, label="Z_1")
+    plt.plot(omega / (2. * np.pi), cond_fit, label=labels[0])
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), cond_fit2, label="Z_2")
+        plt.plot(omega / (2. * np.pi), cond_fit2, label=labels[1])
         plt.legend()
     plt.tight_layout()
     if save:
