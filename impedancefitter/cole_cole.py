@@ -336,3 +336,15 @@ def cole_cole_2_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2, sigma
 
     Z = 1. / (1j * omega * epsc * c0)
     return Z
+
+
+def havriliak_negami(omega, c0, epsinf, deps, tau, a, beta, sigma):
+    """Havriliak-Negami relaxation.
+
+    """
+
+    c0 *= 1e-12
+    epsc = epsinf + deps / np.power(1. + np.power(1j * omega * tau, a), beta) - 1j * sigma / omega / e0
+
+    Z = 1. / (1j * omega * epsc * c0)
+    return Z
