@@ -27,7 +27,7 @@ from collections import Counter
 from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
 from .loss import Z_in, Z_loss
-from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model
+from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model, havriliak_negami
 from .double_shell import double_shell_model
 from .randles import Z_randles, Z_randles_CPE
 from .RC import RC_model, rc_model, drc_model, rc_tau_model
@@ -368,6 +368,7 @@ def available_models():
               'ColeCole4',
               'ColeCole3',
               'ColeCole2',
+              'HavriliakNegami',
               'Randles',
               'RandlesCPE',
               'RCfull',
@@ -446,6 +447,8 @@ def _model_function(modelname):
         model = cole_cole_3_model
     elif modelname == "ColeCole2":
         model = cole_cole_2_model
+    elif modelname == 'HavriliakNegami':
+        model = havriliak_negami
     elif modelname == 'ColeColeR':
         model = cole_cole_R_model
     elif modelname == 'Randles':
@@ -694,6 +697,7 @@ def _model_label(model):
               'ColeCole4': '4 Cole-Cole',
               'ColeCole3': '3 Cole-Cole',
               'ColeCole2': '2 Cole-Cole',
+              'HavriliakNegami': 'Havriliak-Negami',
               'Randles': 'Randles',
               'RandlesCPE': 'Randles w/ CPE',
               'RCfull': 'RC',
@@ -729,6 +733,7 @@ def _get_element(name):
                     'ColeCole4',
                     'ColeCole3',
                     'ColeCole2',
+                    'HavriliakNegami',
                     'Randles',
                     'RandlesCPE',
                     'RCfull',

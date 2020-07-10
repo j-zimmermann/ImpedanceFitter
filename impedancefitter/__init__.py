@@ -41,5 +41,5 @@ def update_loglevel(level):
 from .fitter import Fitter
 from .postprocess import PostProcess
 from .utils import get_labels, available_models, get_equivalent_circuit_model, draw_scheme, available_file_format
-from .plotting import plot_compare_to_data, plot_impedance, plot_dielectric_properties, emcee_plot, plot_bode
+from .plotting import plot_compare_to_data, plot_impedance, plot_dielectric_properties, emcee_plot, plot_bode, plot_cole_cole
 from .__version__ import __version__

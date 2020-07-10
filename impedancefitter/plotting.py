@@ -21,6 +21,7 @@ import numpy as np
 import corner
 
 from .utils import return_diel_properties, get_labels
+from scipy.constants import epsilon_0 as e0
 
 
 def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, save=False, logscale="permittivity",
@@ -84,6 +85,71 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.tight_layout()
     if save:
         plt.savefig(str(title).replace(" ", "_") + "_dielectric_properties.pdf")
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_cole_cole(omega, Z, c0, Z_comp=None,
+                   title="", show=True, save=False, labels=None):
+    '''
+    Parameters
+    ----------
+
+    omega: double or ndarray of double
+        frequency array
+    Z: complex or array of complex
+        impedance array
+    c0: double
+        unit capacitance of device
+    Z_comp: optional
+        complex-valued impedance array. Might be used to compare the properties of two data sets.
+    title: str, optional
+        title of plot. Default is an empty string.
+    show: bool, optional
+        show figure (default is True)
+    save: bool, optional
+        save figure to pdf (default is False). Name of figure starts with `title`
+        and ends with `_dielectric_properties.pdf`.
+    logscale: str, optional
+        Decide what you want to plot using log scale.
+        Possible are `permittivity`, `conductivity` and `both`
+    labels: list, optional
+        Give custom labels. Needs to be a list of length 2.
+    '''
+    eps_r, cond_fit = return_diel_properties(omega, Z, c0)
+    epsc_fit = eps_r - 1j * cond_fit / (e0 * omega)
+    if labels is None:
+        labels = [r'$Z_1$', r'$Z_2$']
+    assert len(labels) == 2, "You need to provide lables as a list containing 2 strings!"
+    if Z_comp is not None:
+        eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
+        epsc_fit2 = eps_r2 - 1j * cond_fit2 / (e0 * omega)
+        plt.figure()
+        plt.subplot(211)
+
+    plt.title("Cole-Cole plot")
+    plt.xlabel(r"$\Re(\varepsilon)$")
+    plt.ylabel(r"$-\Im(\varepsilon)$")
+    plt.plot(epsc_fit.real, -epsc_fit.imag, label=labels[0])
+    if Z_comp is not None:
+        plt.plot(epsc_fit2.real, -epsc_fit2.imag, label=labels[1])
+    plt.legend()
+
+    if Z_comp is not None:
+        plt.subplot(212)
+        plt.title("Comparison")
+        plt.ylabel("rel. difference [%]")
+        plt.xlabel('frequency [Hz]')
+        plt.xscale('log')
+        plt.plot(omega / (2. * np.pi), 100. * np.abs((epsc_fit.real - epsc_fit2.real) / epsc_fit.real), label="real")
+        plt.plot(omega / (2. * np.pi), 100. * np.abs((epsc_fit.imag - epsc_fit2.imag) / epsc_fit.imag), label="imag")
+        plt.plot(omega / (2. * np.pi), 100. * np.abs((epsc_fit - epsc_fit2) / epsc_fit), label="abs")
+        plt.legend()
+    plt.tight_layout()
+    if save:
+        plt.savefig(str(title).replace(" ", "_") + "_cole_cole_plot.pdf")
     if show:
         plt.show()
     else:

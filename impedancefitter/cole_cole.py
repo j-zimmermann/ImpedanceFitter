@@ -344,6 +344,7 @@ def havriliak_negami(omega, c0, epsinf, deps, tau, a, beta, sigma):
     """
 
     c0 *= 1e-12
+    tau *= 1e-9
     epsc = epsinf + deps / np.power(1. + np.power(1j * omega * tau, a), beta) - 1j * sigma / omega / e0
 
     Z = 1. / (1j * omega * epsc * c0)
