@@ -24,6 +24,74 @@ from .utils import return_diel_properties, get_labels
 from scipy.constants import epsilon_0 as e0
 
 
+def plot_complex_permittivity(omega, Z, c0, Z_comp=None,
+                              title="", show=True, save=False,
+                              logscale="permittivity", labels=None):
+    '''
+    Parameters
+    ----------
+
+    omega: double or ndarray of double
+        frequency array
+    Z: complex or array of complex
+        impedance array
+    c0: double
+        unit capacitance of device
+    Z_comp: optional
+        complex-valued impedance array. Might be used to compare the properties of two data sets.
+    title: str, optional
+        title of plot. Default is an empty string.
+    show: bool, optional
+        show figure (default is True)
+    save: bool, optional
+        save figure to pdf (default is False). Name of figure starts with `title`
+        and ends with `_dielectric_properties.pdf`.
+    logscale: str, optional
+        Decide what you want to plot using log scale.
+        Possible are `permittivity`, `loss` and `both`
+    labels: list, optional
+        Give custom labels. Needs to be a list of length 2.
+    '''
+    eps_r, cond_fit = return_diel_properties(omega, Z, c0)
+    if labels is None:
+        labels = [r'$Z_1$', r'$Z_2$']
+    assert len(labels) == 2, "You need to provide lables as a list containing 2 strings!"
+    if Z_comp is not None:
+        eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
+    plt.figure()
+    plt.suptitle('complex permittivity', y=1.05)
+    plt.subplot(211)
+    plt.title("relative permittivity")
+    plt.ylabel("relative permittivity")
+    plt.xlabel('frequency [Hz]')
+    if logscale == 'permittivity' or logscale == 'both':
+        plt.yscale('log')
+    plt.xscale('log')
+    plt.plot(omega / (2. * np.pi), eps_r, label=labels[0])
+    if Z_comp is not None:
+        plt.plot(omega / (2. * np.pi), eps_r2, label=labels[1])
+        plt.legend()
+
+    plt.subplot(212)
+    plt.title("dielectric loss")
+    plt.ylabel("dielectric loss")
+    plt.xlabel('frequency [Hz]')
+    if logscale == 'loss' or logscale == 'both':
+        plt.yscale('log')
+    plt.xscale('log')
+    plt.plot(omega / (2. * np.pi), cond_fit / (e0 * omega), label=labels[0])
+    if Z_comp is not None:
+        plt.plot(omega / (2. * np.pi), cond_fit2 / (e0 * omega), label=labels[1])
+        plt.legend()
+    plt.tight_layout()
+    if save:
+        plt.savefig(str(title).replace(" ", "_") + "_complex_permittivity.pdf")
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
 def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, save=False, logscale="permittivity",
                                labels=None):
     '''
