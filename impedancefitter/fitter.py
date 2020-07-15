@@ -800,10 +800,17 @@ class Fitter(object):
                 Z = np.log10(self.Z)
             else:
                 Z = self.Z
+            max_nfev = None
+            if 'max_nfev' in self.solver_kwargs:
+                max_nfev = self.solver_kwargs['max_nfev']
+                tmp_dict = {key: self.solver_kwargs[key] for key in set(list(self.solver_kwargs.keys())) - set(['max_nfev'])}
+            else:
+                tmp_dict = self.solver_kwargs
             model_result = model.fit(Z, params, omega=self.omega,
                                      method=self.solvername,
-                                     fit_kws=self.solver_kwargs,
-                                     weights=weights)
+                                     fit_kws=tmp_dict,
+                                     weights=weights,
+                                     max_nfev=max_nfev)
             if not self.report:
                 logger.debug(model_result.fit_report())
             else:
