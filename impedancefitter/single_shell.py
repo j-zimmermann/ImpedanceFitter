@@ -33,7 +33,7 @@ def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc):
     em: double
         membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
     km: double
-        membrane conductivity,  value for :math:`\sigma_\mathrm{m}`
+        membrane conductivity,  value for :math:`\sigma_\mathrm{m}` in :math:`\mu`S/m
     ecp: double
         cytoplasm permittivity,  value for :math:`\varepsilon_\mathrm{cp}`
     kcp: double
@@ -110,6 +110,7 @@ def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc):
     :meth:`impedancefitter.double_shell.double_shell_model`
     """
     c0 *= 1e-12  # use pF as unit
+    km *= 1e-6
 
     v1 = (1. - dm / Rc)**3
 

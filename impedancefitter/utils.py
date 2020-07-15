@@ -31,7 +31,7 @@ from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, co
 from .double_shell import double_shell_model
 from .randles import Z_randles, Z_randles_CPE
 from .RC import RC_model, rc_model, drc_model, rc_tau_model
-from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model
+from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model, cpe_onset_model
 from .single_shell import single_shell_model
 from lmfit import Model, CompositeModel
 from copy import deepcopy
@@ -125,7 +125,7 @@ def check_parameters(bufdict):
     capacitances = ['C']
     # taus in ns
     taus = ['tau', 'tauE', 'tau1', 'tau2', 'tau3', 'tau4']
-    zerotoones = ['p', 'a', 'alpha', 'beta', 'a1', 'a2', 'a3', 'a4']
+    zerotoones = ['p', 'a', 'alpha', 'beta', 'a1', 'a2', 'a3', 'a4', 'nu']
     permittivities = ['em', 'ecp', 'emed', 'ene', 'enp', 'el', 'eh', 'eps']
 
     # __lnsigma and Rk (Lin-KK test)
@@ -376,6 +376,7 @@ def available_models():
               'SingleShell',
               'DoubleShell',
               'CPE',
+              'CPEonset',
               'CPECT',
               'CPECTW',
               'DRC',
@@ -469,6 +470,8 @@ def _model_function(modelname):
         model = double_shell_model
     elif modelname == 'CPE':
         model = cpe_model
+    elif modelname == 'CPEonset':
+        model = cpe_onset_model
     elif modelname == 'CPECT':
         model = cpe_ct_model
     elif modelname == 'CPECTW':
@@ -705,6 +708,7 @@ def _model_label(model):
               'SingleShell': 'Single Shell',
               'DoubleShell': 'DoubleShell',
               'CPE': 'CPE',
+              'CPEonset': 'CPEonset',
               'CPECT': 'CPECT',
               'CPECTW': 'CPECTW',
               'DRC': 'DRC',
@@ -742,6 +746,7 @@ def _get_element(name):
                     'SingleShell',
                     'DoubleShell']
     capacitorlike = ['CPE',
+                     'CPEonset',
                      'CPECT',
                      'CPECTW',
                      'W',

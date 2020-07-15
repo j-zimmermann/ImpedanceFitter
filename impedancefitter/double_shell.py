@@ -31,7 +31,7 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
     em: double
         membrane permittivity,membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
     km: double
-        membrane conductivity,  value for :math:`\sigma_\mathrm{m}`
+        membrane conductivity,  value for :math:`\sigma_\mathrm{m}` in :math:`\mu`S/m
     ecp: double
         cytoplasm permittivity,  value for :math:`\varepsilon_\mathrm{cp}`
     kcp: double
@@ -39,7 +39,7 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
     ene: double
         nuclear envelope permittivity,  value for :math:`\varepsilon_\mathrm{ne}`
     kne: double
-        nuclear envelope conductivity,  value for :math:`\sigma_\mathrm{ne}`
+        nuclear envelope conductivity,  value for :math:`\sigma_\mathrm{ne}` in mS/m
     enp: double
         nucleoplasm permittivity,  value for :math:`\varepsilon_\mathrm{np}`
     knp: double
@@ -176,6 +176,9 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
     """
 
     c0 *= 1e-12
+    km *= 1e-6
+    kne *= 1e-3
+
     v1 = (1. - dm / Rc)**3
     v2 = (Rn / (Rc - dm))**3
     v3 = (1. - dn / Rn)**3

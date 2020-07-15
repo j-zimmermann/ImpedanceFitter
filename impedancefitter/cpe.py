@@ -17,6 +17,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from .elements import Z_CPE, Z_w, parallel
+import numpy as np
 
 
 def cpe_model(omega, k, alpha):
@@ -102,4 +103,42 @@ def cpe_ct_w_model(omega, k, alpha, Rct, Aw):
     """
     Z_par = Rct + Z_w(omega, Aw)
     Z_fit = parallel(Z_CPE(omega, k, alpha), Z_par)
+    return Z_fit
+
+
+def cpe_onset_model(omega, f0, nu, Z0):
+    r"""Alternative Constant Phase Element Formulation.
+
+    Notes
+    -----
+
+    .. math::
+
+        Z_\mathrm{CPE} = Z_0 \left(j \frac{\omega}{2 \pi f_0} \right)^{-\nu}
+
+    See for example [Ishai2012]_.
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+    k: double
+        CPE factor
+    alpha: double
+        CPE phase
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    References
+    ----------
+
+    .. [Ishai2012] Ishai, P. Ben, Sobol, Z., Nickels, J. D., Agapov, A. L., & Sokolov, A. P. (2012).
+                   An assessment of comparative methods for approaching electrode polarization in dielectric permittivity measurements.
+                   Review of Scientific Instruments, 83(8).
+                   https://doi.org/10.1063/1.4746992
+    """
+    Z_fit = Z0 * np.power(1j * omega / (2. * np.pi * f0), -nu)
     return Z_fit
