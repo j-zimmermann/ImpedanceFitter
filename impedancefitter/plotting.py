@@ -511,7 +511,7 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         plt.close()
 
 
-def emcee_plot(res, **corner_kwargs):
+def emcee_plot(res, clustered=False, **corner_kwargs):
     """
     Create corner plot.
 
@@ -526,7 +526,11 @@ def emcee_plot(res, **corner_kwargs):
     truths = [res.params[p].value for p in params]
     ifLabels = get_labels(params)
     labels = [ifLabels[p] for p in res.var_names]
-    plot = corner.corner(res.flatchain, labels=labels,
+    if not clustered:
+        flatchain = res.flatchain
+    else:
+        flatchain = res.new_flatchain
+    plot = corner.corner(flatchain, labels=labels,
                          truths=truths, **corner_kwargs)
     return plot
 

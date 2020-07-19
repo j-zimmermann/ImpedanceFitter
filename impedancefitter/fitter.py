@@ -390,6 +390,8 @@ class Fitter(object):
         # initialize solver
         if solver is not None:
             self.solvername = solver
+        else:
+            self.solvername = "least_squares"
         if self.solvername == "emcee":
             self.emcee_tag = True
 
@@ -981,7 +983,6 @@ class Fitter(object):
                 plt.xlabel("walker")
                 plt.plot(average_differences)
                 plt.show()
-            constant = 1e2
 
             # set cut to the maximum number of walkers
             cut = len(walker_prob)
@@ -994,7 +995,7 @@ class Fitter(object):
                 plt.title("Acceptance fractions after clustering")
                 plt.xlabel("walker")
                 plt.ylabel("acceptance fraction")
-                plt.plot(np.take(res.acceptance_fraction, sorted_indices[:cut:]), label="initially")
+                plt.plot(np.take(res.acceptance_fraction, sorted_indices[::]), label="initial")
                 plt.plot(np.take(res.acceptance_fraction, sorted_indices[:cut:]), label="clustered")
                 plt.legend()
                 plt.show()
@@ -1192,8 +1193,8 @@ class Fitter(object):
         for l in leastsquaresresult.params:
             parameters_dict[l] = {}
             parameters_dict[l]['value'] = leastsquaresresult.params[l].value
-            parameters_dict[l]['min'] = leastsquaresresult.params[l].min
-            parameters_dict[l]['max'] = leastsquaresresult.params[l].max
+            parameters_dict[l]['min'] = -np.inf
+            parameters_dict[l]['max'] = np.inf
             parameters_dict[l]['vary'] = leastsquaresresult.params[l].vary
 
         # get parameters in right order
