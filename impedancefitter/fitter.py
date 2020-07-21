@@ -394,6 +394,8 @@ class Fitter(object):
             self.solvername = "least_squares"
         if self.solvername == "emcee":
             self.emcee_tag = True
+        else:
+            self.emcee_tag = False
 
         self.solver_kwargs = solver_kwargs
 
@@ -947,61 +949,64 @@ class Fitter(object):
             discovery in radial velocity data. Astrophysical Journal, 745(2).
             https://doi.org/10.1088/0004-637X/745/2/198
         """
-        res = self.fittedValues
+
+        assert hasattr(self, "model_results"), "You need to have saved the LMFIT model results."
         if not self.emcee_tag:
             print("""You need to have run emcee
                      as a solver to use this function""")
             return
         else:
-            lnprob = np.swapaxes(res.lnprob, 0, 1)
-            chain = np.swapaxes(res.chain, 0, 1)
-            walker_prob = []
-            for i in range(lnprob.shape[0]):
-                walker_prob.append(-np.mean(lnprob[i]))
-            if show:
-                plt.title("walkers sorted by probability")
-                plt.xlabel("walker")
-                plt.ylabel("negative mean ln probability")
-                plt.plot((np.sort(walker_prob)))
-                plt.show()
-            sorted_indices = np.argsort(walker_prob)
-            sorted_fields = np.sort(walker_prob)
-            l0 = sorted_fields[0]
-            differences = np.diff((sorted_fields))
-            if show:
-                plt.title("difference between adjacent walkers")
-                plt.xlabel("walker")
-                plt.ylabel("difference")
-                plt.plot(differences)
-                plt.show()
-            # numerator with j + 1 since enumerate starts from 0
-            average_differences = [(x - l0) / (j + 1) for j, x
-                                   in enumerate((sorted_fields[1::]))]
-            if show:
-                plt.title("average difference between current and first walker")
-                plt.ylabel("average difference")
-                plt.xlabel("walker")
-                plt.plot(average_differences)
-                plt.show()
+            for fits in self.model_results:
+                res = self.model_results[fits]
+                lnprob = np.swapaxes(res.lnprob, 0, 1)
+                chain = np.swapaxes(res.chain, 0, 1)
+                walker_prob = []
+                for i in range(lnprob.shape[0]):
+                    walker_prob.append(-np.mean(lnprob[i]))
+                if show:
+                    plt.title("walkers sorted by probability")
+                    plt.xlabel("walker")
+                    plt.ylabel("negative mean ln probability")
+                    plt.plot((np.sort(walker_prob)))
+                    plt.show()
+                sorted_indices = np.argsort(walker_prob)
+                sorted_fields = np.sort(walker_prob)
+                l0 = sorted_fields[0]
+                differences = np.diff((sorted_fields))
+                if show:
+                    plt.title("difference between adjacent walkers")
+                    plt.xlabel("walker")
+                    plt.ylabel("difference")
+                    plt.plot(differences)
+                    plt.show()
+                # numerator with j + 1 since enumerate starts from 0
+                average_differences = [(x - l0) / (j + 1) for j, x
+                                       in enumerate((sorted_fields[1::]))]
+                if show:
+                    plt.title("average difference between current and first walker")
+                    plt.ylabel("average difference")
+                    plt.xlabel("walker")
+                    plt.plot(average_differences)
+                    plt.show()
 
-            # set cut to the maximum number of walkers
-            cut = len(walker_prob)
-            for i in range(differences.size):
-                if differences[i] > constant * average_differences[i]:
-                    cut = i
-                    logger.debug("Cut off at walker {}".format(cut))
-                    break
-            if show:
-                plt.title("Acceptance fractions after clustering")
-                plt.xlabel("walker")
-                plt.ylabel("acceptance fraction")
-                plt.plot(np.take(res.acceptance_fraction, sorted_indices[::]), label="initial")
-                plt.plot(np.take(res.acceptance_fraction, sorted_indices[:cut:]), label="clustered")
-                plt.legend()
-                plt.show()
-            res.new_chain = np.take(chain, sorted_indices[:cut:], axis=0)
-            res.new_flatchain = pd.DataFrame(res.new_chain.reshape((-1, res.nvarys)),
-                                             columns=res.var_names)
+                # set cut to the maximum number of walkers
+                cut = len(walker_prob)
+                for i in range(differences.size):
+                    if differences[i] > constant * average_differences[i]:
+                        cut = i
+                        logger.debug("Cut off at walker {}".format(cut))
+                        break
+                if show:
+                    plt.title("Acceptance fractions after clustering")
+                    plt.xlabel("walker")
+                    plt.ylabel("acceptance fraction")
+                    plt.plot(np.take(res.acceptance_fraction, sorted_indices[::]), label="initial")
+                    plt.plot(np.take(res.acceptance_fraction, sorted_indices[:cut:]), label="clustered")
+                    plt.legend()
+                    plt.show()
+                setattr(res, "new_chain", np.take(chain, sorted_indices[:cut:], axis=0))
+                setattr(res, "new_flatchain", pd.DataFrame(res.new_chain.reshape((-1, res.nvarys)),
+                                                           columns=res.var_names))
 
     def emcee_report(self):
         """Reports acceptance fraction and autocorrelation times.
@@ -1045,7 +1050,7 @@ class Fitter(object):
                 print(fmt(name, paramsmle[name], fittedValues.params[name].value,
                           fittedValues.params[name].stderr))
 
-    def plot_emcee_chains(self):
+    def plot_emcee_chains(self, title=True, savefig=False):
         for fits in self.model_results:
             fittedValues = self.model_results[fits]
             ndim = len(fittedValues.var_names)
@@ -1060,6 +1065,10 @@ class Fitter(object):
                 ax.yaxis.set_label_coords(-0.1, 0.5)
 
             axes[-1].set_xlabel("step number")
+            plt.suptitle('Chains ' + fits, y=1.05)
+            plt.tight_layout()
+            if savefig:
+                plt.savefig(fits + "__chains.pdf")
             plt.show()
 
     def plot_uncertainty_interval(self, sigma=1, sequential=False):
@@ -1177,6 +1186,8 @@ class Fitter(object):
 
         leastsquaresresult: :class:`lmfit.ModelResult`
             Result of previous least squares run on same model.
+            Basically the initial setting. Could also stem from
+            a previous MCMC run.
 
         Notes
         -----
@@ -1202,12 +1213,16 @@ class Fitter(object):
         for p in leastsquaresresult.var_names:
             parameters.append(p)
 
-        # and assemble tiny gaussian ball around least squares result
+        # for__lnsigma if lnsigma has not been fitted yet
+        if '__lnsigma' not in parameters:
+            parameters_dict['__lnsigma'] = lnsigma
+
         ls_values = [parameters_dict[p]['value'] for p in parameters]
-        # for__lnsigma
-        ls_values.append(lnsigma['value'])
-        parameters_dict['__lnsigma'] = lnsigma
-        nvarys = len(parameters) + 1
+        nvarys = len(parameters)
+        if '__lnsigma' not in parameters:
+            ls_values.append(lnsigma['value'])
+            nvarys += 1
+        # and assemble tiny gaussian ball around least squares result
         pos = (np.array(ls_values) * (1. + radius * np.random.randn(nwalkers, nvarys)))
         solver_kwargs = {'seed': 42,
                          # 'nan_policy': 'omit',
