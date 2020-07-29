@@ -815,6 +815,9 @@ class Fitter(object):
                                      fit_kws=tmp_dict,
                                      weights=weights,
                                      max_nfev=max_nfev)
+
+            if self.weighting == "proportional":
+                _calculate_statistics(model_result)
             if not self.report:
                 logger.debug(model_result.fit_report())
             else:
@@ -1596,3 +1599,25 @@ def _compute_mu(fit_values):
     else:
         mu = -np.inf
     return mu
+
+
+def _calculate_statistics(model_result):
+    """Calculate the fitting statistics.
+
+    Function taken from LMFIT source code
+    and modified
+    https://github.com/lmfit/lmfit-py/blob/05bbc07321480d02dcd13c122ba16d42ec3d4eae/lmfit/minimizer.py
+
+    It corrects for the weighting and thus makes fits comparable.
+    """
+    model_result.residual = (model_result.best_fit - model_result.data).ravel().view(np.float)
+    if isinstance(model_result.residual, np.ndarray):
+        model_result.chisqr = (model_result.residual**2).sum()
+    else:
+        model_result.chisqr = model_result.residual
+    model_result.redchi = model_result.chisqr / max(1, model_result.nfree)
+    # this is -2*loglikelihood
+    model_result.chisqr = max(model_result.chisqr, 1.e-250 * model_result.ndata)
+    _neg2_log_likel = model_result.ndata * np.log(model_result.chisqr / model_result.ndata)
+    model_result.aic = _neg2_log_likel + 2 * model_result.nvarys
+    model_result.bic = _neg2_log_likel + np.log(model_result.ndata) * model_result.nvarys
