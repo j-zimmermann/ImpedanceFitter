@@ -126,7 +126,7 @@ def check_parameters(bufdict):
     # taus in ns
     taus = ['tau', 'tauE', 'tau1', 'tau2', 'tau3', 'tau4']
     zerotoones = ['p', 'a', 'alpha', 'beta', 'a1', 'a2', 'a3', 'a4', 'nu']
-    permittivities = ['em', 'ecp', 'emed', 'ene', 'enp', 'el', 'eh', 'eps']
+    permittivities = ['em', 'ecp', 'emed', 'ene', 'enp', 'el', 'eh', 'eps', 'epsinf']
 
     # __lnsigma and Rk (Lin-KK test)
     # can be negative and do not need to be checked
