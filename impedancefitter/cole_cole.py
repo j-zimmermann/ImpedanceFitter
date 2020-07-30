@@ -20,7 +20,7 @@ from scipy.constants import epsilon_0 as e0
 import numpy as np
 
 
-def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
+def cole_cole_model(omega, c0, epsl, tau, a, sigma, epsinf):
     r"""Cole-Cole model for dielectric properties.
 
     The model was implemented as presented in [Sabuncu2012]_.
@@ -34,13 +34,13 @@ def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
         list of frequencies
     c0: double
         value for :math:`c_0`, unit capacitance in pF
-    eh: double
-        value for :math:`\varepsilon_\mathrm{h}`
-    el: double
+    epsinf: double
+        value for :math:`\varepsilon_\infty`
+    epsl: double
         value for :math:`\varepsilon_\mathrm{l}`
     tau: double
         value for :math:`\tau`, in ns
-    kdc: double
+    sigma: double
         value for :math:`\sigma_\mathrm{dc}`
     a: double
         value for :math:`1 - \alpha = a`
@@ -63,7 +63,7 @@ def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
 
     .. math::
 
-        \varepsilon_\mathrm{s} = \varepsilon_\mathrm{h} + \frac{\varepsilon_\mathrm{l}-\varepsilon_\mathrm{h}}{1+(j \omega \tau)^a}
+        \varepsilon_\mathrm{s} = \varepsilon_\infty + \frac{\varepsilon_\mathrm{l}-\varepsilon_\infty}{1+(j \omega \tau)^a}
 
     .. math::
 
@@ -80,7 +80,7 @@ def cole_cole_model(omega, c0, el, tau, a, kdc, eh):
     """
     tau *= 1e-9  # use ns as unit
     c0 *= 1e-12  # use pF as unit
-    es = eh + (el - eh) / (1. + np.power((1j * omega * tau), a)) - 1j * kdc / (omega * e0)
+    es = epsinf + (epsl - epsinf) / (1. + np.power((1j * omega * tau), a)) - 1j * sigma / (omega * e0)
 
     Z_fit = 1. / (1j * omega * c0 * es)
 
