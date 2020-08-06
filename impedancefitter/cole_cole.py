@@ -213,7 +213,7 @@ def cole_cole_4_model(omega, c0, epsinf, deps1, deps2, deps3, deps4, tau1, tau2,
 
 
 def cole_cole_3_model(omega, c0, epsinf, deps1, deps2, deps3, tau1, tau2, tau3, a1, a2, a3, sigma):
-    r"""Standard 4-Cole-Cole impedance model.
+    r"""Standard 3-Cole-Cole impedance model.
 
 
     Parameters
@@ -279,7 +279,7 @@ def cole_cole_3_model(omega, c0, epsinf, deps1, deps2, deps3, tau1, tau2, tau3, 
 
 
 def cole_cole_2_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2, sigma):
-    r"""Standard 4-Cole-Cole impedance model.
+    r"""Standard 2-Cole-Cole impedance model.
 
 
     Parameters
