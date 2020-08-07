@@ -171,10 +171,6 @@ def Z_stray(omega, Cs):
     :class:`numpy.ndarray`, complex
         Impedance array
     """
-    if np.isclose(Cs, 0, atol=1e-5):
-        raise RuntimeError("""Stray capacitance is too small to be added.
-                          Did you maybe forget to enter it in terms of pF?""")
-
     return Z_C(omega, Cs * 1e-12)
 
 
