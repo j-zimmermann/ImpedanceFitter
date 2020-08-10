@@ -338,6 +338,66 @@ def cole_cole_2_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2, sigma
     return Z
 
 
+def cole_cole_2tissue_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2, sigma):
+    r"""2-Cole-Cole impedance model for tissues.
+
+
+    Parameters
+    -----------
+
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for unit capacitance, in pF
+    epsinf: double
+        value for :math:`\varepsilon_\infty`
+    deps1: double
+        value for :math:`\Delta\varepsilon_1 \cdot 10^3`
+    deps2: double
+        value for :math:`\Delta\varepsilon_2 \cdot 10^6`
+    tau1: double
+        value for :math:`\tau_1`, in us
+    tau2: double
+        value for :math:`\tau_2`, in ms
+    a1: double
+        value for :math:`1 - \alpha_1 = a`
+    a2: double
+        value for :math:`1 - \alpha_2 = a`
+    sigma: double
+        conductivity value
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+    The original model has been described in [Gabriel1996]_.
+    Here, two instead of four dispersions are used.
+
+    References
+    ----------
+    .. [Gabriel1996] Gabriel, S., Lau, R. W., & Gabriel, C. (1996).
+                    The dielectric properties of biological tissues: III. Parametric models for the dielectric spectrum of tissues.
+                    Physics in Medicine and Biology, 41(11), 2271–2293.
+                    https://doi.org/10.1088/0031-9155/41/11/003
+    """
+
+    c0 *= 1e-12
+    tau1 *= 1e-6
+    tau2 *= 1e-3
+    deps1 *= 1e3
+    deps2 *= 1e6
+    epsc = epsinf - 1j * sigma / omega / e0
+
+    epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
+    epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
+
+    Z = 1. / (1j * omega * epsc * c0)
+    return Z
+
+
 def havriliak_negami(omega, c0, epsinf, deps, tau, a, beta, sigma):
     """Havriliak-Negami relaxation.
 
@@ -345,6 +405,20 @@ def havriliak_negami(omega, c0, epsinf, deps, tau, a, beta, sigma):
 
     c0 *= 1e-12
     tau *= 1e-9
+    epsc = epsinf + deps / np.power(1. + np.power(1j * omega * tau, a), beta) - 1j * sigma / omega / e0
+
+    Z = 1. / (1j * omega * epsc * c0)
+    return Z
+
+
+def havriliak_negamitissue(omega, c0, epsinf, deps, tau, a, beta, sigma):
+    """Havriliak-Negami relaxation.
+
+    """
+
+    c0 *= 1e-12
+    tau *= 1e-6
+    deps *= 1e3
     epsc = epsinf + deps / np.power(1. + np.power(1j * omega * tau, a), beta) - 1j * sigma / omega / e0
 
     Z = 1. / (1j * omega * epsc * c0)

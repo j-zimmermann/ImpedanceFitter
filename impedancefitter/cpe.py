@@ -44,6 +44,32 @@ def cpe_model(omega, k, alpha):
     return Z_fit
 
 
+def cpetissue_model(omega, k, alpha):
+    r"""Constant Phase Element.
+
+    .. math::
+
+        Z_\mathrm{CPE} = k^{-1} (j \omega)^{-\alpha}
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+    k: double
+        CPE factor
+    alpha: double
+        CPE phase
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+    """
+
+    k *= 1e3
+    Z_fit = Z_CPE(omega, k, alpha)
+    return Z_fit
+
+
 def cpe_ct_model(omega, k, alpha, Rct):
     """Constant Phase Element in parallel with charge transfer resistance.
 
@@ -69,6 +95,35 @@ def cpe_ct_model(omega, k, alpha, Rct):
 
     """
 
+    Z_fit = parallel(Z_CPE(omega, k, alpha), Rct)
+    return Z_fit
+
+
+def cpe_ct_tissue_model(omega, k, alpha, Rct):
+    """Constant Phase Element in parallel with charge transfer resistance.
+
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+    k: double
+        CPE factor
+    alpha: double
+        CPE phase
+    Rct: double
+        charge transfer resistance
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    See Also
+    --------
+    :meth:`impedancefitter.cpe.cpe_model`
+
+    """
+    k *= 1e3
     Z_fit = parallel(Z_CPE(omega, k, alpha), Rct)
     return Z_fit
 

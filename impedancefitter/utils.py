@@ -27,11 +27,11 @@ from collections import Counter
 from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
 from .loss import Z_in, Z_loss
-from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model, havriliak_negami
+from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model, havriliak_negami, cole_cole_2tissue_model, havriliak_negamitissue
 from .double_shell import double_shell_model
 from .randles import Z_randles, Z_randles_CPE
 from .RC import RC_model, rc_model, drc_model, rc_tau_model
-from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model, cpe_onset_model
+from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model, cpe_onset_model, cpetissue_model, cpe_ct_tissue_model
 from .single_shell import single_shell_model
 from lmfit import Model, CompositeModel
 from copy import deepcopy
@@ -447,8 +447,12 @@ def _model_function(modelname):
         model = cole_cole_3_model
     elif modelname == "ColeCole2":
         model = cole_cole_2_model
+    elif modelname == "ColeCole2Tissue":
+        model = cole_cole_2tissue_model
     elif modelname == 'HavriliakNegami':
         model = havriliak_negami
+    elif modelname == 'HavriliakNegamiTissue':
+        model = havriliak_negamitissue
     elif modelname == 'ColeColeR':
         model = cole_cole_R_model
     elif modelname == 'Randles':
@@ -469,8 +473,12 @@ def _model_function(modelname):
         model = double_shell_model
     elif modelname == 'CPE':
         model = cpe_model
+    elif modelname == 'CPETissue':
+        model = cpetissue_model
     elif modelname == 'CPEonset':
         model = cpe_onset_model
+    elif modelname == 'CPECTTissue':
+        model = cpe_ct_tissue_model
     elif modelname == 'CPECT':
         model = cpe_ct_model
     elif modelname == 'CPECTW':
