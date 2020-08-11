@@ -201,7 +201,7 @@ def cole_cole_4_model(omega, c0, epsinf, deps1, deps2, deps3, deps4, tau1, tau2,
     tau2 *= 1e-9
     tau3 *= 1e-6
     tau4 *= 1e-3
-    epsc = epsinf - 1j * sigma / omega / e0
+    epsc = epsinf - 1j * sigma / (omega * e0)
 
     epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
     epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
@@ -268,7 +268,7 @@ def cole_cole_3_model(omega, c0, epsinf, deps1, deps2, deps3, tau1, tau2, tau3, 
     tau1 *= 1e-12
     tau2 *= 1e-9
     tau3 *= 1e-6
-    epsc = epsinf - 1j * sigma / omega / e0
+    epsc = epsinf - 1j * sigma / (omega * e0)
 
     epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
     epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
@@ -329,7 +329,7 @@ def cole_cole_2_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2, sigma
     c0 *= 1e-12
     tau1 *= 1e-12
     tau2 *= 1e-9
-    epsc = epsinf - 1j * sigma / omega / e0
+    epsc = epsinf - 1j * sigma / (omega * e0)
 
     epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
     epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
@@ -389,7 +389,7 @@ def cole_cole_2tissue_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2,
     tau2 *= 1e-3
     deps1 *= 1e3
     deps2 *= 1e6
-    epsc = epsinf - 1j * sigma / omega / e0
+    epsc = epsinf - 1j * sigma / (omega * e0)
 
     epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
     epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
@@ -405,7 +405,7 @@ def havriliak_negami(omega, c0, epsinf, deps, tau, a, beta, sigma):
 
     c0 *= 1e-12
     tau *= 1e-9
-    epsc = epsinf + deps / np.power(1. + np.power(1j * omega * tau, a), beta) - 1j * sigma / omega / e0
+    epsc = epsinf + deps / np.power(1. + np.power(1j * omega * tau, a), beta) - 1j * sigma / (omega * e0)
 
     Z = 1. / (1j * omega * epsc * c0)
     return Z
@@ -419,7 +419,7 @@ def havriliak_negamitissue(omega, c0, epsinf, deps, tau, a, beta, sigma):
     c0 *= 1e-12
     tau *= 1e-6
     deps *= 1e3
-    epsc = epsinf + deps / np.power(1. + np.power(1j * omega * tau, a), beta) - 1j * sigma / omega / e0
+    epsc = epsinf + deps / np.power(1. + np.power(1j * omega * tau, a), beta) - 1j * sigma / (omega * e0)
 
     Z = 1. / (1j * omega * epsc * c0)
     return Z
