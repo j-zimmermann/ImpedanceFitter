@@ -208,7 +208,7 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None,
     if Z_comp is not None:
         plt.subplot(212)
         plt.title("Comparison")
-        plt.ylabel("rel. difference [%]")
+        plt.ylabel("relative difference [%]")
         plt.xlabel('frequency [Hz]')
         plt.xscale('log')
         plt.plot(omega / (2. * np.pi), 100. * np.abs((epsc_fit.real - epsc_fit2.real) / epsc_fit.real), label="real")
@@ -489,17 +489,20 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         diff_imag = np.abs(diff_imag)
 
     plt.xscale('log')
-    plt.title(str(title) + "relative difference to data")
+    if title is not None:
+        plt.title(str(title) + "relative difference to data")
     plt.xlabel('frequency [Hz]')
-    plt.ylabel('rel. difference to data [%]')
-    plt.plot(omega / (2. * np.pi), diff_real, 'g', label=lbl_prefix + 'difference real part')
-    plt.plot(omega / (2. * np.pi), diff_imag, 'r', label=lbl_prefix + 'difference imag part')
+    plt.ylabel('relative difference [%]')
+    plt.plot(omega / (2. * np.pi), diff_real, 'g', label=lbl_prefix + 'diff. real part')
+    plt.plot(omega / (2. * np.pi), diff_imag, 'r', label=lbl_prefix + 'diff. imag part')
     if residual != "absolute":
-        plt.plot(omega / (2. * np.pi), diff_abs, 'b', label=lbl_prefix + 'difference w.r.t. abs value')
+        plt.plot(omega / (2. * np.pi), diff_abs, 'b', label=lbl_prefix + 'diff. w.r.t. abs. value')
     if limits is not None:
         assert len(limits) == 2, "You need to provide upper and lower limit!"
         plt.ylim(limits)
     plt.legend()
+    if subplot is None:
+        plt.tight_layout()
     if save:
         if residual != "diff":
             plt.savefig(str(title).replace(" ", "_") + "_relative_difference_to_data.pdf")
