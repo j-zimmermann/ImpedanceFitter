@@ -27,7 +27,7 @@ alpha = 0.9
 el = 1e3
 tau = 1
 a = .95
-kdc = kmed
+sigma = kmed
 eh = 80
 model1 = 'ColeCole + CPE'
 model2 = 'SingleShell + CPE'
@@ -102,9 +102,9 @@ def test_sequential_run(fitter2):
     parameters1 = {'k': {'value': k},
                    'alpha': {'value': alpha},
                    'c0': {'value': c0, 'vary': False},
-                   'kdc': {'value': kmed},
-                   'eh': {'value': emed},
-                   'el': {'value': el},
+                   'sigma': {'value': kmed},
+                   'epsinf': {'value': emed},
+                   'epsl': {'value': el},
                    'tau': {'value': tau},
                    'a': {'value': a}}
     parameters2 = {'Rc': {'value': Rc, 'vary': False},
@@ -131,9 +131,9 @@ def test_sequential_run2(fitter2):
     parameters1 = {'k': {'value': k},
                    'alpha': {'value': alpha},
                    'c0': {'value': c0, 'vary': False},
-                   'kdc': {'value': kmed},
-                   'eh': {'value': emed},
-                   'el': {'value': el},
+                   'sigma': {'value': kmed},
+                   'epsinf': {'value': emed},
+                   'epsl': {'value': el},
                    'tau': {'value': tau},
                    'a': {'value': a}}
     parameters2 = {'Rc': {'value': Rc, 'vary': False},
