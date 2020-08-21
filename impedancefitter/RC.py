@@ -74,9 +74,9 @@ def rc_model(omega, c0, kdc, eps):
     """
     c0 *= 1e-12
     Rd = e0 / (kdc * c0)
-    Cd = eps * c0
-    C = Cd
-    Z_fit = Rd / (1. + 1j * omega * C * Rd)
+    # Cd = eps * c0
+    factor = eps * e0 / kdc  # Cd * Rd
+    Z_fit = Rd / (1. + 1j * omega * factor)
     return Z_fit
 
 
