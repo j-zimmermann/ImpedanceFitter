@@ -91,7 +91,8 @@ def readin_Data_from_collection(filepath, fileformat, minimumFrequency=None, max
     return omega, zarray
 
 
-def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequency=None, current_threshold=None):
+def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequency=None, current_threshold=None,
+                                 voltage_threshold=None, tolerance=1e-2):
     """Read in data from E4980AL-LCR meter.
 
     Read in data that is structured like:
@@ -111,7 +112,12 @@ def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequen
         Provide a maximum frequency. All values above this frequencies will be ignored.
     current_threshold: float, optional
         Provides a current that the device had to pass through the sample. This threshold has
-        to be met with 1% accuracy.
+        to be met with the accuracy given by `tolerance`.
+    voltage_threshold: float, optional
+        Provides a voltage that the device had to apply. This threshold has
+        to be met with the accuracy given by `tolerance`.
+    tolerance: float, optional
+        `tolerance` level for voltage and/or current. Default is 1e-2, which refers to 1% accuracy.
 
 
     Returns
@@ -142,7 +148,10 @@ def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequen
                 # in current-driven mode we need to check if the device was able to deliver the current
                 # we assume 1% as the threshold
                 if current_threshold is not None:
-                    if not np.isclose(values[i][4], current_threshold, rtol=1e-2):
+                    if not np.isclose(values[i][4], current_threshold, rtol=tolerance):
+                        continue
+                if voltage_threshold is not None:
+                    if not np.isclose(values[i][3], voltage_threshold, rtol=tolerance):
                         continue
                 filteredvalues = np.append(filteredvalues, bufdict, axis=0)
             else:

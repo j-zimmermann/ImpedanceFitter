@@ -76,6 +76,12 @@ class Fitter(object):
         Use only for data from E4980AL LCR meter to check current.
         If the current is not close to the threshold,
         the data point will be neglected.
+    voltage_threshold: float, optional
+        Use only for data from E4980AL LCR meter to check voltage.
+        If the voltage is not close to the threshold,
+        the data point will be neglected.
+    E4980AL_tolerance: float, optional
+        Set tolerance for `current_threshold` and/or `voltage_threshold`.
     write_output: bool, optional
         Decide if you want to dump output to file. Default is False
     fileList: list of strings, optional
@@ -177,6 +183,8 @@ class Fitter(object):
         self.ending = ".TXT"
         self.data_sets = None
         self.current_threshold = None
+        self.voltage_threshold = None
+        self.E4980AL_tolerance = 1e-2
         self.write_output = False
         self.fileList = None
         self.savefig = False
@@ -211,6 +219,10 @@ class Fitter(object):
             self.data_sets = kwargs['data_sets']
         if 'current_threshold' in kwargs:
             self.current_threshold = kwargs['current_threshold']
+        if 'voltage_threshold' in kwargs:
+            self.voltage_threshold = kwargs['voltage_threshold']
+        if 'E4980AL_tolerance' in kwargs:
+            self.E4980AL_tolerance = kwargs['E4980AL_tolerance']
         if 'write_output' in kwargs:
             self.write_output = kwargs['write_output']
         if 'fileList' in kwargs:
@@ -589,7 +601,9 @@ class Fitter(object):
             omega, zarray = readin_Data_from_csv_E4980AL(filepath,
                                                          minimumFrequency=self.minimumFrequency,
                                                          maximumFrequency=self.maximumFrequency,
-                                                         current_threshold=self.current_threshold)
+                                                         current_threshold=self.current_threshold,
+                                                         voltage_threshold=self.voltage_threshold,
+                                                         tolerance=self.E4980AL_tolerance)
         else:
             return False, None, None
 
