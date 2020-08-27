@@ -30,7 +30,7 @@ from .utils import set_parameters, get_equivalent_circuit_model, get_labels
 from .readin import (readin_Data_from_TXT_file,
                      readin_Data_from_collection,
                      readin_Data_from_csv_E4980AL)
-from .plotting import plot_impedance, plot_uncertainty
+from .plotting import plot_impedance, plot_uncertainty, plot_bode
 from . import logger, log_impedancefitter
 
 
@@ -241,7 +241,8 @@ class Fitter(object):
             self.delimiter = kwargs['delimiter']
 
     def visualize_data(self, savefig=False, Zlog=False,
-                       allinone=False, show=True):
+                       allinone=False, plottype="impedance",
+                       show=True):
         """Visualize impedance data.
 
         Parameters
@@ -256,6 +257,8 @@ class Fitter(object):
             Decide if you want to immediately see the plot.
         allinone: bool, optional
             Visualize all data sets in one plot
+        plottype: str, optional
+            Choose between standard impedance plot ('impedance') and bode plot ('bode').
         """
         if not savefig and not show:
             logger.warning("""visualize_data does not have any effect if you
@@ -289,8 +292,14 @@ class Fitter(object):
                     title = "allinone"
                     showtmp = show
 
-                plot_impedance(self.omega_dict[key], zarray[i], title=title, show=showtmp,
-                               save=savefigtmp, Zlog=Zlog, append=append, labels=labels)
+                if plottype == "impedance":
+                    plot_impedance(self.omega_dict[key], zarray[i], title=title, show=showtmp,
+                                   save=savefigtmp, Zlog=Zlog, append=append, labels=labels)
+                elif plottype == "bode":
+                    plot_bode(self.omega_dict[key], zarray[i], title=title, show=showtmp,
+                              save=savefigtmp, append=append, labels=labels)
+                else:
+                    raise RuntimeError("You chose an invalid plottype")
                 totaliters -= 1
 
     def _initialize_parameters(self, model, parameters, emcee=False):

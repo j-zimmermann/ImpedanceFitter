@@ -225,7 +225,7 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None,
 
 
 def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
-              labels=["data", "best fit", "init fit"]):
+              labels=["data", "best fit", "init fit"], append=False):
     """Bode plot of impedance.
 
     Plots phase and log of magnitude over log of frequency.
@@ -253,38 +253,52 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     save: bool, optional
         save figure to pdf (default is False). Name of figure starts with `title`
         and ends with `_bode_plot.pdf`.
+    append: bool, optional
+        Decide if you want to show plot or add line to existing plot.
+
     """
 
-    plt.figure()
-    plt.suptitle(title, y=1.05)
+    axes = []
+    plt.figure("bodeimpedance")
+    axes = plt.gcf().axes
+
+    if len(axes) < 2:
+        plt.suptitle(title, y=1.05)
+        plt.subplot(211)
+    else:
+        plt.sca(axes[0])
+
     # plot real part of impedance
-    plt.subplot(211)
     plt.xscale('log')
     plt.yscale('log')
     plt.ylabel(r"|Z| $\Omega$")
     plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), np.abs(Z), 'r', label=labels[0])
+    plt.plot(omega / (2. * np.pi), np.abs(Z), label=labels[0])
     if Z_fit is not None:
         plt.plot(omega / (2. * np.pi), np.abs(Z_fit), '+', label=labels[1])
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), np.abs(Z_comp), 'x', label=labels[2])
     plt.legend()
-    plt.subplot(212)
+
+    if len(axes) < 2:
+        plt.subplot(212)
+    else:
+        plt.sca(axes[1])
     plt.xscale('log')
     plt.ylabel("phase [°]")
     plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), np.angle(Z, deg=True), 'r', label=labels[0])
+    plt.plot(omega / (2. * np.pi), np.angle(Z, deg=True), label=labels[0])
     if Z_fit is not None:
         plt.plot(omega / (2. * np.pi), np.angle(Z_fit, deg=True), '+', label=labels[1])
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), np.angle(Z_comp, deg=True), 'x', label=labels[2])
     plt.legend()
     plt.tight_layout()
-    if save:
+    if save and not append:
         plt.savefig(str(title).replace(" ", "_") + "_bode_plot.pdf")
     if show:
         plt.show()
-    else:
+    elif not show and not append:
         plt.close()
 
 
@@ -326,6 +340,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         Use sign of residual. Default is False, i.e. absolute value is plotted.
     Zlog: bool, optional
         Log-scale of impedance
+    append: bool, optional
+        Decide if you want to show plot or add line to existing plot.
 
     """
     axes = []
