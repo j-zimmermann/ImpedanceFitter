@@ -61,9 +61,9 @@ def plot_complex_permittivity(omega, Z, c0, Z_comp=None,
     plt.figure()
     plt.suptitle('complex permittivity', y=1.05)
     plt.subplot(211)
-    plt.title("relative permittivity")
-    plt.ylabel("relative permittivity")
-    plt.xlabel('frequency [Hz]')
+    plt.title("Relative permittivity")
+    plt.ylabel("Relative permittivity")
+    plt.xlabel('Frequency / Hz')
     if logscale == 'permittivity' or logscale == 'both':
         plt.yscale('log')
     plt.xscale('log')
@@ -73,9 +73,9 @@ def plot_complex_permittivity(omega, Z, c0, Z_comp=None,
         plt.legend()
 
     plt.subplot(212)
-    plt.title("dielectric loss")
-    plt.ylabel("dielectric loss")
-    plt.xlabel('frequency [Hz]')
+    plt.title("Dielectric loss")
+    plt.ylabel("Dielectric loss")
+    plt.xlabel('Frequency / Hz')
     if logscale == 'loss' or logscale == 'both':
         plt.yscale('log')
     plt.xscale('log')
@@ -128,9 +128,9 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.figure()
     plt.suptitle('dielectric properties', y=1.05)
     plt.subplot(211)
-    plt.title("relative permittivity")
-    plt.ylabel("relative permittivity")
-    plt.xlabel('frequency [Hz]')
+    plt.title("Relative permittivity")
+    plt.ylabel("Relative permittivity")
+    plt.xlabel('Frequency / Hz')
     if logscale == 'permittivity' or logscale == 'both':
         plt.yscale('log')
     plt.xscale('log')
@@ -140,9 +140,9 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
         plt.legend()
 
     plt.subplot(212)
-    plt.title("conductivity")
-    plt.ylabel("conductivity [S/m]")
-    plt.xlabel('frequency [Hz]')
+    plt.title("Conductivity")
+    plt.ylabel("Conductivity / S$\cdot$m$^{-1}$]")
+    plt.xlabel('Frequency / Hz')
     if logscale == 'conductivity' or logscale == 'both':
         plt.yscale('log')
     plt.xscale('log')
@@ -198,8 +198,8 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None,
         plt.subplot(211)
 
     plt.title("Cole-Cole plot")
-    plt.xlabel(r"$\Re(\varepsilon)$")
-    plt.ylabel(r"$-\Im(\varepsilon)$")
+    plt.xlabel(r"Re($\varepsilon$)")
+    plt.ylabel(r"-Im($\varepsilon$)")
     plt.plot(epsc_fit.real, -epsc_fit.imag, label=labels[0])
     if Z_comp is not None:
         plt.plot(epsc_fit2.real, -epsc_fit2.imag, label=labels[1])
@@ -208,8 +208,8 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None,
     if Z_comp is not None:
         plt.subplot(212)
         plt.title("Comparison")
-        plt.ylabel("relative difference [%]")
-        plt.xlabel('frequency [Hz]')
+        plt.ylabel("Relative difference / %")
+        plt.xlabel('Frequency / Hz')
         plt.xscale('log')
         plt.plot(omega / (2. * np.pi), 100. * np.abs((epsc_fit.real - epsc_fit2.real) / epsc_fit.real), label="real")
         plt.plot(omega / (2. * np.pi), 100. * np.abs((epsc_fit.imag - epsc_fit2.imag) / epsc_fit.imag), label="imag")
@@ -225,7 +225,7 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None,
 
 
 def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
-              labels=["data", "best fit", "init fit"], append=False):
+              labels=["Data", "Best fit", "Init fit"], append=False):
     """Bode plot of impedance.
 
     Plots phase and log of magnitude over log of frequency.
@@ -271,11 +271,11 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     # plot real part of impedance
     plt.xscale('log')
     plt.yscale('log')
-    plt.ylabel(r"|Z| $\Omega$")
-    plt.xlabel("frequency [Hz]")
+    plt.ylabel(r"|Z| / $\Omega$")
+    plt.xlabel('Frequency / Hz')
     plt.plot(omega / (2. * np.pi), np.abs(Z), label=labels[0])
     if Z_fit is not None:
-        plt.plot(omega / (2. * np.pi), np.abs(Z_fit), '+', label=labels[1])
+        plt.plot(omega / (2. * np.pi), np.abs(Z_fit), '^', label=labels[1])
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), np.abs(Z_comp), 'x', label=labels[2])
     plt.legend()
@@ -285,11 +285,11 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     else:
         plt.sca(axes[1])
     plt.xscale('log')
-    plt.ylabel("phase [°]")
-    plt.xlabel("frequency [Hz]")
+    plt.ylabel("Phase / °")
+    plt.xlabel('Frequency / Hz')
     plt.plot(omega / (2. * np.pi), np.angle(Z, deg=True), label=labels[0])
     if Z_fit is not None:
-        plt.plot(omega / (2. * np.pi), np.angle(Z_fit, deg=True), '+', label=labels[1])
+        plt.plot(omega / (2. * np.pi), np.angle(Z_fit, deg=True), '^', label=labels[1])
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), np.angle(Z_comp, deg=True), 'x', label=labels[2])
     plt.legend()
@@ -303,7 +303,7 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
 
 
 def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
-                   labels=["data", "best fit", "init fit"], residual="parts", sign=False,
+                   labels=["Data", "Best fit", "Init fit"], residual="parts", sign=False,
                    Zlog=False, append=False, limits_residual=None):
     """Plot the `result` and compare it to data `Z`.
 
@@ -358,12 +358,12 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.yscale('log')
     # plot real part of impedance
     plt.xscale('log')
-    plt.title("impedance real part")
-    plt.ylabel(r"$\Re(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
+    plt.title("Impedance real part")
+    plt.ylabel(r"Re(Z) / $\Omega$")
+    plt.xlabel('Frequency / Hz')
     plt.plot(omega / (2. * np.pi), Z.real, label=labels[0])
     if Z_fit is not None:
-        plt.plot(omega / (2. * np.pi), Z_fit.real, '+', label=labels[1])
+        plt.plot(omega / (2. * np.pi), Z_fit.real, '^', label=labels[1])
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), Z_comp.real, 'x', label=labels[2])
     plt.legend()
@@ -372,39 +372,39 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.subplot(222)
     else:
         plt.sca(axes[1])
-    plt.title("impedance imaginary part")
+    plt.title("Impedance imaginary part")
     plt.xscale('log')
-    plt.ylabel(r"$\Im(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
+    plt.ylabel(r"Im(Z) / $\Omega$")
+    plt.xlabel('Frequency / Hz')
     if Zlog:
         plt.yscale('log')
         if np.all(np.less_equal(Z.imag, 0)):
-            plt.ylabel(r"$-\Im(Z) [\Omega]$")
+            plt.ylabel(r"-Im(Z) / $\Omega$")
             plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega / (2. * np.pi), -Z_fit.imag, '+', label=labels[1])
+                plt.plot(omega / (2. * np.pi), -Z_fit.imag, '^', label=labels[1])
             if Z_comp is not None:
                 plt.plot(omega / (2. * np.pi), -Z_comp.imag, 'x', label=labels[2])
 
         elif np.all(np.greater_equal(Z.imag, 0)):
             plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label=labels[1])
+                plt.plot(omega / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
             if Z_comp is not None:
                 plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
 
         elif np.where(Z.imag < 0).size > np.where(Z.imag > 0).size:
-            plt.ylabel(r"$-\Im(Z) [\Omega]$")
+            plt.ylabel(r"-Im(Z) / $\Omega$")
             plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega / (2. * np.pi), -Z_fit.imag, '+', label=labels[1])
+                plt.plot(omega / (2. * np.pi), -Z_fit.imag, '^', label=labels[1])
             if Z_comp is not None:
                 plt.plot(omega / (2. * np.pi), -Z_comp.imag, 'x', label=labels[2])
 
         else:
             plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label=labels[1])
+                plt.plot(omega / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
             if Z_comp is not None:
                 plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
 
@@ -412,7 +412,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0])
 
         if Z_fit is not None:
-            plt.plot(omega / (2. * np.pi), Z_fit.imag, '+', label=labels[1])
+            plt.plot(omega / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
         if Z_comp is not None:
             plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
     plt.legend()
@@ -422,14 +422,14 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     else:
         plt.sca(axes[2])
     plt.title("Nyquist plot")
-    plt.ylabel(r"$-\Im(Z) [\Omega]$")
-    plt.xlabel(r"$\Re(Z) [\Omega]$")
+    plt.ylabel(r"-Im(Z) / $\Omega$")
+    plt.xlabel(r"Re(Z) / $\Omega$")
     if Zlog:
         plt.xscale('log')
         plt.yscale('log')
     plt.plot(Z.real, -Z.imag, 'o', label=labels[0])
     if Z_fit is not None:
-        plt.plot(Z_fit.real, -Z_fit.imag, '+', label=labels[1])
+        plt.plot(Z_fit.real, -Z_fit.imag, '^', label=labels[1])
     if Z_comp is not None:
         plt.plot(Z_comp.real, -Z_comp.imag, 'x', label=labels[2])
     plt.legend()
@@ -487,16 +487,16 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         diff_real = 100. * (Z.real - Z_fit.real) / Z.real
         diff_imag = 100. * (Z.imag - Z_fit.imag) / Z.imag
         diff_abs = 100. * np.abs((Z - Z_fit) / Z)
-        lbl_prefix = 'rel. '
+        label = 'Relative difference / %'
     elif residual == "absolute":
         diff_real = 100. * (Z.real - Z_fit.real) / np.abs(Z)
         diff_imag = 100. * (Z.imag - Z_fit.imag) / np.abs(Z)
-        lbl_prefix = 'rel. '
+        label = 'Relative difference / %'
     elif residual == "diff":
         diff_real = Z.real - Z_fit.real
         diff_imag = Z.imag - Z_fit.imag
         diff_abs = np.abs(Z - Z_fit)
-        lbl_prefix = ''
+        label = "Difference / $\Omega$"
     else:
         raise RuntimeError("""residual must be either `parts`, `absolute` or `diff`,
                               but not {}""".format(residual))
@@ -506,13 +506,13 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
 
     plt.xscale('log')
     if title is not None:
-        plt.title(str(title) + "relative difference to data")
-    plt.xlabel('frequency [Hz]')
-    plt.ylabel('relative difference [%]')
-    plt.plot(omega / (2. * np.pi), diff_real, 'g', label=lbl_prefix + 'diff. real part')
-    plt.plot(omega / (2. * np.pi), diff_imag, 'r', label=lbl_prefix + 'diff. imag part')
+        plt.title((str(title) + "relative difference to data").capitalize())
+    plt.xlabel('Frequency / Hz')
+    plt.ylabel(label)
+    plt.plot(omega / (2. * np.pi), diff_real, 'g', label='Real part')
+    plt.plot(omega / (2. * np.pi), diff_imag, 'r', label='Imag part')
     if residual != "absolute":
-        plt.plot(omega / (2. * np.pi), diff_abs, 'b', label=lbl_prefix + 'diff. w.r.t. abs. value')
+        plt.plot(omega / (2. * np.pi), diff_abs, 'b', label='Abs value')
     if limits is not None:
         assert len(limits) == 2, "You need to provide upper and lower limit!"
         plt.ylim(limits)
@@ -574,22 +574,22 @@ def plot_uncertainty(omega, Zdata, Z, Z1, Z2, sigma, show=True, model=None):
     # plot real part of impedance
     plt.subplot(211)
     plt.xscale('log')
-    plt.title("impedance real part")
-    plt.ylabel(r"$\Re(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z.real, '+', label='best fit')
-    plt.plot(omega / (2. * np.pi), Zdata.real, 'r', label='data')
+    plt.title("Impedance real part")
+    plt.ylabel(r"Re(Z) / $\Omega$")
+    plt.xlabel("Frequency / Hz")
+    plt.plot(omega / (2. * np.pi), Z.real, '^', label='Best fit')
+    plt.plot(omega / (2. * np.pi), Zdata.real, 'r', label='Data')
     plt.fill_between(omega / (2. * np.pi), Z1.real, Z2.real,
                      color='#888888', label=r"${} \sigma$ interval".format(sigma))
     plt.legend()
     # plot imaginary part of impedance
     plt.subplot(212)
-    plt.title("impedance imaginary part")
+    plt.title("Impedance imaginary part")
     plt.xscale('log')
-    plt.ylabel(r"$\Im(Z) [\Omega]$")
-    plt.xlabel("frequency [Hz]")
-    plt.plot(omega / (2. * np.pi), Z.imag, '+', label='best fit')
-    plt.plot(omega / (2. * np.pi), Zdata.imag, 'r', label='data')
+    plt.ylabel(r"Im(Z) / $\Omega$")
+    plt.xlabel("Frequency / Hz")
+    plt.plot(omega / (2. * np.pi), Z.imag, '^', label='Best fit')
+    plt.plot(omega / (2. * np.pi), Zdata.imag, 'r', label='Data')
     plt.fill_between(omega / (2. * np.pi), Z1.imag, Z2.imag,
                      color='#888888', label=r"${} \sigma$ interval".format(sigma))
     plt.legend()
