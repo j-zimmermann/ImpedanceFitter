@@ -63,12 +63,11 @@ def cole_cole_model(omega, c0, epsl, tau, a, sigma, epsinf):
 
     .. math::
 
-        \varepsilon_\mathrm{s} = \varepsilon_\infty + \frac{\varepsilon_\mathrm{l}-\varepsilon_\infty}{1+(j \omega \tau)^a}
+        \varepsilon^\ast = \varepsilon_\infty + \frac{\varepsilon_\mathrm{l}-\varepsilon_\infty}{1+(j \omega \tau)^a} - \frac{j \sigma_\mathrm{dc}}{\omega \varepsilon_\mathrm{0}}
 
     .. math::
 
-        Z_\mathrm{s} = \frac{1}{j\varepsilon_\mathrm{s}\omega c_\mathrm{0} + \frac{\sigma_\mathrm{dc} c_\mathrm{0}}{\varepsilon_\mathrm{0}}}
-
+        Z = \frac{1}{j\varepsilon^\ast \omega c_\mathrm{0}}
 
 
     References
@@ -256,12 +255,6 @@ def cole_cole_3_model(omega, c0, epsinf, deps1, deps2, deps3, tau1, tau2, tau3, 
     The original model has been described in [Gabriel1996]_.
     Here, three instead of four dispersions are used.
 
-    References
-    ----------
-    .. [Gabriel1996] Gabriel, S., Lau, R. W., & Gabriel, C. (1996).
-                    The dielectric properties of biological tissues: III. Parametric models for the dielectric spectrum of tissues.
-                    Physics in Medicine and Biology, 41(11), 2271–2293.
-                    https://doi.org/10.1088/0031-9155/41/11/003
     """
 
     c0 *= 1e-12
@@ -318,12 +311,6 @@ def cole_cole_2_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2, sigma
     The original model has been described in [Gabriel1996]_.
     Here, two instead of four dispersions are used.
 
-    References
-    ----------
-    .. [Gabriel1996] Gabriel, S., Lau, R. W., & Gabriel, C. (1996).
-                    The dielectric properties of biological tissues: III. Parametric models for the dielectric spectrum of tissues.
-                    Physics in Medicine and Biology, 41(11), 2271–2293.
-                    https://doi.org/10.1088/0031-9155/41/11/003
     """
 
     c0 *= 1e-12
@@ -376,12 +363,6 @@ def cole_cole_2tissue_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2,
     The original model has been described in [Gabriel1996]_.
     Here, two instead of four dispersions are used.
 
-    References
-    ----------
-    .. [Gabriel1996] Gabriel, S., Lau, R. W., & Gabriel, C. (1996).
-                    The dielectric properties of biological tissues: III. Parametric models for the dielectric spectrum of tissues.
-                    Physics in Medicine and Biology, 41(11), 2271–2293.
-                    https://doi.org/10.1088/0031-9155/41/11/003
     """
 
     c0 *= 1e-12
@@ -399,7 +380,51 @@ def cole_cole_2tissue_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2,
 
 
 def havriliak_negami(omega, c0, epsinf, deps, tau, a, beta, sigma):
-    """Havriliak-Negami relaxation.
+    r"""Havriliak-Negami relaxation.
+
+    Parameters
+    -----------
+
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for :math:`c_0`, unit capacitance in pF
+    epsinf: double
+        value for :math:`\varepsilon_\infty`
+    deps: double
+        value for :math:`\Delta\varepsilon`
+    tau: double
+        value for :math:`\tau`, in ns
+    sigma: double
+        value for :math:`\sigma_\mathrm{dc}`
+    a: double
+        value for :math:`1 - \alpha = a`
+    beta: double
+        value for :math:`\beta`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+
+    Notes
+    -----
+
+    .. warning::
+
+        The unit capacitance is in pF!
+        The time constant tau is in ns!
+
+    Equations for calculations:
+
+    .. math::
+
+        \varepsilon^\ast = \varepsilon_\infty + \frac{\Delta\varepsilon}{\left(1 + (j \omega \tau)^{a}\right)^\beta} - \frac{j\sigma_{\mathrm{DC}}}{\omega \varepsilon_0} \enspace ,
+
+    .. math::
+
+        Z = \frac{1}{j\varepsilon^\ast \omega c_\mathrm{0}}
 
     """
 
@@ -412,7 +437,52 @@ def havriliak_negami(omega, c0, epsinf, deps, tau, a, beta, sigma):
 
 
 def havriliak_negamitissue(omega, c0, epsinf, deps, tau, a, beta, sigma):
-    """Havriliak-Negami relaxation.
+    r"""Havriliak-Negami relaxation.
+
+    Parameters
+    -----------
+
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for :math:`c_0`, unit capacitance in pF
+    epsinf: double
+        value for :math:`\varepsilon_\infty`
+    deps: double
+        value for :math:`\Delta\varepsilon`
+    tau: double
+        value for :math:`\tau`, in :math:`\mu`\ s
+    sigma: double
+        value for :math:`\sigma_\mathrm{dc}`
+    a: double
+        value for :math:`1 - \alpha = a`
+    beta: double
+        value for :math:`\beta`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+
+    Notes
+    -----
+
+    .. warning::
+
+        The unit capacitance is in pF!
+        The time constant tau is in :math:`\mu`\ s!
+
+    Equations for calculations:
+
+    .. math::
+
+        \varepsilon^\ast = \varepsilon_\infty + \frac{\Delta\varepsilon}{\left(1 + (j \omega \tau)^{a}\right)^\beta} - \frac{j\sigma_{\mathrm{DC}}}{\omega \varepsilon_0} \enspace ,
+
+    .. math::
+
+        Z = \frac{1}{j\varepsilon^\ast \omega c_\mathrm{0}}
+
 
     """
 

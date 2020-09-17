@@ -21,35 +21,32 @@ from scipy.constants import epsilon_0 as e0
 
 
 def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc):
-    r"""Single Shell model.
+    r"""Single Shell model
 
     Parameters
     -----------
-
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
         value for :math:`c_0`, unit capacitance in pF
     em: double
-        membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
+        membrane permittivity, value for :math:`\varepsilon_\mathrm{m}`
     km: double
-        membrane conductivity,  value for :math:`\sigma_\mathrm{m}` in :math:`\mu`S/m
+        membrane conductivity, value for :math:`\sigma_\mathrm{m}` in :math:`\mu`\ S/m
     ecp: double
-        cytoplasm permittivity,  value for :math:`\varepsilon_\mathrm{cp}`
+        cytoplasm permittivity, value for :math:`\varepsilon_\mathrm{cp}`
     kcp: double
-        cytoplasm conductivity,  value for :math:`\sigma_\mathrm{cp}`
+        cytoplasm conductivity, value for :math:`\sigma_\mathrm{cp}`
     emed: double
-        medium permittivity,  value for :math:`\varepsilon_\mathrm{med}`
+        medium permittivity, value for :math:`\varepsilon_\mathrm{med}`
     kmed: double
-        medium conductivity,  value for :math:`\sigma_\mathrm{med}`
+        medium conductivity, value for :math:`\sigma_\mathrm{med}`
     p: double
         volume fraction
     dm: double
         membrane thickness, value for :math:`d_\mathrm{m}`
     Rc: double
         cell radius, value for :math:`R_\mathrm{c}`
-
-
 
     Returns
     -------

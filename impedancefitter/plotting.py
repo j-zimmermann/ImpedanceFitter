@@ -31,13 +31,13 @@ def plot_complex_permittivity(omega, Z, c0, Z_comp=None,
     Parameters
     ----------
 
-    omega: double or ndarray of double
+    omega: :class:`numpy.ndarray`, double
         frequency array
-    Z: complex or array of complex
+    Z: :class:`numpy.ndarray`, complex
         impedance array
     c0: double
         unit capacitance of device
-    Z_comp: optional
+    Z_comp: :class:`numpy.ndarray`, complex, optional
         complex-valued impedance array. Might be used to compare the properties of two data sets.
     title: str, optional
         title of plot. Default is an empty string.
@@ -98,13 +98,13 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     Parameters
     ----------
 
-    omega: double or ndarray of double
+    omega: :class:`numpy.ndarray`, double
         frequency array
-    Z: complex or array of complex
+    Z: :class:`numpy.ndarray`, complex
         impedance array
     c0: double
         unit capacitance of device
-    Z_comp: optional
+    Z_comp: :class:`numpy.ndarray`, complex, optional
         complex-valued impedance array. Might be used to compare the properties of two data sets.
     title: str, optional
         title of plot. Default is an empty string.
@@ -165,13 +165,13 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None,
     Parameters
     ----------
 
-    omega: double or ndarray of double
+    omega: :class:`numpy.ndarray`, double
         frequency array
-    Z: complex or array of complex
+    Z: :class:`numpy.ndarray`, complex
         impedance array
     c0: double
         unit capacitance of device
-    Z_comp: optional
+    Z_comp: :class:`numpy.ndarray`, complex, optional
         complex-valued impedance array. Might be used to compare the properties of two data sets.
     title: str, optional
         title of plot. Default is an empty string.
@@ -232,11 +232,11 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
 
     Parameters
     ----------
-    omega: double or ndarray of double
+    omega: :class:`numpy.ndarray`, double
         Frequency array
-    Z: complex or array of complex
+    Z: :class:`numpy.ndarray`, complex
         Impedance array, experimental data or data to compare to.
-    Z_fit: complex or array of complex
+    Z_fit: :class:`numpy.ndarray`, complex
         Impedance array, fit result. If provided, the difference
         between data and fit will be shown.
     title: str
@@ -245,7 +245,7 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
         Show figure (default is True).
     save: bool, optional
         Save figure to pdf (default is False). Name of figure starts with `title`.
-    Z_comp: optional
+    Z_comp: :class:`numpy.ndarray`, complex, optional
         Complex-valued impedance array. Might be used to compare the properties of two data sets.
     labels: list
         List of labels for three plots. Must have length 3 always.
@@ -313,11 +313,11 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
 
     Parameters
     ----------
-    omega: double or ndarray of double
+    omega: :class:`numpy.ndarray`, double
         Frequency array
-    Z: complex or array of complex
+    Z: :class:`numpy.ndarray`, complex
         Impedance array, experimental data or data to compare to.
-    Z_fit: complex or array of complex
+    Z_fit: :class:`numpy.ndarray`, complex
         Impedance array, fit result. If provided, the difference
         between data and fit will be shown.
     title: str
@@ -327,7 +327,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     save: bool, optional
         Save figure to pdf (default is False). Name of figure starts with `title`
         and ends with `_impedance_overview.pdf`.
-    Z_comp: optional
+    Z_comp: :class:`numpy.ndarray`, complex, optional
         Complex-valued impedance array. Might be used to compare the properties of two data sets.
     labels: list
         List of labels for three plots. Must have length 3 always.
@@ -452,11 +452,11 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
 
     Parameters
     ----------
-    omega: double or ndarray of double
+    omega: :class:`numpy.ndarray`, double
         frequency array
-    Z: complex or array of complex
+    Z: :class:`numpy.ndarray`, complex
         impedance array, experimental data or data to compare to
-    Z_fit: complex or array of complex
+    Z_fit: :class:`numpy.ndarray`, complex
         impedance array, fit result
     subplot: optional
         decide whether it is a new figure or a subplot. Default is None (yields new figure). Otherwise it can be an integer to denote the subfigure.
@@ -555,13 +555,23 @@ def emcee_plot(res, clustered=False, **corner_kwargs):
 
 
 def plot_uncertainty(omega, Zdata, Z, Z1, Z2, sigma, show=True, model=None):
-    """
-    .. todo::
-        documentation
+    """Plot best fit with uncertainty interval.
 
     Parameters
     ----------
 
+    Zdata: :class:`numpy.ndarray`, complex
+        impedance array of experimental data
+    Z: :class:`numpy.ndarray`, complex
+        impedance array of best fit
+    Z1: :class:`numpy.ndarray`, complex
+        impedance array of upper uncertainty limit
+    Z2: :class:`numpy.ndarray`, complex
+        impedance array of lower uncertainty limit
+    sigma: double
+        confidence level
+    show: bool, optional
+        show figure (default is True)
     model: int, optional
         numbering of model for sequential plotting
 

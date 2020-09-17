@@ -175,7 +175,7 @@ def Z_stray(omega, Cs):
 
 
 def Z_ws(omega, Aw, B):
-    """Warburg short element
+    r"""Warburg short element
 
     Parameters
     ----------
@@ -195,7 +195,15 @@ def Z_ws(omega, Aw, B):
     Notes
     -----
 
-    .. todo:: Better documentation needed.
+    This element is also referred to as finite-length Warburg element
+    with transmissive boundary [Barsoukov2018]_.
+    Here, the formulation
+
+    .. math::
+
+        Z_\mathrm{W} = A_\mathrm{W} \frac{\tanh\left(B \sqrt{j \omega}\right)}{\sqrt{j \omega}}
+
+    is implemented.
 
     """
 
@@ -203,7 +211,7 @@ def Z_ws(omega, Aw, B):
 
 
 def Z_wo(omega, Aw, B):
-    """Warburg open element
+    r"""Warburg open element
 
     Parameters
     ----------
@@ -224,8 +232,15 @@ def Z_wo(omega, Aw, B):
     Notes
     -----
 
-    .. todo:: Better documentation needed.
+    This element is also referred to as finite-length Warburg element
+    with reflective boundary [Barsoukov2018]_.
+    Here, the formulation
 
+    .. math::
+
+        Z_\mathrm{W} = \frac{A_\mathrm{W}}{\tanh\left(B \sqrt{j \omega}\right)\sqrt{j \omega}}
+
+    is implemented.
 
     """
 

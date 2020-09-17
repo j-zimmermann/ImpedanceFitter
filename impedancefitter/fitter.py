@@ -1214,10 +1214,29 @@ class Fitter(object):
             Result of previous least squares run on same model.
             Basically the initial setting. Could also stem from
             a previous MCMC run.
+        lnsigma: dict
+            Value of initial guess for experimental uncertainty.
+        nwalkers: int
+            Number of walkers.
+        radius: float
+            Radius of ball around initial guess.
+        burn: int
+            Number of steps to be removed from MCMC chain in burn-in phase.
+        steps: int
+            Length of MCMC chain.
+        thin: int
+            Take only every `thin`-th step into account.
+        weighted: bool
+            If `False`, `lnsigma` will be used.
 
         Notes
         -----
-            .. todo:: Document.
+        The result from a previous least squares run is taking and
+        the emcee run is prepared.
+        The walkers are created and their initial positions are assigned.
+        The initial positions are placed in a tight Gaussian ball around
+        the least squares guess. Their radius can be set manually.
+        Important parameters for the MCMC chains are set.
 
         Returns
         -------

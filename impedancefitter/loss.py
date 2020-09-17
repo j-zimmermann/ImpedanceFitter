@@ -63,8 +63,6 @@ def Z_in(omega, L, R):
         List of frequencies.
     L: double
         inductance
-    C: double
-        capacitance
     R: double
         resistance
 

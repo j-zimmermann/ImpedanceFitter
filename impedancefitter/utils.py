@@ -386,7 +386,8 @@ def available_models():
               'Wo',
               'LCR',
               'LR',
-              'Ws']
+              'Ws',
+              'Cstray']
     return models
 
 

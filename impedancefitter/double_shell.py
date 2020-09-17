@@ -31,7 +31,7 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
     em: double
         membrane permittivity,membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
     km: double
-        membrane conductivity,  value for :math:`\sigma_\mathrm{m}` in :math:`\mu`S/m
+        membrane conductivity,  value for :math:`\sigma_\mathrm{m}` in :math:`\mu`\ S/m
     ecp: double
         cytoplasm permittivity,  value for :math:`\varepsilon_\mathrm{cp}`
     kcp: double
