@@ -45,7 +45,7 @@ perform statistical analysis of the results using OpenTurns [Baudin2017]_.
 		   https://doi.org/10.1002/9781119381860
 
 .. [Newville2019]  Newville, M., Otten, R., Nelson, A., Ingargiola, A., Stensitzki, T., Allan, D., Fox, A., Carter, F., Michał, Pustakhod, D., Ram, Y., Glenn, Deil, C., Stuermer, Beelen, A., Frost, O., Zobrist, N., Pasquevich, G., Hansen, A.L.R., Spillane, T., Caldwell, S., Polloreno, A., andrewhannum, Zimmermann, J., Borreguero, J., Fraine, J., deep-42-thought, Maier, B.F., Gamari, B., & Almarza, A.
-                   (2019, December 20). lmfit/lmfit-py 1.0.0 (Version 1.0.0). Zenodo. http://doi.org/10.5281/zenodo.3588521
+                   (2020, May 7). lmfit/lmfit-py 1.0.1 (Version 1.0.1). Zenodo. http://doi.org/10.5281/zenodo.3814709
 
 .. [Baudin2017] Baudin, M., Dutfoy, A., Looss, B., & Popelin, A. L. (2017). 
                 OpenTURNS: An industrial software for uncertainty quantification in simulation.
