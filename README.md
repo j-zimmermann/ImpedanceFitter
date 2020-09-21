@@ -42,6 +42,8 @@ to be compiled.
 Installation
 ------------
 
+ImpedanceFitter works with Python >= 3.6.
+
 ImpedanceFitter can be installed using pip
 (not yet working, WIP)
 
@@ -55,11 +57,13 @@ clone into a local directory.
 `cd` into this directory and run
 
 ```
-pip install . --user
+pip install -e . --user
 ```
 
 in this directory.
 It will install all requirements automatically.
+Moreover, you can edit the source code and
+run the edited version without reinstalling.
 
 Testing
 -------
