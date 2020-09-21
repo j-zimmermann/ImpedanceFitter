@@ -390,15 +390,6 @@ class Fitter(object):
         savemodelresult: bool, optional
             Saves all :class:`lmfit.model.ModelResult` instances to plot or evaluate uncertainty later.
 
-
-        References
-        ----------
-
-        .. [Barsoukov2018] Barsoukov, E., & Macdonald, J. R. (Eds.). (2018).
-                           Impedance Spectroscopy: Theory, Experiment, and Applications.
-                           (3rd ed.). Hoboken, NJ: John Wiley & Sons, Inc.
-                           https://doi.org/10.1002/9781119381860
-
         """
 
         self.modelname = modelname

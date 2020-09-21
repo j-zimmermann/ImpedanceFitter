@@ -62,16 +62,16 @@ def test_logscale():
 def test_wrong_circuit():
     model1 = "R, L , C"
     with pytest.raises(Exception):
-        model = get_equivalent_circuit_model(model1)
+        get_equivalent_circuit_model(model1)
 
 
 def test_wrong_circuit2():
     model1 = "parallel(R + L + C)"
     with pytest.raises(Exception):
-        model = get_equivalent_circuit_model(model1)
+        get_equivalent_circuit_model(model1)
 
 
 def test_wrong_circuit3():
     model1 = "parallel(R, C"
     with pytest.raises(Exception):
-        model = get_equivalent_circuit_model(model1)
+        get_equivalent_circuit_model(model1)
