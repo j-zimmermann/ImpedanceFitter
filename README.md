@@ -21,12 +21,13 @@ perform statistical analysis of the results using OpenTurns<sup>[3](#Baudin2017)
 Documentation
 -------------
 
-The documentation is available at [INSERT READTHEDOCS LINK].
+The documentation is available at [Read the Docs](https://impedancefitter.readthedocs.io/en/v2.0.0/).
 
 If you want to compile it locally:
 The documentation is in the `doc`
 directory and requires [Sphinx](https://www.sphinx-doc.org/en/master/usage/installation.html)
 to be compiled.
+A requirements file can be found in the `doc` directory.
 
 
 Installation
@@ -35,7 +36,6 @@ Installation
 ImpedanceFitter works with Python >= 3.6.
 
 ImpedanceFitter can be installed using pip
-(not yet working, WIP)
 
 ```
 pip install impedancefitter
