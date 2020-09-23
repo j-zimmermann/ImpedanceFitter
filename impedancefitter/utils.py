@@ -21,8 +21,14 @@ import numpy as np
 import yaml
 import pyparsing as pp
 import re
-import SchemDraw
-import SchemDraw.elements as elm
+# to make it compatible with Python >= 3.7
+try:
+    import SchemDraw as schemdraw
+    import SchemDraw.elements as elm
+except ImportError:
+    import schemdraw
+    import schemdraw.elements as elm
+
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
@@ -814,7 +820,7 @@ def draw_scheme(modelname, show=True, save=False):
     _check_circuit(circuitstr.asList()[0], startpar=modelname.startswith("parallel"))
 
     # start drawing
-    d = SchemDraw.Drawing()
+    d = schemdraw.Drawing()
     source = d.add(elm.DOT)
     start = deepcopy(source.start)
     d, endpts = _cycle_circuit(circuitstr.asList()[0], d, endpts=(source.start, source.end), depth=0)
