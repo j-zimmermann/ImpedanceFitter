@@ -9,3 +9,4 @@ tqdm==4.42.1
 pyparsing
 xlsxwriter
 schemdraw
+packaging

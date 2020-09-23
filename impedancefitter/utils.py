@@ -42,6 +42,7 @@ from .single_shell import single_shell_model
 from lmfit import Model, CompositeModel
 from copy import deepcopy
 from . import logger
+from packaging import version
 
 
 def convert_diel_properties_to_impedance(omega, eps, sigma, c0):
@@ -831,7 +832,10 @@ def draw_scheme(modelname, show=True, save=False):
     d.add(elm.LINE, d='up')
     d.add(elm.SOURCE_SIN, d='left', label="Impedance analyzer", tox=start)
     d.add(elm.LINE, d='down')
-    d.draw(showplot=show)
+    if version.parse(schemdraw.__version__) < version.parse("0.7.0"):
+        d.draw(showplot=show)
+    else:
+        d.draw(show=show)
     if save:
         d.save('scheme.svg')
 
