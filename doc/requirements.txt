@@ -1,5 +1,5 @@
 sphinx==3.0.3
-jupyter_sphinx==0.2.4
+jupyter_sphinx
 sphinx-rtd-theme
 pyyaml==5.3.1
 xlrd==1.2.0
