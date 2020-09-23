@@ -141,7 +141,7 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
 
     plt.subplot(212)
     plt.title("Conductivity")
-    plt.ylabel("Conductivity / S$\cdot$m$^{-1}$]")
+    plt.ylabel(r"Conductivity / S$\cdot$m$^{-1}$]")
     plt.xlabel('Frequency / Hz')
     if logscale == 'conductivity' or logscale == 'both':
         plt.yscale('log')
@@ -496,7 +496,7 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         diff_real = Z.real - Z_fit.real
         diff_imag = Z.imag - Z_fit.imag
         diff_abs = np.abs(Z - Z_fit)
-        label = "Difference / $\Omega$"
+        label = r"Difference / $\Omega$"
     else:
         raise RuntimeError("""residual must be either `parts`, `absolute` or `diff`,
                               but not {}""".format(residual))
