@@ -32,7 +32,7 @@ except ImportError:
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
-from .loss import Z_in, Z_loss
+from .loss import Z_in, Z_loss, Z_skin
 from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model, havriliak_negami, cole_cole_2tissue_model, havriliak_negamitissue
 from .double_shell import double_shell_model
 from .randles import Z_randles, Z_randles_CPE
@@ -41,8 +41,10 @@ from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model, cpe_onset_model, cpeti
 from .single_shell import single_shell_model
 from lmfit import Model, CompositeModel
 from copy import deepcopy
-from . import logger
 from packaging import version
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def convert_diel_properties_to_impedance(omega, eps, sigma, c0):
@@ -132,7 +134,7 @@ def check_parameters(bufdict):
     capacitances = ['C']
     # taus in ns
     taus = ['tau', 'tauE', 'tau1', 'tau2', 'tau3', 'tau4']
-    zerotoones = ['p', 'a', 'alpha', 'beta', 'a1', 'a2', 'a3', 'a4', 'nu']
+    zerotoones = ['p', 'a', 'alpha', 'beta', 'gamma', 'a1', 'a2', 'a3', 'a4', 'nu']
     permittivities = ['em', 'ecp', 'emed', 'ene', 'enp', 'epsl', 'eps', 'epsinf']
 
     # __lnsigma and Rk (Lin-KK test)
@@ -165,11 +167,11 @@ def check_parameters(bufdict):
                    Change your initial value.""".format(p)
             if bufdict[p].vary:
                 if bufdict[p].min < 0.0 or bufdict[p].min > 1.0:
-                    logger.info("""{} is an exponent that needs to be between
+                    logger.debug("""{} is an exponent that needs to be between
                                    0.0 and 1.0. Changed your min value to 0.""".format(p))
                     bufdict[p].set(min=0.0)
                 if bufdict[p].max > 1.0:
-                    logger.info("""{} is an exponent that needs to be between 0.0 and 1.0.
+                    logger.debug("""{} is an exponent that needs to be between 0.0 and 1.0.
                                    Changed your max value to 1.0.""".format(p))
                     bufdict[p].set(max=1.0)
             continue
@@ -185,11 +187,11 @@ def check_parameters(bufdict):
                    or equal to 1. Change the initial value.""".format(p)
             if bufdict[p].vary:
                 if bufdict[p].min < 1.0:
-                    logger.info("""The permittivity {} needs to be greater
+                    logger.debug("""The permittivity {} needs to be greater
                                    than or equal to 1. Changed the min value to 1.""".format(p))
                     bufdict[p].set(min=1.0)
                 if bufdict[p].max < 1.0:
-                    logger.info("""The permittivity {} needs to be greater than
+                    logger.debug("""The permittivity {} needs to be greater than
                                    or equal to 1. Changed the max value to inf.""".format(p))
                     bufdict[p].set(max=np.inf)
             continue
@@ -393,6 +395,7 @@ def available_models():
               'Wo',
               'LCR',
               'LR',
+              'LRSkin',
               'Ws',
               'Cstray']
     return models
@@ -507,6 +510,8 @@ def _model_function(modelname):
         model = Z_loss
     elif modelname == "LR":
         model = Z_in
+    elif modelname == "LRSkin":
+        model = Z_skin
     elif modelname == "Cstray":
         model = Z_stray
     else:

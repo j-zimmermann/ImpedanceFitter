@@ -31,7 +31,10 @@ from .readin import (readin_Data_from_TXT_file,
                      readin_Data_from_collection,
                      readin_Data_from_csv_E4980AL)
 from .plotting import plot_impedance, plot_uncertainty, plot_bode
-from . import logger, log_impedancefitter
+from . import set_logger
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Fitter(object):
@@ -144,7 +147,7 @@ class Fitter(object):
             directory = os.getcwd()
         self.directory = directory + '/'
 
-        log_impedancefitter(self.LogLevel)
+        set_logger(self.LogLevel)
 
         self.omega_dict = {}
         self.z_dict = {}

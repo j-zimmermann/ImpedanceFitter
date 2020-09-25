@@ -23,7 +23,9 @@ import openturns as ot
 from openturns.viewer import View
 import yaml
 from .utils import get_labels
-from . import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PostProcess(object):

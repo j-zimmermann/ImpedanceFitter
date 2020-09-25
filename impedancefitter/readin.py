@@ -18,7 +18,9 @@
 
 import pandas as pd
 import numpy as np
-from . import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def readin_Data_from_collection(filepath, fileformat, minimumFrequency=None, maximumFrequency=None):

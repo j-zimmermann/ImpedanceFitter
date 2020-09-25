@@ -17,26 +17,22 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from logging import NullHandler
-
 logger = logging.getLogger('impedancefitter')
-logger.addHandler(NullHandler())
+logger.addHandler(logging.NullHandler())
 
 
-def log_impedancefitter(level=logging.INFO):
+def set_logger(level=logging.INFO):
     logger.setLevel(level)
     # to avoid multiple output in Jupyter notebooks
     if len(logger.handlers) == 1:
         ch = logging.StreamHandler()
         ch.setLevel(level)
         logger.addHandler(ch)
+    else:
+        for handler in logger.handlers:
+            if type(handler) == logging.StreamHandler:
+                handler.setLevel(level)
 
-
-def update_loglevel(level):
-    logger = logging.getLogger()
-    logger.setLevel(level)
-    for handler in logger.handlers:
-        handler.setLevel(level)
 
 from .fitter import Fitter
 from .postprocess import PostProcess

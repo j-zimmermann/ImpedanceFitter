@@ -23,6 +23,9 @@ import corner
 from .utils import return_diel_properties, get_labels
 from scipy.constants import epsilon_0 as e0
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def plot_complex_permittivity(omega, Z, c0, Z_comp=None,
                               title="", show=True, save=False,
@@ -304,7 +307,8 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
 
 def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
                    labels=["Data", "Best fit", "Init fit"], residual="parts", sign=False,
-                   Zlog=False, append=False, limits_residual=None):
+                   Zlog=False, append=False, limits_residual=None,
+                   omega_fit=None, omega_comp=None):
     """Plot the `result` and compare it to data `Z`.
 
     Generates 4 subplots showing the real and imaginary parts over
@@ -342,8 +346,19 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         Log-scale of impedance
     append: bool, optional
         Decide if you want to show plot or add line to existing plot.
+    omega_fit: :class:`numpy.ndarray`, double, optional
+        Frequency array, provide only if fitted impedance was evaluated at
+        different frequencies than the experimental data
+    omega_comp: :class:`numpy.ndarray`, double, optional
+        Frequency array, provide only if fitted impedance was evaluated at
+        different frequencies than the experimental data
 
     """
+
+    if omega_fit is None:
+        omega_fit = omega
+    if omega_comp is None:
+        omega_comp = omega
     axes = []
     plt.figure("impedance")
     axes = plt.gcf().axes
@@ -363,9 +378,9 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     plt.xlabel('Frequency / Hz')
     plt.plot(omega / (2. * np.pi), Z.real, label=labels[0])
     if Z_fit is not None:
-        plt.plot(omega / (2. * np.pi), Z_fit.real, '^', label=labels[1])
+        plt.plot(omega_fit / (2. * np.pi), Z_fit.real, '^', label=labels[1])
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), Z_comp.real, 'x', label=labels[2])
+        plt.plot(omega_comp / (2. * np.pi), Z_comp.real, 'x', label=labels[2])
     plt.legend()
     # plot imaginary part of impedance
     if len(axes) < 3:
@@ -382,39 +397,39 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
             plt.ylabel(r"-Im(Z) / $\Omega$")
             plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega / (2. * np.pi), -Z_fit.imag, '^', label=labels[1])
+                plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '^', label=labels[1])
             if Z_comp is not None:
-                plt.plot(omega / (2. * np.pi), -Z_comp.imag, 'x', label=labels[2])
+                plt.plot(omega_comp / (2. * np.pi), -Z_comp.imag, 'x', label=labels[2])
 
         elif np.all(np.greater_equal(Z.imag, 0)):
             plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
+                plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
             if Z_comp is not None:
-                plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
+                plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
 
         elif np.where(Z.imag < 0).size > np.where(Z.imag > 0).size:
             plt.ylabel(r"-Im(Z) / $\Omega$")
             plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega / (2. * np.pi), -Z_fit.imag, '^', label=labels[1])
+                plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '^', label=labels[1])
             if Z_comp is not None:
-                plt.plot(omega / (2. * np.pi), -Z_comp.imag, 'x', label=labels[2])
+                plt.plot(omega_comp / (2. * np.pi), -Z_comp.imag, 'x', label=labels[2])
 
         else:
             plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
+                plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
             if Z_comp is not None:
-                plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
+                plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
 
     else:
         plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0])
 
         if Z_fit is not None:
-            plt.plot(omega / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
+            plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
         if Z_comp is not None:
-            plt.plot(omega / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
+            plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
     plt.legend()
     # plot real vs negative imaginary part
     if len(axes) < 3:
@@ -433,7 +448,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     if Z_comp is not None:
         plt.plot(Z_comp.real, -Z_comp.imag, 'x', label=labels[2])
     plt.legend()
-    if Z_fit is not None:
+    if Z_fit is not None and np.all(omega == omega_fit):
         plot_compare_to_data(omega, Z, Z_fit, subplot=224, residual=residual, sign=sign,
                              limits=limits_residual)
     plt.tight_layout()
@@ -446,7 +461,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
 
 
 def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, save=False,
-                         residual="parts", sign=False, limits=None):
+                         residual="parts", sign=False, limits=None, impedance_threshold=1.):
     '''
     plots the difference of the fitted function to the data
 
@@ -477,6 +492,17 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         Plot difference (residual) if `diff`.
     limits: list, optional
         List with entries `[bottom, top]` for y-axis of residual plot.
+    impedance_threshold: double, optional
+        Threshold for impedance around 0, which is disregarded in the relative
+        differences plot. Default is that impedances, with an absolute value less than
+        0 are not considered.
+
+    Notes
+    -----
+
+    When computing the relative difference, impedances between -1 and 1 Ohm are not
+    considered since they might lead to a blow up of the relative difference (close to division by 0).
+    Instead of this quantitative measure, qualitative checks should be done.
     '''
     if subplot is None:
         plt.figure()
@@ -484,8 +510,12 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         show = False
         plt.subplot(subplot)
     if residual == "parts":
+        close_to_zero_real = np.where(np.isclose(Z.real, 0., atol=impedance_threshold))
+        close_to_zero_imag = np.where(np.isclose(Z.imag, 0., atol=impedance_threshold))
         diff_real = 100. * (Z.real - Z_fit.real) / Z.real
         diff_imag = 100. * (Z.imag - Z_fit.imag) / Z.imag
+        diff_real[close_to_zero_real] = np.nan
+        diff_imag[close_to_zero_imag] = np.nan
         diff_abs = 100. * np.abs((Z - Z_fit) / Z)
         label = 'Relative difference / %'
     elif residual == "absolute":
