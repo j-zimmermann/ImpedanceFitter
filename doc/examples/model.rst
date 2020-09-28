@@ -72,6 +72,15 @@ is available as
         Then, if the model is `R_ct`, the respective parameter is
         `ct_R`. 
 
+.. warning::
+
+        Make sure to add suffixes to each element or circuit if 
+        there any elements with the same name!
+        LMFIT does not (yet) support models, where you
+        have for example `ct_R` and `R`. As shown here
+        you need `s_R` AND (!) `ct_R`.
+        
+
 
 The computed impedance can also be visualized 
 

@@ -706,8 +706,26 @@ def get_equivalent_circuit_model(modelname, logscale=False):
     circuit = _process_circuit(circuitstr.asList()[0])
     if logscale:
         circuit = CompositeModel(circuit, Model(dummy), log)
+    _check_models_suffix(circuit)
     logger.debug("Created composite model {}".format(circuit))
     return circuit
+
+
+def _check_models_suffix(circuit):
+    baseparams = []
+    for p in circuit.param_names:
+        tmp = p.split("_")
+        suf = None
+        if len(tmp) == 2:
+            suf = tmp[0]
+            par = tmp[1]
+        elif len(tmp) == 1:
+            par = tmp[0]
+        else:
+            raise RuntimeError("The parameter {} cannot be split in prefix and suffix.".format(p))
+        if par in baseparams and suf is None:
+            raise RuntimeError("The parameter {} has no prefix (its model has no suffix). This will lead to wrong parameter assignments. Change the part of the model, to which this parameter belongs (add a unique suffix).".format(p))
+        baseparams.append(par)
 
 
 def dummy(omega):
