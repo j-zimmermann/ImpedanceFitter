@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import corner
 
-from .utils import return_diel_properties, get_labels
+from .utils import return_diel_properties, get_labels, _return_resistance_capacitance
 from scipy.constants import epsilon_0 as e0
 
 import logging
@@ -299,6 +299,88 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     plt.tight_layout()
     if save and not append:
         plt.savefig(str(title).replace(" ", "_") + "_bode_plot.pdf")
+    if show:
+        plt.show()
+    elif not show and not append:
+        plt.close()
+
+
+def plot_resistance_capacitance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
+                                labels=["Data", "Best fit", "Init fit"], append=False):
+    """R-C plot of impedance.
+
+    Plots phase and log of magnitude over log of frequency.
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`, double
+        Frequency array
+    Z: :class:`numpy.ndarray`, complex
+        Impedance array, experimental data or data to compare to.
+    Z_fit: :class:`numpy.ndarray`, complex
+        Impedance array, fit result. If provided, the difference
+        between data and fit will be shown.
+    title: str
+        Title of plot.
+    show: bool, optional
+        Show figure (default is True).
+    save: bool, optional
+        Save figure to pdf (default is False). Name of figure starts with `title`.
+    Z_comp: :class:`numpy.ndarray`, complex, optional
+        Complex-valued impedance array. Might be used to compare the properties of two data sets.
+    labels: list
+        List of labels for three plots. Must have length 3 always.
+        Is ordered like: `[Z, Z_fit, Z_comp]`
+    save: bool, optional
+        save figure to pdf (default is False). Name of figure starts with `title`
+        and ends with `_bode_plot.pdf`.
+    append: bool, optional
+        Decide if you want to show plot or add line to existing plot.
+
+    """
+
+    axes = []
+    plt.figure("rcimpedance")
+    axes = plt.gcf().axes
+
+    if len(axes) < 2:
+        plt.suptitle(title, y=1.05)
+        plt.subplot(211)
+    else:
+        plt.sca(axes[0])
+
+    # plot real part of impedance
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.ylabel(r"R / $\Omega$")
+    R, C = _return_resistance_capacitance(omega, Z)
+
+    plt.xlabel('Frequency / Hz')
+    plt.plot(omega / (2. * np.pi), R, label=labels[0])
+    if Z_fit is not None:
+        R_fit, C_fit = _return_resistance_capacitance(omega, Z_fit)
+        plt.plot(omega / (2. * np.pi), R_fit, '^', label=labels[1])
+    if Z_comp is not None:
+        R_comp, C_comp = _return_resistance_capacitance(omega, Z_comp)
+        plt.plot(omega / (2. * np.pi), C_comp, 'x', label=labels[2])
+    plt.legend()
+
+    if len(axes) < 2:
+        plt.subplot(212)
+    else:
+        plt.sca(axes[1])
+    plt.xscale('log')
+    plt.ylabel("C / F")
+    plt.xlabel('Frequency / Hz')
+    plt.plot(omega / (2. * np.pi), C, label=labels[0])
+    if Z_fit is not None:
+        plt.plot(omega / (2. * np.pi), C_fit, '^', label=labels[1])
+    if Z_comp is not None:
+        plt.plot(omega / (2. * np.pi), C_comp, 'x', label=labels[2])
+    plt.legend()
+    plt.tight_layout()
+    if save and not append:
+        plt.savefig(str(title).replace(" ", "_") + "_rc_plot.pdf")
     if show:
         plt.show()
     elif not show and not append:

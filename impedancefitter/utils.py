@@ -1024,3 +1024,9 @@ def _get_step_width(circuit, distance):
             counter += 1
     step = distance / counter
     return step
+
+
+def _return_resistance_capacitance(omega, Z):
+    R = Z.real
+    C = -1.0 / (omega * Z.imag)
+    return R, C

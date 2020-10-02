@@ -26,11 +26,12 @@ import pandas as pd
 import yaml
 from copy import deepcopy
 
-from .utils import set_parameters, get_equivalent_circuit_model, get_labels
+from .utils import set_parameters, get_equivalent_circuit_model, get_labels, _return_resistance_capacitance
 from .readin import (readin_Data_from_TXT_file,
                      readin_Data_from_collection,
-                     readin_Data_from_csv_E4980AL)
-from .plotting import plot_impedance, plot_uncertainty, plot_bode
+                     readin_Data_from_csv_E4980AL,
+                     readin_Data_from_dta)
+from .plotting import plot_impedance, plot_uncertainty, plot_bode, plot_resistance_capacitance
 from . import set_logger
 
 import logging
@@ -270,7 +271,7 @@ class Fitter(object):
         totaliters = 0
         savefigtmp = savefig
         showtmp = show
-        labels = ["data", None, None]
+        labels = ["Data", None, None]
 
         for key in self.z_dict:
             zarray = self.z_dict[key]
@@ -301,6 +302,11 @@ class Fitter(object):
                 elif plottype == "bode":
                     plot_bode(self.omega_dict[key], zarray[i], title=title, show=showtmp,
                               save=savefigtmp, append=append, labels=labels)
+                elif plottype == "RC":
+                    plot_resistance_capacitance(self.omega_dict[key], zarray[i],
+                                                title=title, show=showtmp,
+                                                save=savefigtmp, append=append, labels=labels)
+
                 else:
                     raise RuntimeError("You chose an invalid plottype")
                 totaliters -= 1
@@ -592,6 +598,10 @@ class Fitter(object):
                                                       self.delimiter,
                                                       self.minimumFrequency,
                                                       self.maximumFrequency)
+        elif self.inputformat == 'DTA' and filename.upper().endswith(".DTA"):
+            omega, zarray = readin_Data_from_dta(filepath,
+                                                 minimumFrequency=self.minimumFrequency,
+                                                 maximumFrequency=self.maximumFrequency)
         elif self.inputformat == 'XLSX' and filename.upper().endswith(".XLSX"):
             omega, zarray = readin_Data_from_collection(filepath, 'XLSX',
                                                         minimumFrequency=self.minimumFrequency,
@@ -852,6 +862,25 @@ class Fitter(object):
                 if model_result.ampgo_msg is not None:
                     logger.debug("Solver message (ampgo): " + model_result.ampgo_msg)
         return model_result
+
+    def get_resistance_capacitance(self):
+        self.R_dict = {}
+        self.C_dict = {}
+        for key in self.omega_dict:
+            self.omega = self.omega_dict[key]
+            self.zarray = self.z_dict[key]
+            rarray = np.zeros(self.zarray.shape, dtype=np.float128)
+            carray = np.zeros(self.zarray.shape, dtype=np.float128)
+            self.iters = 1
+            # determine number of iterations if more than 1 data set is in file
+            if len(self.zarray.shape) > 1:
+                self.iters = self.zarray.shape[0]
+                logger.debug("Number of data sets:" + str(self.iters))
+            for i in range(self.iters):
+                self.Z = self.zarray[i]
+                rarray[i], carray[i] = _return_resistance_capacitance(self.omega, self.Z)
+            self.R_dict[key] = rarray
+            self.C_dict[key] = carray
 
     def process_data_from_file(self, filename, model, parameters,
                                modelclass=None):
