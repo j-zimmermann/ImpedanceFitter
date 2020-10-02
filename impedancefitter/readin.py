@@ -260,3 +260,78 @@ def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None,
     Z_im = fileDataArray[:, 2]
     Z = Z_real + 1j * Z_im
     return omega, np.array([Z])
+
+
+def readin_Data_from_dta(filepath, minimumFrequency=None, maximumFrequency=None):
+    """Read in data from DTA data (Gamry).
+
+    .. note::
+        There is always only one data set in a file.
+
+    Parameters
+    ----------
+
+    filepath: string
+        Provide the full filepath
+    minimumFrequency: float, optional
+        Provide a minimum frequency. All values below this frequency will be ignored.
+    maximumFrequency: float, optional
+        Provide a maximum frequency. All values above this frequencies will be ignored.
+
+
+    Returns
+    -------
+
+    omega: :class:`numpy.ndarray`
+        frequency array
+    zarray:  :class:`numpy.ndarray`
+        Contains collection of impedance spectra. Has shape (1, number of frequencies).
+
+    """
+    logger.info('going to process DTA file: ' + filepath)
+    with open(filepath, encoding='utf-8', errors='ignore') as w:
+        lines = w.readlines()
+    index = lines.index("ZCURVE\tTABLE\n")
+    freq = []
+    Zreal = []
+    Zimag = []
+    for line in lines[index + 3::]:
+        data = line.split("\t")
+        assert len(data) == 12, "Line {} does not contain enough data!"
+        freq.append(float(data[3].replace(",", ".")))
+        Zreal.append(float(data[4].replace(",", ".")))
+        Zimag.append(float(data[5].replace(",", ".")))
+
+    tmp = np.column_stack([freq, Zreal, Zimag])
+    values = tmp[tmp[:, 0].argsort()]  # need to sort frequencies
+    # filter values,  so that only  the ones in a certain range get taken.
+    filteredvalues = np.empty((0, 3))
+    if minimumFrequency is None:
+        minimumFrequency = values[0, 0]
+    if maximumFrequency is None:
+        maximumFrequency = values[-1, 0]
+
+    for i in range(values.shape[0]):
+        if np.greater_equal(values[i, 0], minimumFrequency):
+            if np.less_equal(values[i, 0], maximumFrequency):
+                bufdict = values[i][:3:]
+                bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
+                filteredvalues = np.append(filteredvalues, bufdict, axis=0)
+            else:
+                break
+    values = filteredvalues
+
+    f = values[:, 0]
+    omega = 2. * np.pi * f
+
+    if f.size > 0:
+        logger.info("minimumFrequency is {}".format(f.min()))
+        logger.info("maximumFrequency is {}".format(f.max()))
+
+    # construct complex-valued array from float data
+    zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
+
+    for i in range(np.int((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
+        zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
+
+    return omega, zarray
