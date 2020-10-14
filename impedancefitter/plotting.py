@@ -370,6 +370,7 @@ def plot_resistance_capacitance(omega, Z, title="", Z_fit=None, show=True, save=
     else:
         plt.sca(axes[1])
     plt.xscale('log')
+    plt.yscale('log')
     plt.ylabel("C / F")
     plt.xlabel('Frequency / Hz')
     plt.plot(omega / (2. * np.pi), C, label=labels[0])
