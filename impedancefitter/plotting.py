@@ -228,7 +228,7 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None,
 
 
 def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
-              labels=["Data", "Best fit", "Init fit"], append=False):
+              labels=["Data", "Best fit", "Init fit"], append=False, legend=True):
     """Bode plot of impedance.
 
     Plots phase and log of magnitude over log of frequency.
@@ -258,6 +258,9 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
         and ends with `_bode_plot.pdf`.
     append: bool, optional
         Decide if you want to show plot or add line to existing plot.
+    legend: str, optional
+        Choose if a legend should be shown. Recommended to switch to False
+        when using large datasets.
 
     """
 
@@ -281,7 +284,8 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
         plt.plot(omega / (2. * np.pi), np.abs(Z_fit), '^', label=labels[1])
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), np.abs(Z_comp), 'x', label=labels[2])
-    plt.legend()
+    if legend:
+        plt.legend()
 
     if len(axes) < 2:
         plt.subplot(212)
@@ -295,7 +299,8 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
         plt.plot(omega / (2. * np.pi), np.angle(Z_fit, deg=True), '^', label=labels[1])
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), np.angle(Z_comp, deg=True), 'x', label=labels[2])
-    plt.legend()
+    if legend:
+        plt.legend()
     plt.tight_layout()
     if save and not append:
         plt.savefig(str(title).replace(" ", "_") + "_bode_plot.pdf")
@@ -306,7 +311,7 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
 
 
 def plot_resistance_capacitance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
-                                labels=["Data", "Best fit", "Init fit"], append=False):
+                                labels=["Data", "Best fit", "Init fit"], append=False, legend=True):
     """R-C plot of impedance.
 
     Plots phase and log of magnitude over log of frequency.
@@ -336,6 +341,9 @@ def plot_resistance_capacitance(omega, Z, title="", Z_fit=None, show=True, save=
         and ends with `_bode_plot.pdf`.
     append: bool, optional
         Decide if you want to show plot or add line to existing plot.
+    legend: str, optional
+        Choose if a legend should be shown. Recommended to switch to False
+        when using large datasets.
 
     """
 
@@ -363,7 +371,8 @@ def plot_resistance_capacitance(omega, Z, title="", Z_fit=None, show=True, save=
     if Z_comp is not None:
         R_comp, C_comp = _return_resistance_capacitance(omega, Z_comp)
         plt.plot(omega / (2. * np.pi), C_comp, 'x', label=labels[2])
-    plt.legend()
+    if legend:
+        plt.legend()
 
     if len(axes) < 2:
         plt.subplot(212)
@@ -378,7 +387,8 @@ def plot_resistance_capacitance(omega, Z, title="", Z_fit=None, show=True, save=
         plt.plot(omega / (2. * np.pi), C_fit, '^', label=labels[1])
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), C_comp, 'x', label=labels[2])
-    plt.legend()
+    if legend:
+        plt.legend()
     plt.tight_layout()
     if save and not append:
         plt.savefig(str(title).replace(" ", "_") + "_rc_plot.pdf")
@@ -391,7 +401,7 @@ def plot_resistance_capacitance(omega, Z, title="", Z_fit=None, show=True, save=
 def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
                    labels=["Data", "Best fit", "Init fit"], residual="parts", sign=False,
                    Zlog=False, append=False, limits_residual=None,
-                   omega_fit=None, omega_comp=None):
+                   omega_fit=None, omega_comp=None, legend=True):
     """Plot the `result` and compare it to data `Z`.
 
     Generates 4 subplots showing the real and imaginary parts over
@@ -435,6 +445,10 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     omega_comp: :class:`numpy.ndarray`, double, optional
         Frequency array, provide only if fitted impedance was evaluated at
         different frequencies than the experimental data
+    legend: str, optional
+        Choose if a legend should be shown. Recommended to switch to False
+        when using large datasets.
+
 
     """
 
@@ -464,7 +478,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.plot(omega_fit / (2. * np.pi), Z_fit.real, '^', label=labels[1])
     if Z_comp is not None:
         plt.plot(omega_comp / (2. * np.pi), Z_comp.real, 'x', label=labels[2])
-    plt.legend()
+    if legend:
+        plt.legend()
     # plot imaginary part of impedance
     if len(axes) < 3:
         plt.subplot(222)
@@ -513,7 +528,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
             plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
         if Z_comp is not None:
             plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
-    plt.legend()
+    if legend:
+        plt.legend()
     # plot real vs negative imaginary part
     if len(axes) < 3:
         plt.subplot(223)
@@ -530,10 +546,11 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.plot(Z_fit.real, -Z_fit.imag, '^', label=labels[1])
     if Z_comp is not None:
         plt.plot(Z_comp.real, -Z_comp.imag, 'x', label=labels[2])
-    plt.legend()
+    if legend:
+        plt.legend()
     if Z_fit is not None and np.all(omega == omega_fit):
         plot_compare_to_data(omega, Z, Z_fit, subplot=224, residual=residual, sign=sign,
-                             limits=limits_residual)
+                             limits=limits_residual, legend=legend)
     plt.tight_layout()
     if save and not append:
         plt.savefig(str(title).replace(" ", "_") + "_impedance_overview.pdf")
@@ -544,7 +561,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
 
 
 def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, save=False,
-                         residual="parts", sign=False, limits=None, impedance_threshold=1.):
+                         residual="parts", sign=False, limits=None, impedance_threshold=1.,
+                         legend=True):
     '''
     plots the difference of the fitted function to the data
 
@@ -579,6 +597,10 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         Threshold for impedance around 0, which is disregarded in the relative
         differences plot. Default is that impedances, with an absolute value less than
         0 are not considered.
+    legend: str, optional
+        Choose if a legend should be shown. Recommended to switch to False
+        when using large datasets.
+
 
     Notes
     -----
@@ -629,7 +651,8 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
     if limits is not None:
         assert len(limits) == 2, "You need to provide upper and lower limit!"
         plt.ylim(limits)
-    plt.legend()
+    if legend:
+        plt.legend()
     if subplot is None:
         plt.tight_layout()
     if save:

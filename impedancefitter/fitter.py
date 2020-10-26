@@ -246,7 +246,7 @@ class Fitter(object):
 
     def visualize_data(self, savefig=False, Zlog=False,
                        allinone=False, plottype="impedance",
-                       show=True):
+                       show=True, legend=True):
         """Visualize impedance data.
 
         Parameters
@@ -262,7 +262,10 @@ class Fitter(object):
         allinone: bool, optional
             Visualize all data sets in one plot
         plottype: str, optional
-            Choose between standard impedance plot ('impedance') and bode plot ('bode').
+            Choose between standard impedance plot ('impedance'), resistance / capacitance ("RC") and bode plot ('bode').
+        legend: str, optional
+            Choose if a legend should be shown. Recommended to switch to False
+            when using large datasets.
         """
         if not savefig and not show:
             logger.warning("""visualize_data does not have any effect if you
@@ -298,14 +301,17 @@ class Fitter(object):
 
                 if plottype == "impedance":
                     plot_impedance(self.omega_dict[key], zarray[i], title=title, show=showtmp,
-                                   save=savefigtmp, Zlog=Zlog, append=append, labels=labels)
+                                   save=savefigtmp, Zlog=Zlog, append=append, labels=labels,
+                                   legend=legend)
                 elif plottype == "bode":
                     plot_bode(self.omega_dict[key], zarray[i], title=title, show=showtmp,
-                              save=savefigtmp, append=append, labels=labels)
+                              save=savefigtmp, append=append, labels=labels,
+                              legend=legend)
                 elif plottype == "RC":
                     plot_resistance_capacitance(self.omega_dict[key], zarray[i],
                                                 title=title, show=showtmp,
-                                                save=savefigtmp, append=append, labels=labels)
+                                                save=savefigtmp, append=append, labels=labels,
+                                                legend=legend)
 
                 else:
                     raise RuntimeError("You chose an invalid plottype")
@@ -881,6 +887,21 @@ class Fitter(object):
                 rarray[i], carray[i] = _return_resistance_capacitance(self.omega, self.Z)
             self.R_dict[key] = rarray
             self.C_dict[key] = carray
+
+    def get_admittance(self):
+        self.Y_dict = {}
+        for key in self.omega_dict:
+            self.zarray = self.z_dict[key]
+            xarray = np.zeros(self.zarray.shape, dtype=np.complex128)
+            self.iters = 1
+            # determine number of iterations if more than 1 data set is in file
+            if len(self.zarray.shape) > 1:
+                self.iters = self.zarray.shape[0]
+                logger.debug("Number of data sets:" + str(self.iters))
+            for i in range(self.iters):
+                self.Z = self.zarray[i]
+                xarray[i] = (1. / self.Z)
+            self.Y_dict[key] = xarray
 
     def process_data_from_file(self, filename, model, parameters,
                                modelclass=None):
