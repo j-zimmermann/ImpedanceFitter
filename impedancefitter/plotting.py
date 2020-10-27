@@ -144,7 +144,7 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
 
     plt.subplot(212)
     plt.title("Conductivity")
-    plt.ylabel(r"Conductivity / S$\cdot$m$^{-1}$]")
+    plt.ylabel(r"Conductivity / S$\cdot$m$^{-1}$")
     plt.xlabel('Frequency / Hz')
     if logscale == 'conductivity' or logscale == 'both':
         plt.yscale('log')

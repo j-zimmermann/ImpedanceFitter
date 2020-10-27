@@ -71,7 +71,11 @@ class PostProcess(object):
                 except KeyError:
                     print("""There must be all parameters present
                              over the entire data set you want to analyse.""")
+            if np.all(np.isclose(plist, plist[0])):
+                logger.info("All values for parameter {} are equal. Parameter will be neglected since it was kept constant.".format(p))
+                continue
             self.sampledict[p] = ot.Sample(np.array(plist))
+        self.parameters = list(self.sampledict.keys())
 
     def plot_histograms(self, savefig=False, show=True):
         """Plot histograms for all determined parameters.
