@@ -29,6 +29,7 @@ except ImportError:
     import schemdraw
     import schemdraw.elements as elm
 
+from scipy.integrate import simps
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
@@ -1030,3 +1031,43 @@ def _return_resistance_capacitance(omega, Z):
     R = Z.real
     C = -1.0 / (omega * Z.imag)
     return R, C
+
+
+def KK_integral_transform(omega, Z):
+    """Kramers-Kronig integral transform.
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`, double
+        frequency array
+    Z: :class:`numpy.ndarray`, complex
+        impedance array
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        The transformed impedance array.
+
+    Notes
+    -----
+
+    Implementation following [Urquidi1990]_
+
+    .. [Urquidi1990] Urquidi-Macdonald, M., Real, S., & Macdonald, D. D. (1990).
+                     Applications of Kramers-Kronig transforms in the analysis of electrochemical impedance data-III. Stability and linearity.
+                     Electrochimica Acta, 35(10), 1559–1566.
+                     https://doi.org/10.1016/0013-4686(90)80010-L
+    """
+
+    ZKK = np.ndarray(omega.shape, dtype=complex)
+    for i, w in enumerate(omega):
+        x = np.append(omega[:i], omega[i + 1:])
+        real = np.append(Z.real[:i], Z.real[i + 1:])
+        imag = np.append(Z.imag[:i], Z.imag[i + 1:])
+        # real part
+        integrand = (x * imag - w * Z.imag[i]) / (x * x - w * w)
+        ZKK[i] = -2. / np.pi * simps(integrand, x=x)
+        # imag part
+        integrand = (real - Z.real[i]) / (x * x - w * w)
+        ZKK[i] += 1j * 2. * w / np.pi * simps(integrand, x=x)
+    return ZKK

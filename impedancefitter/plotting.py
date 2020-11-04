@@ -283,7 +283,7 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     if Z_fit is not None:
         plt.plot(omega / (2. * np.pi), np.abs(Z_fit), '^', label=labels[1])
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), np.abs(Z_comp), 'x', label=labels[2])
+        plt.plot(omega / (2. * np.pi), np.abs(Z_comp), 'v', label=labels[2])
     if legend:
         plt.legend()
 
@@ -298,7 +298,7 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     if Z_fit is not None:
         plt.plot(omega / (2. * np.pi), np.angle(Z_fit, deg=True), '^', label=labels[1])
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), np.angle(Z_comp, deg=True), 'x', label=labels[2])
+        plt.plot(omega / (2. * np.pi), np.angle(Z_comp, deg=True), 'v', label=labels[2])
     if legend:
         plt.legend()
     plt.tight_layout()
@@ -370,7 +370,7 @@ def plot_resistance_capacitance(omega, Z, title="", Z_fit=None, show=True, save=
         plt.plot(omega / (2. * np.pi), R_fit, '^', label=labels[1])
     if Z_comp is not None:
         R_comp, C_comp = _return_resistance_capacitance(omega, Z_comp)
-        plt.plot(omega / (2. * np.pi), C_comp, 'x', label=labels[2])
+        plt.plot(omega / (2. * np.pi), C_comp, 'v', label=labels[2])
     if legend:
         plt.legend()
 
@@ -386,7 +386,7 @@ def plot_resistance_capacitance(omega, Z, title="", Z_fit=None, show=True, save=
     if Z_fit is not None:
         plt.plot(omega / (2. * np.pi), C_fit, '^', label=labels[1])
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), C_comp, 'x', label=labels[2])
+        plt.plot(omega / (2. * np.pi), C_comp, 'v', label=labels[2])
     if legend:
         plt.legend()
     plt.tight_layout()
@@ -475,9 +475,9 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     plt.xlabel('Frequency / Hz')
     plt.plot(omega / (2. * np.pi), Z.real, label=labels[0])
     if Z_fit is not None:
-        plt.plot(omega_fit / (2. * np.pi), Z_fit.real, '^', label=labels[1])
+        plt.plot(omega_fit / (2. * np.pi), Z_fit.real, linestyle='--', label=labels[1], lw=3)
     if Z_comp is not None:
-        plt.plot(omega_comp / (2. * np.pi), Z_comp.real, 'x', label=labels[2])
+        plt.plot(omega_comp / (2. * np.pi), Z_comp.real, linestyle='--', label=labels[2], lw=3)
     if legend:
         plt.legend()
     # plot imaginary part of impedance
@@ -495,39 +495,39 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
             plt.ylabel(r"-Im(Z) / $\Omega$")
             plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '^', label=labels[1])
+                plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '--', label=labels[1])
             if Z_comp is not None:
-                plt.plot(omega_comp / (2. * np.pi), -Z_comp.imag, 'x', label=labels[2])
+                plt.plot(omega_comp / (2. * np.pi), -Z_comp.imag, '-.', label=labels[2])
 
         elif np.all(np.greater_equal(Z.imag, 0)):
             plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
+                plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '--', label=labels[1])
             if Z_comp is not None:
-                plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
+                plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, '-.', label=labels[2])
 
         elif np.where(Z.imag < 0).size > np.where(Z.imag > 0).size:
             plt.ylabel(r"-Im(Z) / $\Omega$")
             plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '^', label=labels[1])
+                plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '--', label=labels[1])
             if Z_comp is not None:
-                plt.plot(omega_comp / (2. * np.pi), -Z_comp.imag, 'x', label=labels[2])
+                plt.plot(omega_comp / (2. * np.pi), -Z_comp.imag, '-.', label=labels[2])
 
         else:
             plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0])
             if Z_fit is not None:
-                plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
+                plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '--', label=labels[1])
             if Z_comp is not None:
-                plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
+                plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, '-.', label=labels[2])
 
     else:
         plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0])
 
         if Z_fit is not None:
-            plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '^', label=labels[1])
+            plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '--', label=labels[1], lw=3)
         if Z_comp is not None:
-            plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, 'x', label=labels[2])
+            plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, '-.', label=labels[2], lw=3)
     if legend:
         plt.legend()
     # plot real vs negative imaginary part
@@ -545,7 +545,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     if Z_fit is not None:
         plt.plot(Z_fit.real, -Z_fit.imag, '^', label=labels[1])
     if Z_comp is not None:
-        plt.plot(Z_comp.real, -Z_comp.imag, 'x', label=labels[2])
+        plt.plot(Z_comp.real, -Z_comp.imag, 'v', label=labels[2])
     if legend:
         plt.legend()
     if Z_fit is not None and np.all(omega == omega_fit):
@@ -644,10 +644,10 @@ def plot_compare_to_data(omega, Z, Z_fit, subplot=None, title="", show=True, sav
         plt.title((str(title) + "relative difference to data").capitalize())
     plt.xlabel('Frequency / Hz')
     plt.ylabel(label)
-    plt.plot(omega / (2. * np.pi), diff_real, 'g', label='Real part')
-    plt.plot(omega / (2. * np.pi), diff_imag, 'r', label='Imag part')
+    plt.plot(omega / (2. * np.pi), diff_real, label='Real part', lw=3)
+    plt.plot(omega / (2. * np.pi), diff_imag, label='Imag part', lw=3, linestyle="--")
     if residual != "absolute":
-        plt.plot(omega / (2. * np.pi), diff_abs, 'b', label='Abs value')
+        plt.plot(omega / (2. * np.pi), diff_abs, label='Abs value', linestyle="-.", lw=3)
     if limits is not None:
         assert len(limits) == 2, "You need to provide upper and lower limit!"
         plt.ylim(limits)
