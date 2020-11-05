@@ -401,7 +401,7 @@ def plot_resistance_capacitance(omega, Z, title="", Z_fit=None, show=True, save=
 def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
                    labels=["Data", "Best fit", "Init fit"], residual="parts", sign=False,
                    Zlog=False, append=False, limits_residual=None,
-                   omega_fit=None, omega_comp=None, legend=True):
+                   omega_fit=None, omega_comp=None, legend=True, compare=True):
     """Plot the `result` and compare it to data `Z`.
 
     Generates 4 subplots showing the real and imaginary parts over
@@ -448,6 +448,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     legend: str, optional
         Choose if a legend should be shown. Recommended to switch to False
         when using large datasets.
+    compare: bool, optional
+        Choose if the difference between fit and data should be computed.
 
 
     """
@@ -477,7 +479,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     if Z_fit is not None:
         plt.plot(omega_fit / (2. * np.pi), Z_fit.real, linestyle='--', label=labels[1], lw=3)
     if Z_comp is not None:
-        plt.plot(omega_comp / (2. * np.pi), Z_comp.real, linestyle='--', label=labels[2], lw=3)
+        plt.plot(omega_comp / (2. * np.pi), Z_comp.real, linestyle='-.', label=labels[2], lw=3)
     if legend:
         plt.legend()
     # plot imaginary part of impedance
@@ -548,7 +550,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.plot(Z_comp.real, -Z_comp.imag, 'v', label=labels[2])
     if legend:
         plt.legend()
-    if Z_fit is not None and np.all(omega == omega_fit):
+    if Z_fit is not None and np.all(omega == omega_fit) and compare:
         plot_compare_to_data(omega, Z, Z_fit, subplot=224, residual=residual, sign=sign,
                              limits=limits_residual, legend=legend)
     plt.tight_layout()
