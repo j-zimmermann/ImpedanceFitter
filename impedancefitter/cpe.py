@@ -25,7 +25,7 @@ def cpe_model(omega, k, alpha):
 
     .. math::
 
-        Z_\mathrm{CPE} = k^{-1} (j \omega)^{-\alpha}
+        Z_\mathrm{CPE} = k (j \omega)^{-\alpha}
 
     Parameters
     ----------
@@ -49,7 +49,7 @@ def cpetissue_model(omega, k, alpha):
 
     .. math::
 
-        Z_\mathrm{CPE} = k^{-1} (j \omega)^{-\alpha}
+        Z_\mathrm{CPE} = k (j \omega)^{-\alpha}
 
     Parameters
     ----------

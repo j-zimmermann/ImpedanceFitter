@@ -96,7 +96,7 @@ def plot_complex_permittivity(omega, Z, c0, Z_comp=None,
 
 
 def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, save=False, logscale="permittivity",
-                               labels=None):
+                               labels=None, append=False, markers=[None, None], **plotkwargs):
     '''
     Parameters
     ----------
@@ -121,48 +121,63 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
         Possible are `permittivity`, `conductivity` and `both`
     labels: list, optional
         Give custom labels. Needs to be a list of length 2.
+    append: bool, optional
+        Decide if you want to show plot or add line to existing plot.
+
     '''
     eps_r, cond_fit = return_diel_properties(omega, Z, c0)
+
+    axes = []
+    plt.figure("dielectricproperties")
+    axes = plt.gcf().axes
+
+    if len(axes) < 2:
+        plt.suptitle(title, y=1.05)
+        plt.subplot(211)
+    else:
+        plt.sca(axes[0])
+
     if labels is None:
         labels = [r'$Z_1$', r'$Z_2$']
     assert len(labels) == 2, "You need to provide lables as a list containing 2 strings!"
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
-    plt.figure()
-    plt.suptitle('dielectric properties', y=1.05)
-    plt.subplot(211)
     plt.title("Relative permittivity")
     plt.ylabel("Relative permittivity")
     plt.xlabel('Frequency / Hz')
     if logscale == 'permittivity' or logscale == 'both':
         plt.yscale('log')
     plt.xscale('log')
-    plt.plot(omega / (2. * np.pi), eps_r, label=labels[0])
+    plt.plot(omega / (2. * np.pi), eps_r, label=labels[0], marker=markers[0], **plotkwargs)
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), eps_r2, label=labels[1])
-        plt.legend()
+        plt.plot(omega / (2. * np.pi), eps_r2, label=labels[1], marker=markers[1], **plotkwargs)
+    plt.legend()
 
-    plt.subplot(212)
+    if len(axes) < 2:
+        plt.subplot(212)
+    else:
+        plt.sca(axes[1])
+
     plt.title("Conductivity")
     plt.ylabel(r"Conductivity / S$\cdot$m$^{-1}$")
     plt.xlabel('Frequency / Hz')
     if logscale == 'conductivity' or logscale == 'both':
         plt.yscale('log')
     plt.xscale('log')
-    plt.plot(omega / (2. * np.pi), cond_fit, label=labels[0])
+    plt.plot(omega / (2. * np.pi), cond_fit, label=labels[0], marker=markers[0], **plotkwargs)
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), cond_fit2, label=labels[1])
-        plt.legend()
+        plt.plot(omega / (2. * np.pi), cond_fit2, label=labels[1], marker=markers[1], **plotkwargs)
+    plt.legend()
     plt.tight_layout()
-    if save:
+    if save and not append:
         plt.savefig(str(title).replace(" ", "_") + "_dielectric_properties.pdf")
-    if show:
+    if show and not append:
         plt.show()
-    else:
+    elif not show and not append:
         plt.close()
 
 
-def plot_cole_cole(omega, Z, c0, Z_comp=None,
+def plot_cole_cole(omega, Z, c0, Z_comp=None, diff=False,
                    title="", show=True, save=False, labels=None):
     '''
     Parameters
@@ -178,6 +193,8 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None,
         complex-valued impedance array. Might be used to compare the properties of two data sets.
     title: str, optional
         title of plot. Default is an empty string.
+    diff: bool, optional
+        Compare two results numerically by plotting difference (default False)
     show: bool, optional
         show figure (default is True)
     save: bool, optional
@@ -197,8 +214,9 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None,
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
         epsc_fit2 = eps_r2 - 1j * cond_fit2 / (e0 * omega)
-        plt.figure()
-        plt.subplot(211)
+        if diff:
+            plt.figure()
+            plt.subplot(211)
 
     plt.title("Cole-Cole plot")
     plt.xlabel(r"Re($\varepsilon$)")
@@ -208,7 +226,7 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None,
         plt.plot(epsc_fit2.real, -epsc_fit2.imag, label=labels[1])
     plt.legend()
 
-    if Z_comp is not None:
+    if Z_comp is not None and diff:
         plt.subplot(212)
         plt.title("Comparison")
         plt.ylabel("Relative difference / %")
@@ -304,7 +322,7 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     plt.tight_layout()
     if save and not append:
         plt.savefig(str(title).replace(" ", "_") + "_bode_plot.pdf")
-    if show:
+    if show and not append:
         plt.show()
     elif not show and not append:
         plt.close()
@@ -742,6 +760,234 @@ def plot_uncertainty(omega, Zdata, Z, Z1, Z2, sigma, show=True, model=None):
                      color='#888888', label=r"${} \sigma$ interval".format(sigma))
     plt.legend()
     plt.tight_layout()
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_admittance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
+                    labels=["Data", "Best fit", "Init fit"], residual="parts", sign=False,
+                    Zlog=False, append=False, limits_residual=None,
+                    omega_fit=None, omega_comp=None, legend=True, compare=True):
+    """Plot the admittance and compare it to data 1/`Z`.
+
+    Generates 4 subplots showing the real and imaginary parts over
+    the frequency; a Nyquist plot of real and negative imaginary part
+    and the relative differences of real and imaginary part as well as absolute value of admittance.
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`, double
+        Frequency array
+    Z: :class:`numpy.ndarray`, complex
+        Impedance array, experimental data or data to compare to.
+    Z_fit: :class:`numpy.ndarray`, complex
+        Impedance array, fit result. If provided, the difference
+        between data and fit will be shown.
+    title: str
+        Title of plot.
+    show: bool, optional
+        Show figure (default is True).
+    save: bool, optional
+        Save figure to pdf (default is False). Name of figure starts with `title`
+        and ends with `_admittance_overview.pdf`.
+    Z_comp: :class:`numpy.ndarray`, complex, optional
+        Complex-valued impedance array. Might be used to compare the properties of two data sets.
+    labels: list
+        List of labels for three plots. Must have length 3 always.
+        Is ordered like: `[Z, Z_fit, Z_comp]`
+    residual: str
+        Plot relative difference w.r.t. real and imaginary part if `parts`.
+        Plot relative difference w.r.t. absolute value if `absolute`.
+        Plot difference (residual) if `diff`.
+    sign: bool, optional
+        Use sign of residual. Default is False, i.e. absolute value is plotted.
+    Zlog: bool, optional
+        Log-scale of impedance
+    append: bool, optional
+        Decide if you want to show plot or add line to existing plot.
+    omega_fit: :class:`numpy.ndarray`, double, optional
+        Frequency array, provide only if fitted impedance was evaluated at
+        different frequencies than the experimental data
+    omega_comp: :class:`numpy.ndarray`, double, optional
+        Frequency array, provide only if fitted impedance was evaluated at
+        different frequencies than the experimental data
+    legend: str, optional
+        Choose if a legend should be shown. Recommended to switch to False
+        when using large datasets.
+    compare: bool, optional
+        Choose if the difference between fit and data should be computed.
+
+
+    """
+
+    if omega_fit is None:
+        omega_fit = omega
+    if omega_comp is None:
+        omega_comp = omega
+    axes = []
+    plt.figure("admittance")
+    axes = plt.gcf().axes
+
+    if len(axes) < 3:
+        plt.suptitle(title, y=1.05)
+        plt.subplot(221)
+    else:
+        plt.sca(axes[0])
+    # use logscale
+    if Zlog:
+        plt.yscale('log')
+    # plot real part of admittance
+    plt.xscale('log')
+    plt.title("Admittance real part")
+    plt.ylabel(r"Re(Y) / S")
+    plt.xlabel('Frequency / Hz')
+    plt.plot(omega / (2. * np.pi), (1. / Z).real, label=labels[0])
+    if Z_fit is not None:
+        plt.plot(omega_fit / (2. * np.pi), (1. / Z_fit).real, linestyle='--', label=labels[1], lw=3)
+    if Z_comp is not None:
+        plt.plot(omega_comp / (2. * np.pi), (1. / Z_comp).real, linestyle='-.', label=labels[2], lw=3)
+    if legend:
+        plt.legend()
+    # plot imaginary part of impedance
+    if len(axes) < 3:
+        plt.subplot(222)
+    else:
+        plt.sca(axes[1])
+    plt.title("Admittance imaginary part")
+    plt.xscale('log')
+    plt.ylabel(r"Im(Y) / S")
+    plt.xlabel('Frequency / Hz')
+    if Zlog:
+        plt.yscale('log')
+        if np.all(np.less_equal(Z.imag, 0)):
+            plt.ylabel(r"Im(Y) / S")
+            plt.plot(omega / (2. * np.pi), (1. / Z).imag, label=labels[0])
+            if Z_fit is not None:
+                plt.plot(omega_fit / (2. * np.pi), (1. / Z_fit).imag, '--', label=labels[1])
+            if Z_comp is not None:
+                plt.plot(omega_comp / (2. * np.pi), (1. / Z_comp).imag, '-.', label=labels[2])
+
+        elif np.all(np.greater_equal(Z.imag, 0)):
+            plt.plot(omega / (2. * np.pi), (1. / Z).imag, label=labels[0])
+            if Z_fit is not None:
+                plt.plot(omega_fit / (2. * np.pi), (1. / Z_fit).imag, '--', label=labels[1])
+            if Z_comp is not None:
+                plt.plot(omega_comp / (2. * np.pi), (1. / Z_comp).imag, '-.', label=labels[2])
+
+        elif np.where(Z.imag < 0).size > np.where(Z.imag > 0).size:
+            plt.ylabel(r"Im(Y) / S")
+            plt.plot(omega / (2. * np.pi), (1. / Z).imag, label=labels[0])
+            if Z_fit is not None:
+                plt.plot(omega_fit / (2. * np.pi), (1. / Z_fit).imag, '--', label=labels[1])
+            if Z_comp is not None:
+                plt.plot(omega_comp / (2. * np.pi), (1. / Z_comp).imag, '-.', label=labels[2])
+
+        else:
+            plt.plot(omega / (2. * np.pi), (1. / Z).imag, label=labels[0])
+            if Z_fit is not None:
+                plt.plot(omega_fit / (2. * np.pi), (1. / Z_fit).imag, '--', label=labels[1])
+            if Z_comp is not None:
+                plt.plot(omega_comp / (2. * np.pi), (1. / Z_comp).imag, '-.', label=labels[2])
+
+    else:
+        plt.plot(omega / (2. * np.pi), (1. / Z).imag, label=labels[0])
+
+        if Z_fit is not None:
+            plt.plot(omega_fit / (2. * np.pi), (1. / Z_fit).imag, '--', label=labels[1], lw=3)
+        if Z_comp is not None:
+            plt.plot(omega_comp / (2. * np.pi), (1. / Z_comp).imag, '-.', label=labels[2], lw=3)
+    if legend:
+        plt.legend()
+    # plot real vs negative imaginary part
+    if len(axes) < 3:
+        plt.subplot(223)
+    else:
+        plt.sca(axes[2])
+    plt.title("Nyquist plot")
+    plt.ylabel(r"Im(Y) / S")
+    plt.xlabel(r"Re(Y) / S")
+    if Zlog:
+        plt.xscale('log')
+        plt.yscale('log')
+    plt.plot((1. / Z).real, (1. / Z).imag, 'o', label=labels[0])
+    if Z_fit is not None:
+        plt.plot((1. / Z_fit).real, (1. / Z_fit).imag, '^', label=labels[1])
+    if Z_comp is not None:
+        plt.plot((1. / Z_comp).real, (1. / Z_comp).imag, 'v', label=labels[2])
+    if legend:
+        plt.legend()
+    if Z_fit is not None and np.all(omega == omega_fit) and compare:
+        plot_compare_to_data(omega, Z, Z_fit, subplot=224, residual=residual, sign=sign,
+                             limits=limits_residual, legend=legend)
+    plt.tight_layout()
+    if save and not append:
+        plt.savefig(str(title).replace(" ", "_") + "_admittance_overview.pdf")
+    if show:
+        plt.show()
+    elif not show and not append:
+        plt.close()
+
+
+def plot_dielectric_dispersion(omega, Z, c0, Z_comp=None, title="", show=True, save=False, logscale="permittivity",
+                               labels=None, **plotkwargs):
+    '''
+    Parameters
+    ----------
+
+    omega: :class:`numpy.ndarray`, double
+        frequency array
+    Z: :class:`numpy.ndarray`, complex
+        impedance array
+    c0: double
+        unit capacitance of device
+    Z_comp: :class:`numpy.ndarray`, complex, optional
+        complex-valued impedance array. Might be used to compare the properties of two data sets.
+    title: str, optional
+        title of plot. Default is an empty string.
+    show: bool, optional
+        show figure (default is True)
+    save: bool, optional
+        save figure to pdf (default is False). Name of figure starts with `title`
+        and ends with `_dielectric_properties.pdf`.
+    logscale: str, optional
+        Decide what you want to plot using log scale.
+        Possible are `permittivity`, `conductivity` and `both`
+    labels: list, optional
+        Give custom labels. Needs to be a list of length 2.
+    '''
+    eps_r, cond_fit = return_diel_properties(omega, Z, c0)
+
+    fig, ax1 = plt.subplots()
+
+    plt.title(title, y=1.05)
+
+    if labels is None:
+        labels = [r'$Z_1$', r'$Z_2$']
+    assert len(labels) == 2, "You need to provide lables as a list containing 2 strings!"
+    if Z_comp is not None:
+        eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
+    ax1.set_ylabel(r"Relative permittivity")
+    ax1.set_xlabel('Frequency / Hz')
+    if logscale == 'permittivity' or logscale == 'both':
+        ax1.set_yscale('log')
+    ax1.set_xscale('log')
+    ax1.plot(omega / (2. * np.pi), eps_r, label=labels[0], **plotkwargs)
+    if Z_comp is not None:
+        ax1.plot(omega / (2. * np.pi), eps_r2, label=labels[1], **plotkwargs)
+
+    ax2 = ax1.twinx()
+    ax2.set_ylabel(r"Dielectric loss")
+    if logscale == 'conductivity' or logscale == 'both':
+        ax2.yscale('log')
+    ax2.plot(omega / (2. * np.pi), cond_fit / (e0 * omega), ls="-.", **plotkwargs)
+    if Z_comp is not None:
+        plt.plot(omega / (2. * np.pi), cond_fit2 / (e0 * omega), ls="-.", **plotkwargs)
+    ax1.legend()
+    fig.tight_layout()
+    if save:
+        plt.savefig(str(title).replace(" ", "_") + "_dielectric_dispersion.pdf")
     if show:
         plt.show()
     else:

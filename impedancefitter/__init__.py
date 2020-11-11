@@ -37,5 +37,5 @@ def set_logger(level=logging.INFO):
 from .fitter import Fitter
 from .postprocess import PostProcess
 from .utils import get_labels, available_models, get_equivalent_circuit_model, draw_scheme, available_file_format, KK_integral_transform
-from .plotting import plot_compare_to_data, plot_impedance, plot_dielectric_properties, emcee_plot, plot_bode, plot_cole_cole, plot_complex_permittivity
+from .plotting import plot_compare_to_data, plot_impedance, plot_dielectric_properties, emcee_plot, plot_bode, plot_cole_cole, plot_complex_permittivity, plot_admittance, plot_dielectric_dispersion
 from .__version__ import __version__
