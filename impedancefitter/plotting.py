@@ -980,7 +980,7 @@ def plot_dielectric_dispersion(omega, Z, c0, Z_comp=None, title="", show=True, s
     ax2 = ax1.twinx()
     ax2.set_ylabel(r"Dielectric loss")
     if logscale == 'conductivity' or logscale == 'both':
-        ax2.yscale('log')
+        ax2.set_yscale('log')
     ax2.plot(omega / (2. * np.pi), cond_fit / (e0 * omega), ls="-.", **plotkwargs)
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), cond_fit2 / (e0 * omega), ls="-.", **plotkwargs)

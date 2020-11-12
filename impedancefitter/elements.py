@@ -34,6 +34,10 @@ def log(Z1, dummy):
     return np.log10(Z1) + np.log10(dummy)
 
 
+def eps(Z1, make_eps):
+    return make_eps / Z1
+
+
 def parallel(Z1, Z2):
     """Return values of parallel circuit.
 

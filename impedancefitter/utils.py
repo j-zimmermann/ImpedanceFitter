@@ -32,7 +32,7 @@ except ImportError:
 from scipy.integrate import simps
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
-from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
+from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo, eps
 from .loss import Z_in, Z_loss, Z_skin
 from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model, havriliak_negami, cole_cole_2tissue_model, havriliak_negamitissue, raicu
 from .double_shell import double_shell_model
@@ -670,7 +670,7 @@ def _check_circuit(circuit, startpar=False):
             _check_circuit(c)
 
 
-def get_equivalent_circuit_model(modelname, logscale=False):
+def get_equivalent_circuit_model(modelname, logscale=False, diel=False):
     """Get LMFIT CompositeModel.
 
     Parameters
@@ -710,6 +710,10 @@ def get_equivalent_circuit_model(modelname, logscale=False):
     circuit = _process_circuit(circuitstr.asList()[0])
     if logscale:
         circuit = CompositeModel(circuit, Model(dummy), log)
+    elif diel:
+        circuit = CompositeModel(circuit, Model(make_eps), eps)
+    if logscale and diel:
+        raise RuntimeError("You must chose the representation of the impedance value")
     _check_models_suffix(circuit)
     logger.debug("Created composite model {}".format(circuit))
     return circuit
@@ -734,6 +738,10 @@ def _check_models_suffix(circuit):
 
 def dummy(omega):
     return np.ones(omega.shape)
+
+
+def make_eps(omega, c0all):
+    return 1. / (1j * omega * c0all)
 
 
 def _model_label(model):

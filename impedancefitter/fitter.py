@@ -197,6 +197,7 @@ class Fitter(object):
         self.protocol = None
         self.solvername = "least_squares"
         self.log = False
+        self.eps = False
         self.solver_kwargs = {}
         self.weighting = None
         self.show = False
@@ -341,7 +342,7 @@ class Fitter(object):
         return set_parameters(model, parameterdict=parameters,
                               emcee=emcee)
 
-    def initialize_model(self, modelname, log=False):
+    def initialize_model(self, modelname, log=False, eps=False):
         """Interface to LMFIT model class.
 
         The equivalent circuit (represented as a string)
@@ -364,12 +365,12 @@ class Fitter(object):
             The resulting LMFIT model.
         """
 
-        model = get_equivalent_circuit_model(modelname, log)
+        model = get_equivalent_circuit_model(modelname, log, eps)
         return model
 
     def run(self, modelname, solver=None, parameters=None, protocol=None,
             solver_kwargs={}, modelclass="none", log=False, weighting=None,
-            show=False, report=False, savemodelresult=True):
+            show=False, report=False, savemodelresult=True, eps=False):
         """
         Main function that iterates through all data sets provided.
 
@@ -410,6 +411,7 @@ class Fitter(object):
         self.modelname = modelname
         self.modelclass = modelclass
         self.log = log
+        self.eps = eps
         self.weighting = weighting
         self.show = show
         self.report = report
@@ -427,7 +429,7 @@ class Fitter(object):
         self.solver_kwargs = solver_kwargs
 
         # initialize model
-        self.model = self.initialize_model(self.modelname, log=self.log)
+        self.model = self.initialize_model(self.modelname, log=self.log, eps=self.eps)
         # initialize model parameters
         if parameters is not None:
             logger.debug("Using provided parameter dictionary.")
@@ -528,8 +530,8 @@ class Fitter(object):
             self.emcee_tag = False
         self.solver_kwargs = solver_kwargs
         # initialize model
-        self.model1 = self.initialize_model(model1, self.log)
-        self.model2 = self.initialize_model(model2, self.log)
+        self.model1 = self.initialize_model(model1, self.log, self.eps)
+        self.model2 = self.initialize_model(model2, self.log, self.eps)
 
         # initialize model parameters
         if parameters1 is not None:
@@ -788,7 +790,7 @@ class Fitter(object):
             params[parameter].set(vary=False)
         return params
 
-    def _fit_data(self, model, parameters, modelclass=None, weights=None, log=True):
+    def _fit_data(self, model, parameters, modelclass=None, weights=None, log=True, eps=False):
         """Fit data to model.
 
         Wrapper for LMFIT fitting routine.
@@ -835,6 +837,8 @@ class Fitter(object):
                                               model_result)
             if log:
                 Z = np.log10(self.Z)
+            elif eps:
+                Z = 1. / (1j * self.omega * params['c0all'] * self.Z)
             else:
                 Z = self.Z
             max_nfev = None
@@ -934,9 +938,11 @@ class Fitter(object):
         if self.weighting == "proportional":
             weights = 1. / self.Z.real + 1j / self.Z.imag
         fit_output = self._fit_data(model, parameters, modelclass, log=self.log,
-                                    weights=weights)
+                                    eps=self.eps, weights=weights)
         if self.log:
             Z_fit = np.power(10, fit_output.best_fit)
+        elif self.eps:
+            Z_fit = 1. / (1j * self.omega * fit_output.best_fit * parameters['c0all'])
         else:
             Z_fit = fit_output.best_fit
         logger.debug("Fit successful")
@@ -947,7 +953,7 @@ class Fitter(object):
             if self.savefig:
                 logger.info("Going to save plot of fit result to file.")
             title = "fit_result_" + filename
-            plot_impedance(self.omega, fit_output.data, title=title, Z_fit=Z_fit,
+            plot_impedance(self.omega, self.Z, title=title, Z_fit=Z_fit,
                            show=self.show, save=self.savefig)
         return fit_output
 
