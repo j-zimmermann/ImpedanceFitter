@@ -151,7 +151,8 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.plot(omega / (2. * np.pi), eps_r, label=labels[0], marker=markers[0], **plotkwargs)
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), eps_r2, label=labels[1], marker=markers[1], **plotkwargs)
-    plt.legend()
+    if Z_comp is None and append is True:
+        plt.legend()
 
     if len(axes) < 2:
         plt.subplot(212)
@@ -167,7 +168,8 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.plot(omega / (2. * np.pi), cond_fit, label=labels[0], marker=markers[0], **plotkwargs)
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), cond_fit2, label=labels[1], marker=markers[1], **plotkwargs)
-    plt.legend()
+    if Z_comp is None and append is True:
+        plt.legend()
     plt.tight_layout()
     if save and not append:
         plt.savefig(str(title).replace(" ", "_") + "_dielectric_properties.pdf")
@@ -224,7 +226,7 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None, diff=False,
     plt.plot(epsc_fit.real, -epsc_fit.imag, label=labels[0])
     if Z_comp is not None:
         plt.plot(epsc_fit2.real, -epsc_fit2.imag, label=labels[1])
-    plt.legend()
+        plt.legend()
 
     if Z_comp is not None and diff:
         plt.subplot(212)
