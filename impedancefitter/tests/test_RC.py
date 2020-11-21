@@ -6,15 +6,15 @@ omega = 2. * np.pi * np.logspace(1, 8, num=20)
 
 # for RCfull
 Rd = 100
-Cd = 1e-6
+Cd = 1e6
 
 # for Rctau
-tauk = Rd * Cd
+tauk = Rd * Cd * 1e-12
 
 # for RC
 c0 = 1.0
 kdc = e0 / (Rd * c0 * 1e-12)
-eps = Cd / (c0 * 1e-12)
+eps = Cd / (c0)
 
 # for DRC
 RE = 100

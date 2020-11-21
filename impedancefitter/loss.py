@@ -88,3 +88,52 @@ def Z_in(omega, L, R):
     """
     L *= 1e-9
     return R + 1j * omega * L
+
+
+def Z_skin(omega, L, Rb, gamma):
+    r"""Lead inductance of wires connecting DUT considering skin effect.
+
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+    L: double
+        inductance
+    Rb: double
+        resistance of wire, about mOhm
+    gamma: double
+        exponent (should be about 0.5 probably)
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    References
+    ----------
+    .. [Levitskaya2000] Levitskaya, T. M., & Sternberg, B. K. (2000).
+                        Laboratory measurement of material electrical properties: extending the application of lumped-circuit equivalent models to 1 GHz.
+                        Radio Science, 35(2), 371–383.
+                        https://doi.org/10.1029/1999RS002186
+    Notes
+    -----
+
+    Described for instance in [Levitskaya2000]_.
+    The idea is to take frequency-dependent resistance.
+
+    The unit of the inductance is nH.
+    The wire resistance is about mOhm.
+    The impedance is computed by
+
+    .. math::
+
+        Z = R_b \omega^{\gamma} + j \omega L
+
+    Note that the frequency omega in this formula
+    is in MHz.
+
+    """
+    L *= 1e-9
+    Rb *= 1e-3
+    return Rb * (omega / 1e6)**gamma + 1j * omega * L

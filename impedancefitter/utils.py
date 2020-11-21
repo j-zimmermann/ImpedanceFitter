@@ -29,11 +29,12 @@ except ImportError:
     import schemdraw
     import schemdraw.elements as elm
 
+from scipy.integrate import simps
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
-from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo
-from .loss import Z_in, Z_loss
-from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model, havriliak_negami, cole_cole_2tissue_model, havriliak_negamitissue
+from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo, eps
+from .loss import Z_in, Z_loss, Z_skin
+from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model, havriliak_negami, cole_cole_2tissue_model, havriliak_negamitissue, raicu
 from .double_shell import double_shell_model
 from .randles import Z_randles, Z_randles_CPE
 from .RC import RC_model, rc_model, drc_model, rc_tau_model
@@ -41,8 +42,10 @@ from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model, cpe_onset_model, cpeti
 from .single_shell import single_shell_model
 from lmfit import Model, CompositeModel
 from copy import deepcopy
-from . import logger
 from packaging import version
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def convert_diel_properties_to_impedance(omega, eps, sigma, c0):
@@ -132,7 +135,7 @@ def check_parameters(bufdict):
     capacitances = ['C']
     # taus in ns
     taus = ['tau', 'tauE', 'tau1', 'tau2', 'tau3', 'tau4']
-    zerotoones = ['p', 'a', 'alpha', 'beta', 'a1', 'a2', 'a3', 'a4', 'nu']
+    zerotoones = ['p', 'a', 'alpha', 'beta', 'gamma', 'a1', 'a2', 'a3', 'a4', 'nu']
     permittivities = ['em', 'ecp', 'emed', 'ene', 'enp', 'epsl', 'eps', 'epsinf']
 
     # __lnsigma and Rk (Lin-KK test)
@@ -165,11 +168,11 @@ def check_parameters(bufdict):
                    Change your initial value.""".format(p)
             if bufdict[p].vary:
                 if bufdict[p].min < 0.0 or bufdict[p].min > 1.0:
-                    logger.info("""{} is an exponent that needs to be between
+                    logger.debug("""{} is an exponent that needs to be between
                                    0.0 and 1.0. Changed your min value to 0.""".format(p))
                     bufdict[p].set(min=0.0)
                 if bufdict[p].max > 1.0:
-                    logger.info("""{} is an exponent that needs to be between 0.0 and 1.0.
+                    logger.debug("""{} is an exponent that needs to be between 0.0 and 1.0.
                                    Changed your max value to 1.0.""".format(p))
                     bufdict[p].set(max=1.0)
             continue
@@ -185,11 +188,11 @@ def check_parameters(bufdict):
                    or equal to 1. Change the initial value.""".format(p)
             if bufdict[p].vary:
                 if bufdict[p].min < 1.0:
-                    logger.info("""The permittivity {} needs to be greater
+                    logger.debug("""The permittivity {} needs to be greater
                                    than or equal to 1. Changed the min value to 1.""".format(p))
                     bufdict[p].set(min=1.0)
                 if bufdict[p].max < 1.0:
-                    logger.info("""The permittivity {} needs to be greater than
+                    logger.debug("""The permittivity {} needs to be greater than
                                    or equal to 1. Changed the max value to inf.""".format(p))
                     bufdict[p].set(max=np.inf)
             continue
@@ -375,6 +378,7 @@ def available_models():
               'ColeCole3',
               'ColeCole2',
               'HavriliakNegami',
+              'Raicu',
               'Randles',
               'RandlesCPE',
               'RCfull',
@@ -393,6 +397,7 @@ def available_models():
               'Wo',
               'LCR',
               'LR',
+              'LRSkin',
               'Ws',
               'Cstray']
     return models
@@ -461,6 +466,8 @@ def _model_function(modelname):
         model = havriliak_negami
     elif modelname == 'HavriliakNegamiTissue':
         model = havriliak_negamitissue
+    elif modelname == "Raicu":
+        model = raicu
     elif modelname == 'ColeColeR':
         model = cole_cole_R_model
     elif modelname == 'Randles':
@@ -507,6 +514,8 @@ def _model_function(modelname):
         model = Z_loss
     elif modelname == "LR":
         model = Z_in
+    elif modelname == "LRSkin":
+        model = Z_skin
     elif modelname == "Cstray":
         model = Z_stray
     else:
@@ -661,7 +670,7 @@ def _check_circuit(circuit, startpar=False):
             _check_circuit(c)
 
 
-def get_equivalent_circuit_model(modelname, logscale=False):
+def get_equivalent_circuit_model(modelname, logscale=False, diel=False):
     """Get LMFIT CompositeModel.
 
     Parameters
@@ -701,12 +710,38 @@ def get_equivalent_circuit_model(modelname, logscale=False):
     circuit = _process_circuit(circuitstr.asList()[0])
     if logscale:
         circuit = CompositeModel(circuit, Model(dummy), log)
+    elif diel:
+        circuit = CompositeModel(circuit, Model(make_eps), eps)
+    if logscale and diel:
+        raise RuntimeError("You must chose the representation of the impedance value")
+    _check_models_suffix(circuit)
     logger.debug("Created composite model {}".format(circuit))
     return circuit
 
 
+def _check_models_suffix(circuit):
+    baseparams = []
+    for p in circuit.param_names:
+        tmp = p.split("_")
+        suf = None
+        if len(tmp) == 2:
+            suf = tmp[0]
+            par = tmp[1]
+        elif len(tmp) == 1:
+            par = tmp[0]
+        else:
+            raise RuntimeError("The parameter {} cannot be split in prefix and suffix.".format(p))
+        if par in baseparams and suf is None:
+            raise RuntimeError("The parameter {} has no prefix (its model has no suffix). This will lead to wrong parameter assignments. Change the part of the model, to which this parameter belongs (add a unique suffix).".format(p))
+        baseparams.append(par)
+
+
 def dummy(omega):
     return np.ones(omega.shape)
+
+
+def make_eps(omega, c0all):
+    return 1. / (1j * omega * c0all)
 
 
 def _model_label(model):
@@ -716,6 +751,7 @@ def _model_label(model):
               'ColeCole3': '3 Cole-Cole',
               'ColeCole2': '2 Cole-Cole',
               'HavriliakNegami': 'Havriliak-Negami',
+              'Raicu': 'Raicu',
               'Randles': 'Randles',
               'RandlesCPE': 'Randles w/ CPE',
               'RCfull': 'RC',
@@ -752,6 +788,7 @@ def _get_element(name):
                     'ColeCole4',
                     'ColeCole3',
                     'ColeCole2',
+                    'Raicu',
                     'HavriliakNegami',
                     'Randles',
                     'RandlesCPE',
@@ -1001,3 +1038,49 @@ def _get_step_width(circuit, distance):
             counter += 1
     step = distance / counter
     return step
+
+
+def _return_resistance_capacitance(omega, Z):
+    R = Z.real
+    C = -1.0 / (omega * Z.imag)
+    return R, C
+
+
+def KK_integral_transform(omega, Z):
+    """Kramers-Kronig integral transform.
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`, double
+        frequency array
+    Z: :class:`numpy.ndarray`, complex
+        impedance array
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        The transformed impedance array.
+
+    Notes
+    -----
+
+    Implementation following [Urquidi1990]_
+
+    .. [Urquidi1990] Urquidi-Macdonald, M., Real, S., & Macdonald, D. D. (1990).
+                     Applications of Kramers-Kronig transforms in the analysis of electrochemical impedance data-III. Stability and linearity.
+                     Electrochimica Acta, 35(10), 1559–1566.
+                     https://doi.org/10.1016/0013-4686(90)80010-L
+    """
+
+    ZKK = np.ndarray(omega.shape, dtype=complex)
+    for i, w in enumerate(omega):
+        x = np.append(omega[:i], omega[i + 1:])
+        real = np.append(Z.real[:i], Z.real[i + 1:])
+        imag = np.append(Z.imag[:i], Z.imag[i + 1:])
+        # real part
+        integrand = (x * imag - w * Z.imag[i]) / (x * x - w * w)
+        ZKK[i] = -2. / np.pi * simps(integrand, x=x)
+        # imag part
+        integrand = (real - Z.real[i]) / (x * x - w * w)
+        ZKK[i] += 1j * 2. * w / np.pi * simps(integrand, x=x)
+    return ZKK

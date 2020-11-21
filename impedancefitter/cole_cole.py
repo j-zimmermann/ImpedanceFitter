@@ -493,3 +493,78 @@ def havriliak_negamitissue(omega, c0, epsinf, deps, tau, a, beta, sigma):
 
     Z = 1. / (1j * omega * epsc * c0)
     return Z
+
+
+def raicu(omega, c0, epsinf, deps, tau, alpha, beta, gamma, sigma):
+    r"""Raicu relaxation.
+
+    Parameters
+    -----------
+
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for :math:`c_0`, unit capacitance in pF
+    epsinf: double
+        value for :math:`\varepsilon_\infty`
+    deps: double
+        value for :math:`\Delta\varepsilon`
+    tau: double
+        value for :math:`\tau`, in :math:`\mu`\ s
+    sigma: double
+        value for :math:`\sigma_\mathrm{dc}`
+    a: double
+        value for :math:`\alpha`
+    beta: double
+        value for :math:`\beta`
+    gamma: double
+        value for :math:`\gamma`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+
+    Notes
+    -----
+
+    Model was described in [Raicu1999]_.
+
+    .. warning::
+
+        The unit capacitance is in pF!
+        The time constant tau is in :math:`\mu`\ s!
+
+    Equations for calculations:
+
+    .. math::
+
+        \varepsilon^\ast = \varepsilon_\infty + \frac{\Delta\varepsilon}{\left[ (j \omega \tau)^\alpha + (j \omega \tau)^{1-\beta}\right])^\gamma} - \frac{j\sigma_{\mathrm{DC}}}{\omega \varepsilon_0} \enspace ,
+
+    .. math::
+
+        Z = \frac{1}{j\varepsilon^\ast \omega c_\mathrm{0}}
+
+    Note that :math:`f_c = 2 \pi / \tau`.
+    The formulation using `fc` has for example been used in [Stoneman2007]_.
+
+    References
+    ----------
+    .. [Raicu1999] Raicu, V. (1999).
+                   Dielectric dispersion of biological matter: Model combining Debye-type and “universal” responses.
+                   Physical Review E - Statistical Physics, Plasmas, Fluids, and Related Interdisciplinary Topics, 60(4), 4677–4680.
+                   https://doi.org/10.1103/PhysRevE.60.4677
+    .. [Stoneman2007] Stoneman, M. R., Kosempa, M., Gregory, W. D., Gregory, C. W., Marx, J. J., Mikkelson, W., … Raicu, V. (2007).
+                      Correction of electrode polarization contributions to the dielectric properties of normal and cancerous breast tissues at audio/radiofrequencies.
+                      Physics in Medicine and Biology, 52(22), 6589–6604.
+                      https://doi.org/10.1088/0031-9155/52/22/003
+    """
+
+    c0 *= 1e-12
+    tau *= 1e-6
+    deps *= 1e3
+    epsc = epsinf + deps / np.power(np.power(1j * omega * tau, alpha) + np.power(1j * omega * tau, 1. - beta), gamma) - 1j * sigma / (omega * e0)
+
+    Z = 1. / (1j * omega * epsc * c0)
+    return Z

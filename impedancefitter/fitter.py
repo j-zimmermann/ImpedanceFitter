@@ -26,12 +26,16 @@ import pandas as pd
 import yaml
 from copy import deepcopy
 
-from .utils import set_parameters, get_equivalent_circuit_model, get_labels
+from .utils import set_parameters, get_equivalent_circuit_model, get_labels, _return_resistance_capacitance
 from .readin import (readin_Data_from_TXT_file,
                      readin_Data_from_collection,
-                     readin_Data_from_csv_E4980AL)
-from .plotting import plot_impedance, plot_uncertainty, plot_bode
-from . import logger, log_impedancefitter
+                     readin_Data_from_csv_E4980AL,
+                     readin_Data_from_dta)
+from .plotting import plot_impedance, plot_uncertainty, plot_bode, plot_resistance_capacitance
+from . import set_logger
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Fitter(object):
@@ -144,7 +148,7 @@ class Fitter(object):
             directory = os.getcwd()
         self.directory = directory + '/'
 
-        log_impedancefitter(self.LogLevel)
+        set_logger(self.LogLevel)
 
         self.omega_dict = {}
         self.z_dict = {}
@@ -193,6 +197,7 @@ class Fitter(object):
         self.protocol = None
         self.solvername = "least_squares"
         self.log = False
+        self.eps = False
         self.solver_kwargs = {}
         self.weighting = None
         self.show = False
@@ -242,7 +247,7 @@ class Fitter(object):
 
     def visualize_data(self, savefig=False, Zlog=False,
                        allinone=False, plottype="impedance",
-                       show=True):
+                       show=True, legend=True):
         """Visualize impedance data.
 
         Parameters
@@ -258,7 +263,10 @@ class Fitter(object):
         allinone: bool, optional
             Visualize all data sets in one plot
         plottype: str, optional
-            Choose between standard impedance plot ('impedance') and bode plot ('bode').
+            Choose between standard impedance plot ('impedance'), resistance / capacitance ("RC") and bode plot ('bode').
+        legend: str, optional
+            Choose if a legend should be shown. Recommended to switch to False
+            when using large datasets.
         """
         if not savefig and not show:
             logger.warning("""visualize_data does not have any effect if you
@@ -267,7 +275,7 @@ class Fitter(object):
         totaliters = 0
         savefigtmp = savefig
         showtmp = show
-        labels = ["data", None, None]
+        labels = ["Data", None, None]
 
         for key in self.z_dict:
             zarray = self.z_dict[key]
@@ -294,10 +302,18 @@ class Fitter(object):
 
                 if plottype == "impedance":
                     plot_impedance(self.omega_dict[key], zarray[i], title=title, show=showtmp,
-                                   save=savefigtmp, Zlog=Zlog, append=append, labels=labels)
+                                   save=savefigtmp, Zlog=Zlog, append=append, labels=labels,
+                                   legend=legend)
                 elif plottype == "bode":
                     plot_bode(self.omega_dict[key], zarray[i], title=title, show=showtmp,
-                              save=savefigtmp, append=append, labels=labels)
+                              save=savefigtmp, append=append, labels=labels,
+                              legend=legend)
+                elif plottype == "RC":
+                    plot_resistance_capacitance(self.omega_dict[key], zarray[i],
+                                                title=title, show=showtmp,
+                                                save=savefigtmp, append=append, labels=labels,
+                                                legend=legend)
+
                 else:
                     raise RuntimeError("You chose an invalid plottype")
                 totaliters -= 1
@@ -326,7 +342,7 @@ class Fitter(object):
         return set_parameters(model, parameterdict=parameters,
                               emcee=emcee)
 
-    def initialize_model(self, modelname, log=False):
+    def initialize_model(self, modelname, log=False, eps=False):
         """Interface to LMFIT model class.
 
         The equivalent circuit (represented as a string)
@@ -349,12 +365,12 @@ class Fitter(object):
             The resulting LMFIT model.
         """
 
-        model = get_equivalent_circuit_model(modelname, log)
+        model = get_equivalent_circuit_model(modelname, log, eps)
         return model
 
     def run(self, modelname, solver=None, parameters=None, protocol=None,
             solver_kwargs={}, modelclass="none", log=False, weighting=None,
-            show=False, report=False, savemodelresult=True):
+            show=False, report=False, savemodelresult=True, eps=False):
         """
         Main function that iterates through all data sets provided.
 
@@ -395,6 +411,7 @@ class Fitter(object):
         self.modelname = modelname
         self.modelclass = modelclass
         self.log = log
+        self.eps = eps
         self.weighting = weighting
         self.show = show
         self.report = report
@@ -412,7 +429,7 @@ class Fitter(object):
         self.solver_kwargs = solver_kwargs
 
         # initialize model
-        self.model = self.initialize_model(self.modelname, log=self.log)
+        self.model = self.initialize_model(self.modelname, log=self.log, eps=self.eps)
         # initialize model parameters
         if parameters is not None:
             logger.debug("Using provided parameter dictionary.")
@@ -513,8 +530,8 @@ class Fitter(object):
             self.emcee_tag = False
         self.solver_kwargs = solver_kwargs
         # initialize model
-        self.model1 = self.initialize_model(model1, self.log)
-        self.model2 = self.initialize_model(model2, self.log)
+        self.model1 = self.initialize_model(model1, self.log, self.eps)
+        self.model2 = self.initialize_model(model2, self.log, self.eps)
 
         # initialize model parameters
         if parameters1 is not None:
@@ -589,6 +606,10 @@ class Fitter(object):
                                                       self.delimiter,
                                                       self.minimumFrequency,
                                                       self.maximumFrequency)
+        elif self.inputformat == 'DTA' and filename.upper().endswith(".DTA"):
+            omega, zarray = readin_Data_from_dta(filepath,
+                                                 minimumFrequency=self.minimumFrequency,
+                                                 maximumFrequency=self.maximumFrequency)
         elif self.inputformat == 'XLSX' and filename.upper().endswith(".XLSX"):
             omega, zarray = readin_Data_from_collection(filepath, 'XLSX',
                                                         minimumFrequency=self.minimumFrequency,
@@ -769,7 +790,7 @@ class Fitter(object):
             params[parameter].set(vary=False)
         return params
 
-    def _fit_data(self, model, parameters, modelclass=None, weights=None, log=True):
+    def _fit_data(self, model, parameters, modelclass=None, weights=None, log=True, eps=False):
         """Fit data to model.
 
         Wrapper for LMFIT fitting routine.
@@ -816,6 +837,8 @@ class Fitter(object):
                                               model_result)
             if log:
                 Z = np.log10(self.Z)
+            elif eps:
+                Z = 1. / (1j * self.omega * params['c0all'] * self.Z)
             else:
                 Z = self.Z
             max_nfev = None
@@ -850,6 +873,40 @@ class Fitter(object):
                     logger.debug("Solver message (ampgo): " + model_result.ampgo_msg)
         return model_result
 
+    def get_resistance_capacitance(self):
+        self.R_dict = {}
+        self.C_dict = {}
+        for key in self.omega_dict:
+            self.omega = self.omega_dict[key]
+            self.zarray = self.z_dict[key]
+            rarray = np.zeros(self.zarray.shape, dtype=np.float128)
+            carray = np.zeros(self.zarray.shape, dtype=np.float128)
+            self.iters = 1
+            # determine number of iterations if more than 1 data set is in file
+            if len(self.zarray.shape) > 1:
+                self.iters = self.zarray.shape[0]
+                logger.debug("Number of data sets:" + str(self.iters))
+            for i in range(self.iters):
+                self.Z = self.zarray[i]
+                rarray[i], carray[i] = _return_resistance_capacitance(self.omega, self.Z)
+            self.R_dict[key] = rarray
+            self.C_dict[key] = carray
+
+    def get_admittance(self):
+        self.Y_dict = {}
+        for key in self.omega_dict:
+            self.zarray = self.z_dict[key]
+            xarray = np.zeros(self.zarray.shape, dtype=np.complex128)
+            self.iters = 1
+            # determine number of iterations if more than 1 data set is in file
+            if len(self.zarray.shape) > 1:
+                self.iters = self.zarray.shape[0]
+                logger.debug("Number of data sets:" + str(self.iters))
+            for i in range(self.iters):
+                self.Z = self.zarray[i]
+                xarray[i] = (1. / self.Z)
+            self.Y_dict[key] = xarray
+
     def process_data_from_file(self, filename, model, parameters,
                                modelclass=None):
         """Fit data from input file to model.
@@ -881,9 +938,11 @@ class Fitter(object):
         if self.weighting == "proportional":
             weights = 1. / self.Z.real + 1j / self.Z.imag
         fit_output = self._fit_data(model, parameters, modelclass, log=self.log,
-                                    weights=weights)
+                                    eps=self.eps, weights=weights)
         if self.log:
             Z_fit = np.power(10, fit_output.best_fit)
+        elif self.eps:
+            Z_fit = 1. / (1j * self.omega * fit_output.best_fit * parameters['c0all'])
         else:
             Z_fit = fit_output.best_fit
         logger.debug("Fit successful")
@@ -894,7 +953,7 @@ class Fitter(object):
             if self.savefig:
                 logger.info("Going to save plot of fit result to file.")
             title = "fit_result_" + filename
-            plot_impedance(self.omega, fit_output.data, title=title, Z_fit=Z_fit,
+            plot_impedance(self.omega, self.Z, title=title, Z_fit=Z_fit,
                            show=self.show, save=self.savefig)
         return fit_output
 

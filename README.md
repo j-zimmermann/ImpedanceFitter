@@ -1,3 +1,6 @@
+[![DOI](https://zenodo.org/badge/297969672.svg)](https://zenodo.org/badge/latestdoi/297969672)
+
+
 ImpedanceFitter
 ===============
 

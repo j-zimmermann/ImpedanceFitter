@@ -33,12 +33,18 @@ def RC_model(omega, Rd, Cd):
     Cd: double
         Capacitance
 
+    Notes
+    -----
+    .. warning::
+
+        `Cd` is in pF!
+
     Returns
     -------
     :class:`numpy.ndarray`, complex
         Impedance array
     """
-    Cfit = Cd
+    Cfit = Cd * 1e-12
     Z_fit = Rd / (1. + 1j * omega * Cfit * Rd)
     return Z_fit
 

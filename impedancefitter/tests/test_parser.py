@@ -41,19 +41,19 @@ def test_parallel_series():
 
 
 def test_parallel_parallel():
-    model1 = "parallel(parallel(R_f1, C_f1), C)"
+    model1 = "parallel(parallel(R_f1, C_f1), C_f2)"
     model = get_equivalent_circuit_model(model1)
     assert isinstance(model, CompositeModel)
 
 
 def test_logscale():
-    model1 = "parallel(parallel(R_f1, C_f1), C)"
+    model1 = "parallel(parallel(R_f1, C_f1), C_f2)"
     model = get_equivalent_circuit_model(model1)
     logmodel = get_equivalent_circuit_model(model1, logscale=True)
     omega = np.logspace(0, 8)
     parameters = {'f1_R': 100.,
                   'f1_C': 1e-6,
-                  'C': 1e-6}
+                  'f2_C': 1e-6}
     Z1 = model.eval(omega=omega, **parameters)
     Z2 = logmodel.eval(omega=omega, **parameters)
     assert np.all(np.isclose(np.log10(Z1), Z2))
