@@ -221,8 +221,8 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None, diff=False,
             plt.subplot(211)
 
     plt.title("Cole-Cole plot")
-    plt.xlabel(r"Re($\varepsilon$)")
-    plt.ylabel(r"-Im($\varepsilon$)")
+    plt.xlabel(r"Re $\varepsilon$")
+    plt.ylabel(r"-Im $\varepsilon$")
     plt.plot(epsc_fit.real, -epsc_fit.imag, label=labels[0])
     if Z_comp is not None:
         plt.plot(epsc_fit2.real, -epsc_fit2.imag, label=labels[1])
@@ -493,7 +493,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     # plot real part of impedance
     plt.xscale('log')
     plt.title("Impedance real part")
-    plt.ylabel(r"Re(Z) / $\Omega$")
+    plt.ylabel(r"Re Z / $\Omega$")
     plt.xlabel('Frequency / Hz')
     plt.plot(omega / (2. * np.pi), Z.real, label=labels[0])
     if Z_fit is not None:
@@ -509,12 +509,12 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.sca(axes[1])
     plt.title("Impedance imaginary part")
     plt.xscale('log')
-    plt.ylabel(r"Im(Z) / $\Omega$")
+    plt.ylabel(r"Im Z / $\Omega$")
     plt.xlabel('Frequency / Hz')
     if Zlog:
         plt.yscale('log')
         if np.all(np.less_equal(Z.imag, 0)):
-            plt.ylabel(r"-Im(Z) / $\Omega$")
+            plt.ylabel(r"-Im Z / $\Omega$")
             plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0])
             if Z_fit is not None:
                 plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '--', label=labels[1])
@@ -529,7 +529,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
                 plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, '-.', label=labels[2])
 
         elif np.where(Z.imag < 0).size > np.where(Z.imag > 0).size:
-            plt.ylabel(r"-Im(Z) / $\Omega$")
+            plt.ylabel(r"-Im Z / $\Omega$")
             plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0])
             if Z_fit is not None:
                 plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '--', label=labels[1])
@@ -558,8 +558,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     else:
         plt.sca(axes[2])
     plt.title("Nyquist plot")
-    plt.ylabel(r"-Im(Z) / $\Omega$")
-    plt.xlabel(r"Re(Z) / $\Omega$")
+    plt.ylabel(r"-Im Z / $\Omega$")
+    plt.xlabel(r"Re Z / $\Omega$")
     if Zlog:
         plt.xscale('log')
         plt.yscale('log')
@@ -743,7 +743,7 @@ def plot_uncertainty(omega, Zdata, Z, Z1, Z2, sigma, show=True, model=None):
     plt.subplot(211)
     plt.xscale('log')
     plt.title("Impedance real part")
-    plt.ylabel(r"Re(Z) / $\Omega$")
+    plt.ylabel(r"Re Z / $\Omega$")
     plt.xlabel("Frequency / Hz")
     plt.plot(omega / (2. * np.pi), Z.real, '^', label='Best fit')
     plt.plot(omega / (2. * np.pi), Zdata.real, 'r', label='Data')
@@ -754,7 +754,7 @@ def plot_uncertainty(omega, Zdata, Z, Z1, Z2, sigma, show=True, model=None):
     plt.subplot(212)
     plt.title("Impedance imaginary part")
     plt.xscale('log')
-    plt.ylabel(r"Im(Z) / $\Omega$")
+    plt.ylabel(r"Im Z / $\Omega$")
     plt.xlabel("Frequency / Hz")
     plt.plot(omega / (2. * np.pi), Z.imag, '^', label='Best fit')
     plt.plot(omega / (2. * np.pi), Zdata.imag, 'r', label='Data')
@@ -843,7 +843,7 @@ def plot_admittance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_com
     # plot real part of admittance
     plt.xscale('log')
     plt.title("Admittance real part")
-    plt.ylabel(r"Re(Y) / S")
+    plt.ylabel(r"Re Y / S")
     plt.xlabel('Frequency / Hz')
     plt.plot(omega / (2. * np.pi), (1. / Z).real, label=labels[0])
     if Z_fit is not None:
@@ -859,12 +859,12 @@ def plot_admittance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_com
         plt.sca(axes[1])
     plt.title("Admittance imaginary part")
     plt.xscale('log')
-    plt.ylabel(r"Im(Y) / S")
+    plt.ylabel(r"Im Y / S")
     plt.xlabel('Frequency / Hz')
     if Zlog:
         plt.yscale('log')
         if np.all(np.less_equal(Z.imag, 0)):
-            plt.ylabel(r"Im(Y) / S")
+            plt.ylabel(r"Im Y / S")
             plt.plot(omega / (2. * np.pi), (1. / Z).imag, label=labels[0])
             if Z_fit is not None:
                 plt.plot(omega_fit / (2. * np.pi), (1. / Z_fit).imag, '--', label=labels[1])
@@ -879,7 +879,7 @@ def plot_admittance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_com
                 plt.plot(omega_comp / (2. * np.pi), (1. / Z_comp).imag, '-.', label=labels[2])
 
         elif np.where(Z.imag < 0).size > np.where(Z.imag > 0).size:
-            plt.ylabel(r"Im(Y) / S")
+            plt.ylabel(r"Im Y / S")
             plt.plot(omega / (2. * np.pi), (1. / Z).imag, label=labels[0])
             if Z_fit is not None:
                 plt.plot(omega_fit / (2. * np.pi), (1. / Z_fit).imag, '--', label=labels[1])
@@ -908,8 +908,8 @@ def plot_admittance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_com
     else:
         plt.sca(axes[2])
     plt.title("Nyquist plot")
-    plt.ylabel(r"Im(Y) / S")
-    plt.xlabel(r"Re(Y) / S")
+    plt.ylabel(r"Im Y / S")
+    plt.xlabel(r"Re Y / S")
     if Zlog:
         plt.xscale('log')
         plt.yscale('log')
