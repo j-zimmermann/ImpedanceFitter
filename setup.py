@@ -21,8 +21,8 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
     python_requires='>=3.6',
-    install_requires=['pyyaml==5.3.1', 'xlrd==1.2.0', 'pandas==1.0.1',
+    install_requires=['pyyaml==5.3.1', 'xlrd==1.2.0', 'pandas>=1.0.1',
                       'openturns>=1.14', 'lmfit==1.0.1', 'corner==2.0.1',
-                      'emcee==3.0.1', 'tqdm==4.42.1', 'pyparsing', 'xlsxwriter',
+                      'emcee==3.0.1', 'tqdm>=4.42.1', 'pyparsing', 'xlsxwriter',
                       'schemdraw', 'packaging'],
 )
