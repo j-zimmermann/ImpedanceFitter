@@ -48,7 +48,46 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def convert_diel_properties_to_impedance(omega, eps, sigma, c0):
+def convert_diel_properties_to_impedance(omega, eps_r, sigma, c0):
+    r"""Return impedance from dielectric properties.
+
+    Parameters
+    ----------
+
+    omega: :class:`numpy.ndarray`, double
+        frequency array
+    eps_r: :class:`numpy.ndarray`, double
+        relative permittivity
+    sigma: :class:`numpy.ndarray`, double
+        conductivity in S/m
+    c0: double
+        unit capacitance of device
+
+    Returns
+    -------
+
+    :class:`numpy.ndarray`, complex
+        impedance array
+
+    Notes
+    -----
+
+    Use that the impedance is
+
+    .. math::
+
+        Z = (j \omega \varepsilon_\mathrm{r}^\ast c_0)^{-1} ,
+
+    where :math:`\varepsilon_\mathrm{r}^\ast` is the relative complex permittivity (see for instance [Grant1958]_
+    for further explanation). Note that the vacuum permittivity :math:`\varepsilon_0` is contained in :math:`c_0`.
+
+    In the function, the variable `epsc` describes the term
+
+    .. math::
+
+        \omega \varepsilon_\mathrm{r}^\ast
+
+    """
     epsc = omega * eps - 1j * sigma / e0
     return 1. / (1j * epsc * c0)
 
@@ -64,17 +103,17 @@ def return_diel_properties(omega, Z, c0):
 
     .. math::
 
-        Z = (j \omega \varepsilon^\ast c_0)^{-1} ,
+        Z = (j \omega \varepsilon_\mathrm{r}^\ast c_0)^{-1} ,
 
-    where :math:`\varepsilon^\ast` is the complex permittivity (see for instance [Grant1958]_
-    for further explanation).
+    where :math:`\varepsilon_\mathrm{r}^\ast` is the relative complex permittivity (see for instance [Grant1958]_
+    for further explanation). Note that the vacuum permittivity :math:`\varepsilon_0` is contained in :math:`c_0`.
 
     When the unit capacitance :math:`c_0` of the device is known, a direct mapping from impedance to
     relative complex permittivity is possible:
 
     .. math ::
 
-        \varepsilon_\mathrm{r}^\ast = (j \omega Z c_0)^{-1} = \frac{\varepsilon^\ast}{\varepsilon_0}
+        \varepsilon_\mathrm{r}^\ast = (j \omega Z c_0)^{-1} = \frac{\varepsilon_\mathrm{r}^\ast}{\varepsilon_0}
 
     The unit capacitance (or air capacitance) of the device is defined as
 
