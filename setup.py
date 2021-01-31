@@ -24,5 +24,7 @@ setuptools.setup(
     install_requires=['pyyaml==5.3.1', 'xlrd==1.2.0', 'pandas>=1.0.1',
                       'openturns>=1.14', 'lmfit==1.0.1', 'corner==2.0.1',
                       'emcee==3.0.1', 'tqdm>=4.42.1', 'pyparsing', 'xlsxwriter',
-                      'schemdraw', 'packaging'],
+                      'schemdraw==0.6.0; python_version < "3.7.0"',
+                      'schemdraw==0.8; python_version >= "3.7.0"',
+                      'packaging'],
 )

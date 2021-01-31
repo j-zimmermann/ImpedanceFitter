@@ -7,6 +7,7 @@ corner==2.0.1
 emcee==3.0.1
 tqdm==4.42.1
 pyparsing
+schemdraw==0.6.0; python_version < "3.7.0"
+schemdraw==0.8; python_version >= "3.7.0"
 xlsxwriter
-schemdraw
 packaging
