@@ -412,7 +412,14 @@ class Fitter(object):
         self.modelclass = modelclass
         self.log = log
         self.eps = eps
-        self.weighting = weighting
+        if weighting is not None:
+            if isinstance(weighting, str) and weighting in ["proportional, modulus"]:
+                self.weighting = weighting
+            else:
+                raise RuntimeError("""The variable `weighting` must be a string and refer to an available weighting scheme.
+                                  Use either `proportional` or `modulus`.""")
+        else:
+            self.weighting = weighting
         self.show = show
         self.report = report
 
@@ -853,7 +860,7 @@ class Fitter(object):
                                      weights=weights,
                                      max_nfev=max_nfev)
 
-            if self.weighting == "proportional":
+            if self.weighting in ["proportional", "modulus"]:
                 _calculate_statistics(model_result)
             if not self.report:
                 logger.debug(model_result.fit_report())
@@ -937,6 +944,8 @@ class Fitter(object):
         weights = None
         if self.weighting == "proportional":
             weights = 1. / self.Z.real + 1j / self.Z.imag
+        elif self.weighting == "modulus":
+            weights = 1. / np.abs(self.Z) + 1j / np.abs(self.Z)
         fit_output = self._fit_data(model, parameters, modelclass, log=self.log,
                                     eps=self.eps, weights=weights)
         if self.log:
