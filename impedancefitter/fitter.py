@@ -108,7 +108,7 @@ class Fitter(object):
         Lines between traces blocks in a TXT file.
         Default is None (then skiprows_trace does not have any effect).
     delimiter: str, optional
-        Only for TXT files. If the TXT file is not tab-separated, this
+        Only for TXT and CSV files. If the TXT/CSV file is not tab-separated, this
         can be specified here.
 
     Attributes
@@ -192,7 +192,10 @@ class Fitter(object):
         self.write_output = False
         self.fileList = None
         self.savefig = False
-        self.delimiter = "\t"
+        if self.inputformat == "TXT":
+            self.delimiter = "\t"
+        elif self.inputformat == "CSV":
+            self.delimiter = None
         self.emcee_tag = False
         self.protocol = None
         self.solvername = "least_squares"
@@ -623,6 +626,7 @@ class Fitter(object):
                                                         maximumFrequency=self.maximumFrequency)
         elif self.inputformat == 'CSV' and filename.upper().endswith(".CSV"):
             omega, zarray = readin_Data_from_collection(filepath, 'CSV',
+                                                        delimiter=self.delimiter,
                                                         minimumFrequency=self.minimumFrequency,
                                                         maximumFrequency=self.maximumFrequency)
         elif self.inputformat == 'CSV_E4980AL' and filename.endswith(".csv"):

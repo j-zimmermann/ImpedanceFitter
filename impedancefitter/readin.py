@@ -23,7 +23,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def readin_Data_from_collection(filepath, fileformat, minimumFrequency=None, maximumFrequency=None):
+def readin_Data_from_collection(filepath, fileformat, delimiter=None,
+                                minimumFrequency=None, maximumFrequency=None):
     """read in data collection from Excel or CSV file.
 
     The file is structured like:
@@ -54,9 +55,11 @@ def readin_Data_from_collection(filepath, fileformat, minimumFrequency=None, max
     """
     logger.info('going to process file: ' + filepath)
     if fileformat == 'XLSX':
+        if delimiter is not None:
+            logger.warning("You provided a delimiter for an XLSX file but it has no effect.")
         EIS = pd.read_excel(filepath)
     elif fileformat == 'CSV':
-        EIS = pd.read_csv(filepath)
+        EIS = pd.read_csv(filepath, delimiter=delimiter)
     else:
         raise NotImplementedError("File type not known")
 

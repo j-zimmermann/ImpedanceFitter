@@ -29,6 +29,13 @@ def test_csv():
     assert np.all(np.isclose(omega_read, omega)) and np.all(np.isclose(Z_array_read[0], Z))
 
 
+def test_csv_delimiter():
+    data.to_csv('test.csv', sep="\t", index=False)
+    omega_read, Z_array_read = readin_Data_from_collection('test.csv', 'CSV', delimiter="\t")
+    os.remove("test.csv")
+    assert np.all(np.isclose(omega_read, omega)) and np.all(np.isclose(Z_array_read[0], Z))
+
+
 def test_txt():
     data.to_csv('test.txt', index=False, sep='\t')
     omega_read, Z_array_read = readin_Data_from_TXT_file('test.txt', 1)
