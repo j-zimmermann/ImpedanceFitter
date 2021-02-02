@@ -416,7 +416,7 @@ class Fitter(object):
         self.log = log
         self.eps = eps
         if weighting is not None:
-            if isinstance(weighting, str) and weighting in ["proportional, modulus"]:
+            if isinstance(weighting, str) and weighting in ["proportional", "modulus"]:
                 self.weighting = weighting
             else:
                 raise RuntimeError("""The variable `weighting` must be a string and refer to an available weighting scheme.
