@@ -528,7 +528,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
             if Z_comp is not None:
                 plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, '-.', label=labels[2])
 
-        elif np.where(Z.imag < 0).size > np.where(Z.imag > 0).size:
+        elif np.where(Z.imag < 0)[0].size > np.where(Z.imag > 0)[0].size:
             plt.ylabel(r"-Im Z / $\Omega$")
             plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0])
             if Z_fit is not None:
