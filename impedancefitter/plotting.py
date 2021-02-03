@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import corner
 
-from .utils import return_diel_properties, get_labels, _return_resistance_capacitance
+from .utils import return_diel_properties, get_labels, _return_resistance_capacitance, return_dielectric_modulus
 from scipy.constants import epsilon_0 as e0
 
 import logging
@@ -89,6 +89,73 @@ def plot_complex_permittivity(omega, Z, c0, Z_comp=None,
     plt.tight_layout()
     if save:
         plt.savefig(str(title).replace(" ", "_") + "_complex_permittivity.pdf")
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_dielectric_modulus(omega, Z, c0, Z_comp=None,
+                            title="", show=True, save=False,
+                            logscale=None, labels=None):
+    '''
+    Parameters
+    ----------
+
+    omega: :class:`numpy.ndarray`, double
+        frequency array
+    Z: :class:`numpy.ndarray`, complex
+        impedance array
+    c0: double
+        unit capacitance of device
+    Z_comp: :class:`numpy.ndarray`, complex, optional
+        complex-valued impedance array. Might be used to compare the properties of two data sets.
+    title: str, optional
+        title of plot. Default is an empty string.
+    show: bool, optional
+        show figure (default is True)
+    save: bool, optional
+        save figure to pdf (default is False). Name of figure starts with `title`
+        and ends with `_dielectric_properties.pdf`.
+    logscale: str, optional
+        Decide what you want to plot using log scale.
+        Possible are `ReM`, `ImM` and `both`
+    labels: list, optional
+        Give custom labels. Needs to be a list of length 2.
+    '''
+    ReM, ImM = return_dielectric_modulus(omega, Z, c0)
+    if labels is None:
+        labels = [r'$Z_1$', r'$Z_2$']
+    assert len(labels) == 2, "You need to provide lables as a list containing 2 strings!"
+    if Z_comp is not None:
+        ReM2, ImM2 = return_dielectric_modulus(omega, Z_comp, c0)
+    plt.figure()
+    plt.suptitle('Real part', y=1.05)
+    plt.subplot(211)
+    plt.ylabel("Re M")
+    plt.xlabel('Frequency / Hz')
+    if logscale == 'ReM' or logscale == 'both':
+        plt.yscale('log')
+    plt.xscale('log')
+    plt.plot(omega / (2. * np.pi), ReM, label=labels[0])
+    if Z_comp is not None:
+        plt.plot(omega / (2. * np.pi), ReM2, label=labels[1])
+        plt.legend()
+
+    plt.subplot(212)
+    plt.title("Imaginary part")
+    plt.ylabel("Im M")
+    plt.xlabel('Frequency / Hz')
+    if logscale == 'ImM' or logscale == 'both':
+        plt.yscale('log')
+    plt.xscale('log')
+    plt.plot(omega / (2. * np.pi), ImM, label=labels[0])
+    if Z_comp is not None:
+        plt.plot(omega / (2. * np.pi), ImM2, label=labels[1])
+        plt.legend()
+    plt.tight_layout()
+    if save:
+        plt.savefig(str(title).replace(" ", "_") + "_dielectric_modulus.pdf")
     if show:
         plt.show()
     else:

@@ -158,6 +158,47 @@ def return_diel_properties(omega, Z, c0):
     return eps_r, conductivity
 
 
+def return_dielectric_modulus(omega, Z, c0):
+    r"""Return dielectric modulus 
+
+    Notes
+    -----
+
+    The dielectric modulus is  :math:`M = 1 / \varepsilon_\mathrm{r}^\ast`.
+    See _[Bordi2001] for further explanation.
+
+    Parameters
+    ----------
+
+    omega: :class:`numpy.ndarray`, double
+        frequency array
+    Z: :class:`numpy.ndarray`, complex
+        impedance array
+    c0: double
+        unit capacitance of device
+
+    Returns
+    -------
+
+    ReM: :class:`numpy.ndarray`, double
+        real part of modulus
+    ImM: :class:`numpy.ndarray`, double
+        imaginary part of modulus
+
+    References
+    ----------
+
+    .. [Bordi2001] Bordi, F., & Cametti, C. (2001). Occurrence of an intermediate relaxation process in water-in-oil microemulsions below percolation: The electrical modulus formalism.
+                   Journal of Colloid and Interface Science, 237(2), 224–229. 
+                   https://doi.org/10.1006/jcis.2001.7456
+    """
+    epsc = 1. / (1j * omega * Z * c0)
+    M = 1. / epsc
+    ReM = M.real
+    ImM = M.imag
+    return ReM, ImM
+
+
 def check_parameters(bufdict):
     """Check parameters for physical correctness.
 
