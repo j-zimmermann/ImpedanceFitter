@@ -1278,7 +1278,8 @@ class Fitter(object):
                           radius=1e-4, weighted=False,
                           burn=500,
                           steps=10e3,
-                          thin=10):
+                          thin=10,
+                          fix_parameters=[]):
         """Prepare initial configuration based on previous least squares run.
 
 
@@ -1303,6 +1304,8 @@ class Fitter(object):
             Take only every `thin`-th step into account.
         weighted: bool
             If `False`, `lnsigma` will be used.
+        fix_parameters: list
+            Tell emcee to fix certain parameters to their least squares result.
 
         Notes
         -----
@@ -1326,12 +1329,16 @@ class Fitter(object):
             parameters_dict[l]['value'] = leastsquaresresult.params[l].value
             parameters_dict[l]['min'] = -np.inf
             parameters_dict[l]['max'] = np.inf
-            parameters_dict[l]['vary'] = leastsquaresresult.params[l].vary
+            if l in fix_parameters:
+                parameters_dict[l]['vary'] = False
+            else:
+                parameters_dict[l]['vary'] = leastsquaresresult.params[l].vary
 
         # get parameters in right order
         parameters = []
         for p in leastsquaresresult.var_names:
-            parameters.append(p)
+            if parameters_dict[p]["vary"] is True:
+                parameters.append(p)
 
         # for__lnsigma if lnsigma has not been fitted yet
         if '__lnsigma' not in parameters:

@@ -21,6 +21,7 @@ import numpy as np
 import yaml
 import pyparsing as pp
 import re
+import pandas as pd
 # to make it compatible with Python >= 3.7
 try:
     import SchemDraw as schemdraw
@@ -159,13 +160,13 @@ def return_diel_properties(omega, Z, c0):
 
 
 def return_dielectric_modulus(omega, Z, c0):
-    r"""Return dielectric modulus 
+    r"""Return dielectric modulus
 
     Notes
     -----
 
     The dielectric modulus is  :math:`M = 1 / \varepsilon_\mathrm{r}^\ast`.
-    See _[Bordi2001] for further explanation.
+    See [Bordi2001]_ for further explanation.
 
     Parameters
     ----------
@@ -189,7 +190,7 @@ def return_dielectric_modulus(omega, Z, c0):
     ----------
 
     .. [Bordi2001] Bordi, F., & Cametti, C. (2001). Occurrence of an intermediate relaxation process in water-in-oil microemulsions below percolation: The electrical modulus formalism.
-                   Journal of Colloid and Interface Science, 237(2), 224–229. 
+                   Journal of Colloid and Interface Science, 237(2), 224–229.
                    https://doi.org/10.1006/jcis.2001.7456
     """
     epsc = 1. / (1j * omega * Z * c0)
@@ -1168,3 +1169,28 @@ def KK_integral_transform(omega, Z):
         integrand = (real - Z.real[i]) / (x * x - w * w)
         ZKK[i] += 1j * 2. * w / np.pi * simps(integrand, x=x)
     return ZKK
+
+
+def save_impedance(omega, impedance, format="CSV", filename="impedance"):
+    """Save impedance to CSV or XLSX file.
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`, double
+        frequency array
+    impedance: :class:`numpy.ndarray`, complex
+        impedance array
+    format: str
+        use either CSV or XLSX format. Based on the format, the correct ending is chosen.
+    filename: str
+        specify a filename (without ending!). the default is impedance.csv or impedance.xlsx
+    """
+    assert isinstance(filename, str), "You need to provide a str as filename!"
+    outdict = {"freq": omega / (2. * np.pi), 'real': impedance.real, 'imag': impedance.imag}
+    df = pd.DataFrame(outdict)
+    if format == "CSV":
+        df.to_csv(filename + ".csv", index=False)
+    elif format == "XLSX":
+        df.to_excel(filename + ".xlsx", index=False)
+    else:
+        raise(RuntimeError("You provided a wrong format. Use either CSV or XLSX."))

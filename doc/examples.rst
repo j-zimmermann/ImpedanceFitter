@@ -1,3 +1,5 @@
+.. _examples:
+
 Examples
 --------
 
@@ -11,3 +13,4 @@ These are a few examples of how ImpedanceFitter could be used.
    examples/fitting
    examples/solver
    examples/statistics
+   examples/fileformats

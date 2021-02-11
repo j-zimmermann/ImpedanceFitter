@@ -218,7 +218,7 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.plot(omega / (2. * np.pi), eps_r, label=labels[0], marker=markers[0], **plotkwargs)
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), eps_r2, label=labels[1], marker=markers[1], **plotkwargs)
-    if Z_comp is None and append is True:
+    if Z_comp is not None or append is True:
         plt.legend()
 
     if len(axes) < 2:
@@ -235,7 +235,7 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.plot(omega / (2. * np.pi), cond_fit, label=labels[0], marker=markers[0], **plotkwargs)
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), cond_fit2, label=labels[1], marker=markers[1], **plotkwargs)
-    if Z_comp is None and append is True:
+    if Z_comp is not None or append is True:
         plt.legend()
     plt.tight_layout()
     if save and not append:
