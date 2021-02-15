@@ -1451,7 +1451,7 @@ class Fitter(object):
                 if show or self.savefig:
                     Z_fit = self._get_linkk_impedance(results[key + str(i)])
                     plot_impedance(self.omega, self.Z, title=titlebegin + str(key) + str(i),
-                                   Z_fit=Z_fit, residual="absolute", limits_residual=limits_residual,
+                                   Z_fit=Z_fit, residual="absolute", limits_residual=limits,
                                    show=show, save=self.savefig, sign=True)
 
         return results, mus, residuals
