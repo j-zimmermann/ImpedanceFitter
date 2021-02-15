@@ -374,7 +374,7 @@ class Fitter(object):
     def run(self, modelname, solver=None, parameters=None, protocol=None,
             solver_kwargs={}, modelclass="none", log=False, weighting=None,
             show=False, report=False, savemodelresult=True, eps=False,
-            residual="parts"):
+            residual="parts", limits_residual=None):
         """
         Main function that iterates through all data sets provided.
 
@@ -413,7 +413,8 @@ class Fitter(object):
             Plot relative difference w.r.t. real and imaginary part if `parts`.
             Plot relative difference w.r.t. absolute value if `absolute`.
             Plot difference (residual) if `diff`.
-
+        limits_residual: list, optional
+            List with entries `[bottom, top]` for y-axis of residual plot.
 
         """
 
@@ -474,7 +475,8 @@ class Fitter(object):
                                                                 self.model,
                                                                 self.model_parameters,
                                                                 self.modelclass,
-                                                                residual)
+                                                                residual,
+                                                                limits_residual)
                 self._process_fitting_results(key + '_' + str(i))
         if self.write_output is True and hasattr(self, "fit_data"):
             outfile = open('outfile.yaml', 'W')
@@ -926,7 +928,7 @@ class Fitter(object):
             self.Y_dict[key] = xarray
 
     def process_data_from_file(self, filename, model, parameters,
-                               modelclass=None, residual="parts"):
+                               modelclass=None, residual="parts", limits_residual=None):
         """Fit data from input file to model.
 
         Wrapper for LMFIT fitting routine.
@@ -943,10 +945,12 @@ class Fitter(object):
             The model parameters to be used.
         modelclass: str, optional
             For an iterative scheme, the modelclass is passed to this function.
-       residual: str
+        residual: str
             Plot relative difference w.r.t. real and imaginary part if `parts`.
             Plot relative difference w.r.t. absolute value if `absolute`.
             Plot difference (residual) if `diff`.
+        limits_residual: list, optional
+            List with entries `[bottom, top]` for y-axis of residual plot.
 
 
         Returns
@@ -979,7 +983,8 @@ class Fitter(object):
                 logger.info("Going to save plot of fit result to file.")
             title = "fit_result_" + filename
             plot_impedance(self.omega, self.Z, title=title, Z_fit=Z_fit,
-                           show=self.show, save=self.savefig, residual=residual)
+                           show=self.show, save=self.savefig, residual=residual,
+                           limits_residual=limits_residual)
         return fit_output
 
     def plot_initial_best_fit(self, sequential=False):
@@ -1446,7 +1451,7 @@ class Fitter(object):
                 if show or self.savefig:
                     Z_fit = self._get_linkk_impedance(results[key + str(i)])
                     plot_impedance(self.omega, self.Z, title=titlebegin + str(key) + str(i),
-                                   Z_fit=Z_fit, residual="absolute", limits_residual=limits,
+                                   Z_fit=Z_fit, residual="absolute", limits_residual=limits_residual,
                                    show=show, save=self.savefig, sign=True)
 
         return results, mus, residuals
