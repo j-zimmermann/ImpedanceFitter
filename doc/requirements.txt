@@ -1,7 +1,7 @@
 sphinx==3.0.3
 jupyter_sphinx
 sphinx-rtd-theme
-pyyaml==5.3.1
+pyyaml==5.4
 xlrd==1.2.0
 pandas==1.0.1
 openturns==1.14
