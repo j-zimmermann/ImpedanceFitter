@@ -28,7 +28,7 @@ try:
     import SchemDraw.elements as elm
 except ImportError:
     import schemdraw
-    import schemdraw.elements as elm
+    import schemdraw.elements.legacy as elm
 
 from scipy.integrate import simps
 from collections import Counter
@@ -209,6 +209,11 @@ def check_parameters(bufdict):
     bufdict: dict
         Contains all parameters and their values
 
+    Notes
+    -----
+
+    All parameters are forced to be greater or equal zero.
+    There are only two exceptions.
     """
 
     # capacitances in pF
@@ -340,7 +345,6 @@ def set_parameters(model, parameterdict=None, emcee=False):
         parameters.add("__lnsigma", value=np.log(0.1), min=np.log(0.001), max=np.log(2.0))
     elif emcee and "__lnsigma" in parameterdict:
         parameters.add("__lnsigma", **parameterdict["__lnsigma"])
-
     return parameters
 
 
@@ -748,6 +752,14 @@ def _check_circuit(circuit, startpar=False):
             else:
                 raise RuntimeError("You must have entered a wrong circuit!")
         elif isinstance(c, list):
+            # we only have a list if there is any parallel circuit in the circuit
+            if circuit.count(",") != 1:
+                # if we start with a parallel element, the first entry in the list must contain a comma
+                if startpar and circuit[0].count(",") != 1:
+                    raise RuntimeError("You must have entered a wrong circuit! There is a comma missing.")
+                # otherwise there must be one comma somewhere in the circuit
+                if c.count(",") != 1:
+                    raise RuntimeError("You must have entered a wrong circuit! There is a comma missing.")
             _check_circuit(c)
 
 
@@ -760,6 +772,8 @@ def get_equivalent_circuit_model(modelname, logscale=False, diel=False):
         String representation of the equivalent circuit.
     logscale: bool
         Convert to logscale.
+    diel: bool
+        Convert to complex permittivity and fit this instead of impedance.
 
     Returns
     -------

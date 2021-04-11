@@ -25,7 +25,7 @@ def log(Z1, dummy):
     Parameters
     ----------
     Z1: :class:`numpy.ndarray`, complex
-        Impedance 1
+        Impedance 1 (model fit)
     dummy : :class:`numpy.ndarray`, complex
         Array full of ones, such that np.log10(dummy) is zero.
     """
@@ -35,6 +35,16 @@ def log(Z1, dummy):
 
 
 def eps(Z1, make_eps):
+    """Return complex permittivity for LMFIT 
+
+    Parameters
+    ----------
+    Z1: :class:`numpy.ndarray`, complex
+        Impedance 1 (model fit)
+    make_eps : :class:`numpy.ndarray`, complex
+        Output of function :func:`impedancefitter.utils.make_eps`
+    """
+
     return make_eps / Z1
 
 
