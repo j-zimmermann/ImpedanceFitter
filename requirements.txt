@@ -4,6 +4,7 @@ openpyxl==3.0.7
 pandas>=1.0.1
 openturns>=1.14
 lmfit==1.0.2
+numdifftools==0.9.39
 corner==2.0.1
 emcee==3.0.1
 tqdm>=4.42.1
