@@ -63,6 +63,8 @@ def parallel(Z1, Z2):
     :class:`numpy.ndarray`, complex
         Impedance array
     """
+    # to catch infs?
+    # return 1. / ((1. / Z1) + (1. / Z2))
     return (Z1 * Z2) / (Z1 + Z2)
 
 
@@ -127,7 +129,10 @@ def Z_CPE(omega, k, alpha):
         Impedance array
 
     """
-    return k * np.power(1j * omega, -alpha)
+    Z = k * np.power(1j * omega, -alpha)
+    # catch DC case?
+    # Z[np.isnan(Z)] = np.inf
+    return Z
 
 
 def Z_C(omega, C):
@@ -144,7 +149,10 @@ def Z_C(omega, C):
     :class:`numpy.ndarray`, complex
         Impedance array
     """
-    return 1. / (1j * omega * C)
+    Z = 1. / (1j * omega * C)
+    # catch DC case?
+    # Z[np.isnan(Z)] = np.inf
+    return Z
 
 
 def Z_w(omega, Aw):

@@ -296,7 +296,7 @@ def check_parameters(bufdict):
     return bufdict
 
 
-def set_parameters(model, parameterdict=None, emcee=False):
+def set_parameters(model, parameterdict=None, emcee=False, weighting_model=False):
     """
     Parameters
     -----------
@@ -308,6 +308,8 @@ def set_parameters(model, parameterdict=None, emcee=False):
         If it is None (default), the parameters are read in from a yaml-file.
     emcee: bool, optional
         if emcee is used, an additional `__lnsigma` parameter will be set
+    weighting_model: bool, optional
+        if a weighting model is used, the variance will be fit as well
 
 
     Returns
@@ -345,6 +347,24 @@ def set_parameters(model, parameterdict=None, emcee=False):
         parameters.add("__lnsigma", value=np.log(0.1), min=np.log(0.001), max=np.log(2.0))
     elif emcee and "__lnsigma" in parameterdict:
         parameters.add("__lnsigma", **parameterdict["__lnsigma"])
+
+    if weighting_model:
+        if not "stdA" in parameterdict and "stdPhi" not in parameterdict:
+            raise RuntimeError("You need to provide the variables stdA and stdPhi if you want to use a weighting model.")
+        for var in ["stdA", "stdPhi"]:
+            if "min" in parameterdict[var]:
+                if parameterdict[var]["min"] < 0:
+                    logger.warning("You set the minimum value of parameter {} to a negative value. That does not work and the value is set to 0.".format(var))
+                    parameterdict[var]["min"] = 0
+            else:
+                parameterdict[var]["min"] = 0
+            if "max" in parameterdict[var]:
+                if parameterdict[var]["max"] < 0:
+                    logger.warning("You set the maximum value of parameter {} to a negative value. That does not work and the value is set to inf.".format(var))
+                parameterdict[var]["max"] = np.inf
+            else:
+                parameterdict[var]["min"] = 0
+            parameters.add(var, **parameterdict[var])
     return parameters
 
 
