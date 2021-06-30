@@ -35,7 +35,7 @@ def log(Z1, dummy):
 
 
 def eps(Z1, make_eps):
-    """Return complex permittivity for LMFIT 
+    """Return complex permittivity for LMFIT
 
     Parameters
     ----------

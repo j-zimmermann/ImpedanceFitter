@@ -745,31 +745,30 @@ class Fitter(object):
             model_result = lmfit.minimize(weighting_residual, params, method=self.solvername, args=(self.omega,), kws={'Zdata': Z, 'model': model})
             best_values = deepcopy(model_result.params.valuesdict())
             setattr(model_result, "best_values", best_values)
-        else: 
-            # this is also k=1 in reweighting
+        else:
+            # this is also k=0 in reweighting
             model_result = model.fit(Z, params, omega=self.omega,
                                      method=self.solvername,
                                      fit_kws=tmp_dict,
                                      weights=weights,
                                      max_nfev=max_nfev)
             if self.weighting == "reweighting":
-                #raise NotImplementedError("Not yet implemented")
+                # raise NotImplementedError("Not yet implemented")
                 tol = 1e-7
                 tolA = 1
                 tolPhi = 1
                 tolZ = 1
                 varA_old = 0
-                varPhi_old = 0 
+                varPhi_old = 0
                 kmax = 50000
                 k = 0
                 while (np.greater_equal(tolA, tol) or np.greater_equal(tolZ, tol) or np.greater_equal(tolPhi, tol)) and k < kmax:
                     if k == 0:
                         Zfit = model_result.best_fit
-                        fitparamsold = np.fromiter(model_result.params.values(), dtype=float)
-                        varA_old, varPhi_old = variance_estimate(Z, Zfit)
-                    else:
-                        varA_old, varPhi_old = varA, varPhi
-                        fitparamsold = fitparams
+                        varA, varPhi = variance_estimate(Z, Zfit)
+                        fitparams = np.fromiter(model_result.params.values(), dtype=float)
+                    varA_old, varPhi_old = varA, varPhi
+                    fitparamsold = fitparams
                     weights = 1 / (np.abs(Z)**2 * varA_old) + 1j / (np.abs(Z)**2 * (varA_old + varPhi_old) * np.angle(Z)**2)
                     model_result = model.fit(Z, params, omega=self.omega,
                                              method=self.solvername,
@@ -780,10 +779,8 @@ class Fitter(object):
                     params = model_result.params
                     fitparams = np.fromiter(model_result.params.values(), dtype=float)
                     varA, varPhi = variance_estimate(Z, Zfit)
-                    tolA = np.abs(varA_old - varA) / varA 
-                    tolPhi = np.abs(varPhi_old - varPhi) / varPhi 
-                    #print(fitparamsold, type(fitparamsold))
-                    #print(fitparams, type(fitparams))
+                    tolA = np.abs(varA_old - varA) / varA
+                    tolPhi = np.abs(varPhi_old - varPhi) / varPhi
                     diff = (fitparamsold - fitparams)
                     tolZ = np.sqrt(diff.dot(diff)) / np.sqrt(fitparams.dot(fitparams))
                     print(tolA, tolPhi, tolZ)

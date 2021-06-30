@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.stats import norm
 
 
 def weighting_residual(params, omega, Zdata=None, model=None):
@@ -10,12 +9,12 @@ def weighting_residual(params, omega, Zdata=None, model=None):
 
     params: dict
         Dictionary with parameters.
-        Contains the entries for `stdA` and `stdPhi`, which are 
+        Contains the entries for `stdA` and `stdPhi`, which are
         the standard deviations of the impedance magnitude and phase.
         They should be given in percent.
     omega: :class:`numpy.ndarray`, double
         frequency array
-    Zdata: :class:`numpy.ndarray`, complex 
+    Zdata: :class:`numpy.ndarray`, complex
         impedance data
     model: :py:class:`lmfit.model.CompositeModel` or :class:`lmfit.model.Model`
         impedance model
@@ -29,7 +28,6 @@ def weighting_residual(params, omega, Zdata=None, model=None):
     [Ciucci2013] Ciucci, F. (2013).
                  Revisiting parameter identification in electrochemical impedance spectroscopy: Weighted least squares and optimal experimental design.
                  Electrochimica Acta, 87, 532–545. https://doi.org/10.1016/j.electacta.2012.09.073
-   
     """
 
     # convert from percent
@@ -38,7 +36,7 @@ def weighting_residual(params, omega, Zdata=None, model=None):
     assert omega.size == Zdata.size, "Frequency and impedance array must have same length"
     # standard deviation of real and imaginary part
     stdR = np.abs(Zdata) * stdA
-    stdI = np.abs(Zdata) * (stdA +  stdPhi) * np.angle(Zdata)
+    stdI = np.abs(Zdata) * (stdA + stdPhi) * np.angle(Zdata)
     weights = 1. / stdR**2 + 1j / stdI**2
     Z1 = model.eval(omega=omega, **params)
     diff = Z1 - Zdata
@@ -56,11 +54,11 @@ def variance_estimate(Zdata, Zmodel, n=2):
     Parameters
     ----------
 
-    Zdata: :class:`numpy.ndarray`, complex 
+    Zdata: :class:`numpy.ndarray`, complex
         impedance data
 
-    Zmodel: :class:`numpy.ndarray`, complex 
-        impedance model 
+    Zmodel: :class:`numpy.ndarray`, complex
+        impedance model
 
     n: int
         number between 0 and 2.

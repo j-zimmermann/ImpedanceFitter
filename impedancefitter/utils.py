@@ -349,7 +349,7 @@ def set_parameters(model, parameterdict=None, emcee=False, weighting_model=False
         parameters.add("__lnsigma", **parameterdict["__lnsigma"])
 
     if weighting_model:
-        if not "stdA" in parameterdict and "stdPhi" not in parameterdict:
+        if "stdA" not in parameterdict and "stdPhi" not in parameterdict:
             raise RuntimeError("You need to provide the variables stdA and stdPhi if you want to use a weighting model.")
         for var in ["stdA", "stdPhi"]:
             if "min" in parameterdict[var]:
