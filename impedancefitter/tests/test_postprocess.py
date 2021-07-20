@@ -56,6 +56,11 @@ def test_kolmogorov(postprocessRC):
     assert isinstance(model, Distribution) and isinstance(best_res, TestResult)
 
 
+def test_lilliefors(postprocessRC):
+    model, best_res = postprocessRC.best_model_lilliefors('R', ['Normal', 'Beta', 'Gamma'])
+    assert isinstance(model, Distribution) and isinstance(best_res, TestResult)
+
+
 def test_fit_normal(postprocessRC):
     model = postprocessRC.fit_to_normal_distribution('R')
     assert isinstance(model, Distribution)

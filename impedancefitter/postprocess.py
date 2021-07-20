@@ -210,7 +210,7 @@ class PostProcess(object):
         sample = self.sampledict[parameter]
         tested_distributions = []
         for dist in distributions:
-            tested_distributions.append(eval("ot." + dist + "Factory()"))
+            tested_distributions.append(eval("ot." + dist + "()"))
         best_model, best_result = ot.FittingTest.BestModelKolmogorov(sample, tested_distributions)
         logger.debug("Best model:")
         logger.debug(best_model)
@@ -287,6 +287,43 @@ class PostProcess(object):
         for dist in distributions:
             tested_distributions.append(eval("ot." + dist + "Factory()"))
         best_model, best_result = ot.FittingTest.BestModelChiSquared(sample, tested_distributions)
+        logger.debug("Best model:")
+        logger.debug(best_model)
+        logger.debug("P-value:")
+        logger.debug(best_result.getPValue())
+        if showQQ:
+            logger.debug("QQ Plot for best model:")
+            QQ_plot = ot.VisualTest.DrawQQplot(sample, best_model)
+            View(QQ_plot).show()
+        return best_model, best_result
+
+    def best_model_lilliefors(self, parameter, distributions, showQQ=False):
+        """Test, which distribution models your data best based on the Lilliefors test.
+
+        Parameters
+        ----------
+
+        parameter: string
+            Parameter, whose distribution is to be found.
+        distributions: list
+            List with strings describing valid OpenTURNS distributions
+            such as `['Normal', 'Uniform']`
+
+        Returns
+        -------
+            :class:`openturns.Distribution`
+            :class:`openturns.TestResult`
+
+        See Also
+        --------
+        :func:`openturns.FittingTest_BestModelLilliefors`
+
+        """
+        sample = self.sampledict[parameter]
+        tested_distributions = []
+        for dist in distributions:
+            tested_distributions.append(eval("ot." + dist + "Factory()"))
+        best_model, best_result = ot.FittingTest.BestModelLilliefors(sample, tested_distributions)
         logger.debug("Best model:")
         logger.debug(best_model)
         logger.debug("P-value:")
