@@ -19,6 +19,7 @@
 import pandas as pd
 import numpy as np
 import logging
+from xlrd import XLRDError
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,10 @@ def readin_Data_from_collection(filepath, fileformat, delimiter=None,
     if fileformat == 'XLSX':
         if delimiter is not None:
             logger.warning("You provided a delimiter for an XLSX file but it has no effect.")
-        EIS = pd.read_excel(filepath)
+        try:
+            EIS = pd.read_excel(filepath)
+        except XLRDError:
+            EIS = pd.read_excel(filepath, engine="openpyxl")
     elif fileformat == 'CSV':
         EIS = pd.read_csv(filepath, delimiter=delimiter)
     else:
