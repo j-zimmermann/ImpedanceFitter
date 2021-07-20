@@ -1,10 +1,18 @@
 Validating the data
 -------------------
 
+LinKK test
+^^^^^^^^^^
+
 Before fitting the experimental data to an equivalent
 circuit model, you can make sure that the data are valid.
-The LinKK test [Schoenleber2014]_ allows one to validate
-the data.
+The data are valid if the real and imaginary part are related
+through the Kramers-Kronig (KK) relations.
+The LinKK test [Schoenleber2014]_ permits to validate
+the data by fitting the data to a KK compliant model.
+A less automated version of this test is also used in
+proprietary software (see, e.g. `this application note <https://www.gamry.com/application-notes/EIS/basics-of-electrochemical-impedance-spectroscopy/>`_).
+
 
 Here, it is summarized how the test works in ImpedanceFitter.
 
@@ -66,6 +74,30 @@ This can be done by
 Especially if you observe large residuals at high frequencies, an inductive element
 should be added.
 
+Numerical Integration
+^^^^^^^^^^^^^^^^^^^^^
+
+The Kramers-Kronig relations are integral transforms.
+These integrals can be evaluated numerically [Urquidi1990]_.
+This functionality is available through the function `KK_integral_transform`.
+For the abovementioned model it can be done by
+
+.. code-block:: python
+
+        ZKK = impedancefitter.KK_integral_transform(2. * numpy.pi * frequencies, Z)
+        # add the high frequency impedance to the real part
+        ZKK += Z[-1].real
+        # plot the impedance and show the residual
+        impedancefitter.plot_impedance(2. * numpy.pi * frequencies, Z, Z_fit=ZKK,
+                                       residual="absolute", labels=["Data", "KK transform", ""])
+
+.. image:: impedance-kk.*
+        :width: 600
+
+The result indicates that the data fulfil the KK relations.
+However, the error is not as small as with the LinKK test (mostly due to 
+numerical accuracy of the integration scheme).
+
 See Also
 ^^^^^^^^
 
@@ -73,5 +105,6 @@ See Also
 :download:`examples/LinKK/linkk_cap.py <../../examples/LinKK/linkk_cap.py>`.
 :download:`examples/LinKK/linkk_ind.py <../../examples/LinKK/linkk_ind.py>`.
 :download:`examples/LinKK/linkk_ind_cap.py <../../examples/LinKK/linkk_ind_cap.py>`.
+:download:`examples/KK/kk.py <../../examples/KK/kk.py>`.
 
 :meth:`impedancefitter.fitter.Fitter.linkk_test`

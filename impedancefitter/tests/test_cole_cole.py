@@ -1,4 +1,4 @@
-from impedancefitter.cole_cole import cole_cole_model, cole_cole_R_model
+from impedancefitter.cole_cole import cole_cole_model, cole_cole_R_model, raicu
 from impedancefitter.utils import return_diel_properties
 import numpy as np
 omega = 2. * np.pi * np.logspace(1, 8, num=20)
@@ -45,3 +45,8 @@ def test_cole_cole_R_shape():
 def test_cole_cole_R_limits_low():
     Z = cole_cole_R_model(omega, Rinf, R0, tau, a)
     assert np.isclose(Z[0], R0), np.isclose(Z[-1], Rinf)
+
+def test_raicu():
+    Zcole =  cole_cole_model(omega, c0, el, tau, a, kdc, eh)
+    Zraicu = raicu(omega, c0, eh, (el - eh) / 1e3, tau * 1e-3, a, 1.0, 1.0, kdc)
+    assert(np.all(np.isclose(Zcole, Zraicu)))

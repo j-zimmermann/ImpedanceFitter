@@ -21,13 +21,14 @@ import numpy as np
 import yaml
 import pyparsing as pp
 import re
+import pandas as pd
 # to make it compatible with Python >= 3.7
 try:
     import SchemDraw as schemdraw
     import SchemDraw.elements as elm
 except ImportError:
     import schemdraw
-    import schemdraw.elements as elm
+    import schemdraw.elements.legacy as elm
 
 from scipy.integrate import simps
 from collections import Counter
@@ -48,7 +49,46 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def convert_diel_properties_to_impedance(omega, eps, sigma, c0):
+def convert_diel_properties_to_impedance(omega, eps_r, sigma, c0):
+    r"""Return impedance from dielectric properties.
+
+    Parameters
+    ----------
+
+    omega: :class:`numpy.ndarray`, double
+        frequency array
+    eps_r: :class:`numpy.ndarray`, double
+        relative permittivity
+    sigma: :class:`numpy.ndarray`, double
+        conductivity in S/m
+    c0: double
+        unit capacitance of device
+
+    Returns
+    -------
+
+    :class:`numpy.ndarray`, complex
+        impedance array
+
+    Notes
+    -----
+
+    Use that the impedance is
+
+    .. math::
+
+        Z = (j \omega \varepsilon_\mathrm{r}^\ast c_0)^{-1} ,
+
+    where :math:`\varepsilon_\mathrm{r}^\ast` is the relative complex permittivity (see for instance [Grant1958]_
+    for further explanation). Note that the vacuum permittivity :math:`\varepsilon_0` is contained in :math:`c_0`.
+
+    In the function, the variable `epsc` describes the term
+
+    .. math::
+
+        \omega \varepsilon_\mathrm{r}^\ast
+
+    """
     epsc = omega * eps - 1j * sigma / e0
     return 1. / (1j * epsc * c0)
 
@@ -64,10 +104,10 @@ def return_diel_properties(omega, Z, c0):
 
     .. math::
 
-        Z = (j \omega \varepsilon^\ast c_0)^{-1} ,
+        Z = (j \omega \varepsilon_\mathrm{r}^\ast c_0)^{-1} ,
 
-    where :math:`\varepsilon^\ast` is the complex permittivity (see for instance [Grant1958]_
-    for further explanation).
+    where :math:`\varepsilon_\mathrm{r}^\ast` is the relative complex permittivity (see for instance [Grant1958]_
+    for further explanation). Note that the vacuum permittivity :math:`\varepsilon_0` is contained in :math:`c_0`.
 
     When the unit capacitance :math:`c_0` of the device is known, a direct mapping from impedance to
     relative complex permittivity is possible:
@@ -119,6 +159,47 @@ def return_diel_properties(omega, Z, c0):
     return eps_r, conductivity
 
 
+def return_dielectric_modulus(omega, Z, c0):
+    r"""Return dielectric modulus
+
+    Notes
+    -----
+
+    The dielectric modulus is  :math:`M = 1 / \varepsilon_\mathrm{r}^\ast`.
+    See [Bordi2001]_ for further explanation.
+
+    Parameters
+    ----------
+
+    omega: :class:`numpy.ndarray`, double
+        frequency array
+    Z: :class:`numpy.ndarray`, complex
+        impedance array
+    c0: double
+        unit capacitance of device
+
+    Returns
+    -------
+
+    ReM: :class:`numpy.ndarray`, double
+        real part of modulus
+    ImM: :class:`numpy.ndarray`, double
+        imaginary part of modulus
+
+    References
+    ----------
+
+    .. [Bordi2001] Bordi, F., & Cametti, C. (2001). Occurrence of an intermediate relaxation process in water-in-oil microemulsions below percolation: The electrical modulus formalism.
+                   Journal of Colloid and Interface Science, 237(2), 224–229.
+                   https://doi.org/10.1006/jcis.2001.7456
+    """
+    epsc = 1. / (1j * omega * Z * c0)
+    M = 1. / epsc
+    ReM = M.real
+    ImM = M.imag
+    return ReM, ImM
+
+
 def check_parameters(bufdict):
     """Check parameters for physical correctness.
 
@@ -128,6 +209,11 @@ def check_parameters(bufdict):
     bufdict: dict
         Contains all parameters and their values
 
+    Notes
+    -----
+
+    All parameters are forced to be greater or equal zero.
+    There are only two exceptions.
     """
 
     # capacitances in pF
@@ -210,7 +296,7 @@ def check_parameters(bufdict):
     return bufdict
 
 
-def set_parameters(model, parameterdict=None, emcee=False):
+def set_parameters(model, parameterdict=None, emcee=False, weighting_model=False):
     """
     Parameters
     -----------
@@ -222,6 +308,8 @@ def set_parameters(model, parameterdict=None, emcee=False):
         If it is None (default), the parameters are read in from a yaml-file.
     emcee: bool, optional
         if emcee is used, an additional `__lnsigma` parameter will be set
+    weighting_model: bool, optional
+        if a weighting model is used, the variance will be fit as well
 
 
     Returns
@@ -260,6 +348,23 @@ def set_parameters(model, parameterdict=None, emcee=False):
     elif emcee and "__lnsigma" in parameterdict:
         parameters.add("__lnsigma", **parameterdict["__lnsigma"])
 
+    if weighting_model:
+        if "stdA" not in parameterdict and "stdPhi" not in parameterdict:
+            raise RuntimeError("You need to provide the variables stdA and stdPhi if you want to use a weighting model.")
+        for var in ["stdA", "stdPhi"]:
+            if "min" in parameterdict[var]:
+                if parameterdict[var]["min"] < 0:
+                    logger.warning("You set the minimum value of parameter {} to a negative value. That does not work and the value is set to 0.".format(var))
+                    parameterdict[var]["min"] = 0
+            else:
+                parameterdict[var]["min"] = 0
+            if "max" in parameterdict[var]:
+                if parameterdict[var]["max"] < 0:
+                    logger.warning("You set the maximum value of parameter {} to a negative value. That does not work and the value is set to inf.".format(var))
+                parameterdict[var]["max"] = np.inf
+            else:
+                parameterdict[var]["min"] = 0
+            parameters.add(var, **parameterdict[var])
     return parameters
 
 
@@ -667,6 +772,14 @@ def _check_circuit(circuit, startpar=False):
             else:
                 raise RuntimeError("You must have entered a wrong circuit!")
         elif isinstance(c, list):
+            # we only have a list if there is any parallel circuit in the circuit
+            if circuit.count(",") != 1:
+                # if we start with a parallel element, the first entry in the list must contain a comma
+                if startpar and circuit[0].count(",") != 1:
+                    raise RuntimeError("You must have entered a wrong circuit! There is a comma missing.")
+                # otherwise there must be one comma somewhere in the circuit
+                if c.count(",") != 1:
+                    raise RuntimeError("You must have entered a wrong circuit! There is a comma missing.")
             _check_circuit(c)
 
 
@@ -679,6 +792,8 @@ def get_equivalent_circuit_model(modelname, logscale=False, diel=False):
         String representation of the equivalent circuit.
     logscale: bool
         Convert to logscale.
+    diel: bool
+        Convert to complex permittivity and fit this instead of impedance.
 
     Returns
     -------
@@ -759,8 +874,10 @@ def _model_label(model):
               'SingleShell': 'Single Shell',
               'DoubleShell': 'DoubleShell',
               'CPE': 'CPE',
+              'CPETissue': 'CPE for tissues',
               'CPEonset': 'CPEonset',
               'CPECT': 'CPECT',
+              'CPECTTissue': 'CPECT for tissues',
               'CPECTW': 'CPECTW',
               'DRC': 'DRC',
               'L': 'L',
@@ -799,6 +916,8 @@ def _get_element(name):
                     'DoubleShell']
     capacitorlike = ['CPE',
                      'CPEonset',
+                     'CPETissue',
+                     'CPECTTissue',
                      'CPECT',
                      'CPECTW',
                      'W',
@@ -1084,3 +1203,28 @@ def KK_integral_transform(omega, Z):
         integrand = (real - Z.real[i]) / (x * x - w * w)
         ZKK[i] += 1j * 2. * w / np.pi * simps(integrand, x=x)
     return ZKK
+
+
+def save_impedance(omega, impedance, format="CSV", filename="impedance"):
+    """Save impedance to CSV or XLSX file.
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`, double
+        frequency array
+    impedance: :class:`numpy.ndarray`, complex
+        impedance array
+    format: str
+        use either CSV or XLSX format. Based on the format, the correct ending is chosen.
+    filename: str
+        specify a filename (without ending!). the default is impedance.csv or impedance.xlsx
+    """
+    assert isinstance(filename, str), "You need to provide a str as filename!"
+    outdict = {"freq": omega / (2. * np.pi), 'real': impedance.real, 'imag': impedance.imag}
+    df = pd.DataFrame(outdict)
+    if format == "CSV":
+        df.to_csv(filename + ".csv", index=False)
+    elif format == "XLSX":
+        df.to_excel(filename + ".xlsx", index=False)
+    else:
+        raise(RuntimeError("You provided a wrong format. Use either CSV or XLSX."))

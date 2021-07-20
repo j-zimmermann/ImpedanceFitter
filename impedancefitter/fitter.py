@@ -33,6 +33,7 @@ from .readin import (readin_Data_from_TXT_file,
                      readin_Data_from_dta)
 from .plotting import plot_impedance, plot_uncertainty, plot_bode, plot_resistance_capacitance
 from . import set_logger
+from .variance import weighting_residual, variance_estimate
 
 import logging
 logger = logging.getLogger(__name__)
@@ -108,7 +109,7 @@ class Fitter(object):
         Lines between traces blocks in a TXT file.
         Default is None (then skiprows_trace does not have any effect).
     delimiter: str, optional
-        Only for TXT files. If the TXT file is not tab-separated, this
+        Only for TXT and CSV files. If the TXT/CSV file is not tab-separated, this
         can be specified here.
 
     Attributes
@@ -192,12 +193,15 @@ class Fitter(object):
         self.write_output = False
         self.fileList = None
         self.savefig = False
-        self.delimiter = "\t"
+        if self.inputformat == "TXT":
+            self.delimiter = "\t"
+        elif self.inputformat == "CSV":
+            self.delimiter = None
         self.emcee_tag = False
-        self.protocol = None
         self.solvername = "least_squares"
         self.log = False
         self.eps = False
+        self.weighting_model = False
         self.solver_kwargs = {}
         self.weighting = None
         self.show = False
@@ -318,7 +322,7 @@ class Fitter(object):
                     raise RuntimeError("You chose an invalid plottype")
                 totaliters -= 1
 
-    def _initialize_parameters(self, model, parameters, emcee=False):
+    def _initialize_parameters(self, model, parameters, emcee=False, weighting_model=False):
         """
         The `model_parameters` are initialized either based on a
         provided `parameterdict` or an input file.
@@ -340,7 +344,7 @@ class Fitter(object):
         """
 
         return set_parameters(model, parameterdict=parameters,
-                              emcee=emcee)
+                              emcee=emcee, weighting_model=weighting_model)
 
     def initialize_model(self, modelname, log=False, eps=False):
         """Interface to LMFIT model class.
@@ -357,6 +361,9 @@ class Fitter(object):
             Provide equivalent circuit model to be parsed.
         log: bool
             Decide, if logscale is used for the model.
+        diel: bool
+            Convert to complex permittivity and fit this instead of impedance.
+
 
         Returns
         -------
@@ -368,9 +375,10 @@ class Fitter(object):
         model = get_equivalent_circuit_model(modelname, log, eps)
         return model
 
-    def run(self, modelname, solver=None, parameters=None, protocol=None,
-            solver_kwargs={}, modelclass="none", log=False, weighting=None,
-            show=False, report=False, savemodelresult=True, eps=False):
+    def run(self, modelname, solver=None, parameters=None,
+            solver_kwargs={}, log=False, weighting=None,
+            show=False, report=False, savemodelresult=True, eps=False,
+            residual="parts", limits_residual=None, weighting_model=False):
         """
         Main function that iterates through all data sets provided.
 
@@ -388,31 +396,39 @@ class Fitter(object):
         parameters: dict, optional
             Provide parameters if you do not want
             to read them from a yaml file (for instance in parallel UQ runs).
-        protocol: string, optional
-            Choose 'Iterative' for repeated fits with changing parameter sets,
-            customized approach. If not specified, there is always
-            just one fit for each data set.
         solver_kwargs: dict, optional
             Customize the employed solver. Interface to the LMFIT routine.
-        modelclass: str, optional
-            Pass a modelclass for which the iterative scheme should be used.
-            This is experimental support for iterative schemes,
-            where parameters can be fixed during the fitting routine.
-            In the future, a more intelligent approach could be found.
-            See :meth:`impedancefitter.Fitter.model_iterations`
         weighting: str, optional
             Choose a weighting scheme. Default is unit weighting.
-            Also possible: proportional weighting. See [Barsoukov2018]_ for more information.
+            Also possible: proportional and modulus weighting. See [Barsoukov2018]_ and [Orazem2017]_ for more information.
+            Moreover, weighted least squares is possible. This should only be chosen if the data can be averaged.
+            The average data will be fitted and the standard deviation is used for the weights.
+            The keyword for this is WLS. In this case, you need to provide weights.
         savemodelresult: bool, optional
             Saves all :class:`lmfit.model.ModelResult` instances to plot or evaluate uncertainty later.
+        residual: str
+            Plot relative difference w.r.t. real and imaginary part if `parts`.
+            Plot relative difference w.r.t. absolute value if `absolute`.
+            Plot difference (residual) if `diff`.
+        limits_residual: list, optional
+            List with entries `[bottom, top]` for y-axis of residual plot.
 
         """
 
         self.modelname = modelname
-        self.modelclass = modelclass
         self.log = log
         self.eps = eps
-        self.weighting = weighting
+        self.weighting_model = weighting_model
+        if weighting is not None:
+            if isinstance(weighting, str) and weighting in ["proportional", "modulus", "reweighting", "WLS"]:
+                self.weighting = weighting
+            elif self.weighting_model:
+                raise RuntimeError("""The variable `weighting` must be None if you want to use the weighting_model. Otherwise, you must set weighting_model to False.""")
+            else:
+                raise RuntimeError("""The variable `weighting` must be a string and refer to an available weighting scheme.
+                                  Use either `proportional` or `modulus` or `WLS`.""")
+        else:
+            self.weighting = weighting
         self.show = show
         self.report = report
 
@@ -421,6 +437,14 @@ class Fitter(object):
             self.solvername = solver
         else:
             self.solvername = "least_squares"
+        SCALAR_METHODS = ['nelder', 'Nelder-Mead', 'powell', 'Powell',
+                          'cg', 'CG', 'bfgs', 'BFGS', 'newton', 'Newton-CG',
+                          'lbfgsb', 'L-BFGS-B', 'tnc', 'TNC', 'cobyla', 'COBYLA',
+                          'slsqp', 'SLSQP', 'dogleg', 'trust-ncg', 'differential_evolution',
+                          'trust-constr', 'trust-exact', 'trust-krylov']
+
+        if weighting_model and self.solvername not in SCALAR_METHODS:
+            raise AttributeError("Provide a scalar method. They are {}".format(SCALAR_METHODS))
         if self.solvername == "emcee":
             self.emcee_tag = True
         else:
@@ -436,10 +460,11 @@ class Fitter(object):
             assert isinstance(parameters, dict), "You need to provide an input dictionary!"
         self.parameters = deepcopy(parameters)
 
-        self.model_parameters = self._initialize_parameters(self.model, self.parameters, self.emcee_tag)
-        self.protocol = protocol
+        self.model_parameters = self._initialize_parameters(self.model, self.parameters, self.emcee_tag, self.weighting_model)
         if self.write_output is True:
             open('outfile.yaml', 'w')  # create output file
+        # TODO:
+        # implement WLS here
         for key in self.omega_dict:
             self.omega = self.omega_dict[key]
             self.zarray = self.z_dict[key]
@@ -457,7 +482,9 @@ class Fitter(object):
                 self.fittedValues = self.process_data_from_file(key + str(i),
                                                                 self.model,
                                                                 self.model_parameters,
-                                                                self.modelclass)
+                                                                residual,
+                                                                limits_residual,
+                                                                self.weighting_model)
                 self._process_fitting_results(key + '_' + str(i))
         if self.write_output is True and hasattr(self, "fit_data"):
             outfile = open('outfile.yaml', 'W')
@@ -467,7 +494,6 @@ class Fitter(object):
 
     def sequential_run(self, model1, model2, communicate, solver=None,
                        solver_kwargs={}, parameters1=None, parameters2=None,
-                       modelclass1=None, modelclass2=None, protocol=None,
                        weighting=None):
         """Main function that iterates through all data sets provided.
 
@@ -500,20 +526,6 @@ class Fitter(object):
         parameters2: dict, optional
             Parameters of model2.
             Provide parameters if you do not want to use a yaml file.
-        modelclass1: str, optional
-            Pass a modelclass for which the iterative scheme should be used.
-            This is experimental support for iterative schemes,
-            where parameters can be fixed during the fitting routine.
-            In the future, a more intelligent approach could be found.
-        modelclass2: str, optional
-            Pass a modelclass for which the iterative scheme should be used.
-            This is experimental support for iterative schemes,
-            where parameters can be fixed during the fitting routine.
-            In the future, a more intelligent approach could be found.
-        protocol: string, optional
-            Choose 'Iterative' for repeated fits with changing parameter sets,
-            customized approach. If not specified, there is always just
-            one fit for each data set.
         weighting: str, optional
             Choose a weighting scheme. Default is unit weighting.
             Also possible: proportional weighting. See [Barsoukov2018]_ for more information.
@@ -547,7 +559,6 @@ class Fitter(object):
         self.model_parameters1 = self._initialize_parameters(self.model1, self.parameters1, self.emcee_tag)
         self.model_parameters2 = self._initialize_parameters(self.model2, self.parameters2, self.emcee_tag)
 
-        self.protocol = protocol
         if self.write_output is True:
             open('outfile.yaml', 'w')  # create output file
         for key in self.omega_dict:
@@ -566,8 +577,7 @@ class Fitter(object):
                 self.Z = self.zarray[i]
                 self.fittedValues1 = self.process_data_from_file(key + str(i),
                                                                  self.model1,
-                                                                 self.model_parameters1,
-                                                                 modelclass1)
+                                                                 self.model_parameters1)
                 for c in communicate:
                     try:
                         self.model_parameters2[c].value = self.fittedValues1.best_values[c]
@@ -578,8 +588,7 @@ class Fitter(object):
                         raise
                 self.fittedValues2 = self.process_data_from_file(key + str(i),
                                                                  self.model2,
-                                                                 self.model_parameters2,
-                                                                 modelclass2)
+                                                                 self.model_parameters2)
                 self._process_sequential_fitting_results(key + '_' + str(i))
         if self.write_output is True and hasattr(self, "fit_data"):
             outfile = open('outfile-sequential.yaml', 'W')
@@ -616,6 +625,7 @@ class Fitter(object):
                                                         maximumFrequency=self.maximumFrequency)
         elif self.inputformat == 'CSV' and filename.upper().endswith(".CSV"):
             omega, zarray = readin_Data_from_collection(filepath, 'CSV',
+                                                        delimiter=self.delimiter,
                                                         minimumFrequency=self.minimumFrequency,
                                                         maximumFrequency=self.maximumFrequency)
         elif self.inputformat == 'CSV_E4980AL' and filename.endswith(".csv"):
@@ -648,6 +658,8 @@ class Fitter(object):
             self.fit_data = {}
         values = self.fittedValues.best_values
         for key in values:
+            if key == "Zdata":
+                continue
             # conversion into python native type
             values[key] = float(values[key])
         self.fit_data[str(filename)] = values
@@ -684,113 +696,8 @@ class Fitter(object):
             self.model_results[str(filename)]['model1'] = self.fittedValues1
             self.model_results[str(filename)]['model2'] = self.fittedValues2
 
-    def model_iterations(self, modelclass):
-        r"""Information about number of iterations
-            if there is an iterative scheme for a modelclass.
-
-        Parameters
-        ----------
-
-        modelclass: str
-            Name of the modelclass. This means that this model is
-            represented in the equivalent circuit.
-
-        Returns
-        -------
-        int
-            Number of iteration steps.
-
-        Notes
-        -----
-
-        *Double-Shell model*
-
-        The following iterative procedure is applied:
-
-        #. 1st Fit: The data is fitted against a model comprising
-           the double-shell model.
-           Parameters to be determined in this fitting round: `kmed` and `emed`.
-
-        #. 2nd Fit: The parameters `kmed` and `emed` are fixed and
-           the data is fitted again.
-           To be determined in this fit: `km` and `em`.
-
-        #. 3rd Fit: In addition, the parameters `km` and `em` are fixed
-           and the data is fitted again.
-           To be determined in this fit: `kcp`.
-
-        #. last Fit: In addition, he parameter `kcp` is fixed.
-           To be determined in this fit: all remaining parameters.
-
-        *Single-Shell model*
-
-        The following iterative procedure is applied:
-
-        #. 1st Fit: The data is fitted against a model comprising
-           the single-shell model.
-           Parameters to be determined in this fitting round: `kmed` and `emed`.
-
-        #. 2nd Fit: The parameters `kmed` and `emed` are fixed and
-           the data is fitted again.
-
-        *Cole-Cole model*
-
-        #. 1st Fit: The data is fitted against a model comprising
-           the Cole-Cole model.
-           Parameters to be determined in this fitting round: `kdc` and `eh`.
-
-        #. 2nd Fit: The parameters `kdc` and `eh` are fixed and
-           the data is fitted again.
-
-        See Also
-        --------
-        :func:`impedancefitter.double_shell.double_shell_model`
-        :func:`impedancefitter.single_shell.single_shell_model`
-        :func:`impedancefitter.cole_cole.cole_cole_model`
-
-        """
-        iteration_dict = {'DoubleShell': 4,
-                          'SingleShell': 2,
-                          'ColeCole': 2}
-        if modelclass not in iteration_dict:
-            logger.info("There exists no iterative scheme for this model.")
-            return 1
-        else:
-            return iteration_dict[modelclass]
-
-    def _fix_parameters(self, i, modelname, params, result):
-        """Take parameter value from result and fix the parameter.
-
-        Parameters
-        ----------
-        i: int
-            index of iteration
-        params: :class:`lmfit.parameter.Parameters`
-            initial parameter dictionary
-        result: :class:`lmfit.model.ModelResult`
-            results from previous fitting round
-
-        Returns
-        -------
-        :class:`lmfit.parameter.Parameters`
-            updated parameter dictionary
-
-        """
-        # since first iteration does not count
-        idx = i - 1
-
-        fix_dict = {'DoubleShell': [["kmed", "emed"], ["km", "em"], ["kcp"]],
-                    'SingleShell': [["kmed", "emed"]],
-                    'ColeCole': [["kdc", "eh"]]}
-        fix_list = fix_dict[modelname][idx]
-        # fix all parameters to value given in result
-        for parameter in result.params:
-            params[parameter].set(value=result.best_values[parameter])
-        for parameter in fix_list:
-            params[parameter].set(vary=False)
-        return params
-
-    def _fit_data(self, model, parameters, modelclass=None, weights=None, log=True, eps=False):
+    def _fit_data(self, model, parameters, weights=None,
+                  log=True, eps=False, weighting_model=False):
         """Fit data to model.
 
         Wrapper for LMFIT fitting routine.
@@ -802,8 +709,6 @@ class Fitter(object):
             The model to fit to.
         parameters: :class:`lmfit.parameter.Parameters`
             The model parameters to be used.
-        modelclass: str, optional
-            For an iterative scheme, the modelclass is passed to this function.
         weights: None or :class:`numpy.ndarray`
             Use weights to fit the data. Default is None (no weighting).
             The weights need to have the same shape as the impedance data.
@@ -817,60 +722,95 @@ class Fitter(object):
         logger.debug('#################################')
         logger.debug('fit data to {} model'.format(model._name))
         logger.debug('#################################')
-        # initiate copy of parameters for iterative run
+        # initiate copy of parameters
+        # TODO: still needed?
         params = deepcopy(parameters)
         # initiate empty result
         model_result = None
 
-        iters = 1
-        if self.protocol == "Iterative":
-            try:
-                iters = self.model_iterations(modelclass)
-            except AttributeError:
-                logger.warning("""Provide the modelclass kwarg
-                                  to trigger possible iterative scheme.""")
-                pass
-        for i in range(iters):
-            logger.debug("#########\nFitting round {}\n#########".format(i + 1))
-            if i > 0:
-                params = self._fix_parameters(i, modelclass, params,
-                                              model_result)
-            if log:
-                Z = np.log10(self.Z)
-            elif eps:
-                Z = 1. / (1j * self.omega * params['c0all'] * self.Z)
-            else:
-                Z = self.Z
-            max_nfev = None
-            if 'max_nfev' in self.solver_kwargs:
-                max_nfev = self.solver_kwargs['max_nfev']
-                tmp_dict = {key: self.solver_kwargs[key] for key in set(list(self.solver_kwargs.keys())) - set(['max_nfev'])}
-            else:
-                tmp_dict = self.solver_kwargs
+        logger.debug("#########\nFitting started \n#########")
+        if log:
+            Z = np.log10(self.Z)
+        elif eps:
+            Z = 1. / (1j * self.omega * params['c0all'] * self.Z)
+        else:
+            Z = self.Z
+        max_nfev = None
+        if 'max_nfev' in self.solver_kwargs:
+            max_nfev = self.solver_kwargs['max_nfev']
+            tmp_dict = {key: self.solver_kwargs[key] for key in set(list(self.solver_kwargs.keys())) - set(['max_nfev'])}
+        else:
+            tmp_dict = self.solver_kwargs
+        if weighting_model:
+            model_result = lmfit.minimize(weighting_residual, params, method=self.solvername, args=(self.omega,), kws={'Zdata': Z, 'model': model})
+            best_values = deepcopy(model_result.params.valuesdict())
+            setattr(model_result, "best_values", best_values)
+        else:
+            # this is also k=0 in reweighting
             model_result = model.fit(Z, params, omega=self.omega,
                                      method=self.solvername,
                                      fit_kws=tmp_dict,
                                      weights=weights,
                                      max_nfev=max_nfev)
+            if self.weighting == "reweighting":
+                # raise NotImplementedError("Not yet implemented")
+                tol = 1e-7
+                tolA = 1
+                tolPhi = 1
+                tolZ = 1
+                varA_old = 0
+                varPhi_old = 0
+                kmax = 50000
+                k = 0
+                while (np.greater_equal(tolA, tol) or np.greater_equal(tolZ, tol) or np.greater_equal(tolPhi, tol)) and k < kmax:
+                    if k == 0:
+                        Zfit = model_result.best_fit
+                        varA, varPhi = variance_estimate(Z, Zfit)
+                        fitparams = np.fromiter(model_result.params.values(), dtype=float)
+                    varA_old, varPhi_old = varA, varPhi
+                    fitparamsold = fitparams
+                    weights = 1 / (np.abs(Z)**2 * varA_old) + 1j / (np.abs(Z)**2 * (varA_old + varPhi_old) * np.angle(Z)**2)
+                    model_result = model.fit(Z, params, omega=self.omega,
+                                             method=self.solvername,
+                                             fit_kws=tmp_dict,
+                                             weights=weights,
+                                             max_nfev=max_nfev)
+                    Zfit = model_result.best_fit
+                    params = model_result.params
+                    fitparams = np.fromiter(model_result.params.values(), dtype=float)
+                    varA, varPhi = variance_estimate(Z, Zfit)
+                    tolA = np.abs(varA_old - varA) / varA
+                    tolPhi = np.abs(varPhi_old - varPhi) / varPhi
+                    diff = (fitparamsold - fitparams)
+                    tolZ = np.sqrt(diff.dot(diff)) / np.sqrt(fitparams.dot(fitparams))
+                    print(tolA, tolPhi, tolZ)
+                    k += 1
+                logger.info("Converged after {} iterations".format(k))
 
-            if self.weighting == "proportional":
-                _calculate_statistics(model_result)
-            if not self.report:
+        if self.weighting in ["proportional", "modulus", "WLS"]:
+            _calculate_statistics(model_result)
+        if not self.report:
+            if weighting_model:
+                logger.debug(lmfit.fit_report(model_result))
+            else:
                 logger.debug(model_result.fit_report())
+        else:
+            if weighting_model:
+                logger.info(lmfit.fit_report(model_result))
             else:
                 logger.info(model_result.fit_report())
 
-            # return solver message (needed since lmfit handles messages
-            # differently for the various solvers)
-            if hasattr(model_result, "message"):
-                if model_result.message is not None:
-                    logger.debug("Solver message: " + model_result.message)
-            if hasattr(model_result, "lmdif_message"):
-                if model_result.lmdif_message is not None:
-                    logger.debug("Solver message (leastsq): " + model_result.lmdif_message)
-            if hasattr(model_result, "ampgo_msg"):
-                if model_result.ampgo_msg is not None:
-                    logger.debug("Solver message (ampgo): " + model_result.ampgo_msg)
+        # return solver message (needed since lmfit handles messages
+        # differently for the various solvers)
+        if hasattr(model_result, "message"):
+            if model_result.message is not None:
+                logger.debug("Solver message: " + model_result.message)
+        if hasattr(model_result, "lmdif_message"):
+            if model_result.lmdif_message is not None:
+                logger.debug("Solver message (leastsq): " + model_result.lmdif_message)
+        if hasattr(model_result, "ampgo_msg"):
+            if model_result.ampgo_msg is not None:
+                logger.debug("Solver message (ampgo): " + model_result.ampgo_msg)
         return model_result
 
     def get_resistance_capacitance(self):
@@ -908,7 +848,8 @@ class Fitter(object):
             self.Y_dict[key] = xarray
 
     def process_data_from_file(self, filename, model, parameters,
-                               modelclass=None):
+                               residual="parts", limits_residual=None,
+                               weighting_model=False):
         """Fit data from input file to model.
 
         Wrapper for LMFIT fitting routine.
@@ -923,8 +864,13 @@ class Fitter(object):
             The model to fit to.
         parameters: :class:`lmfit.parameter.Parameters`
             The model parameters to be used.
-        modelclass: str, optional
-            For an iterative scheme, the modelclass is passed to this function.
+        residual: str
+            Plot relative difference w.r.t. real and imaginary part if `parts`.
+            Plot relative difference w.r.t. absolute value if `absolute`.
+            Plot difference (residual) if `diff`.
+        limits_residual: list, optional
+            List with entries `[bottom, top]` for y-axis of residual plot.
+
 
         Returns
         -------
@@ -937,12 +883,19 @@ class Fitter(object):
         weights = None
         if self.weighting == "proportional":
             weights = 1. / self.Z.real + 1j / self.Z.imag
-        fit_output = self._fit_data(model, parameters, modelclass, log=self.log,
-                                    eps=self.eps, weights=weights)
+        elif self.weighting == "modulus":
+            weights = 1. / np.abs(self.Z) + 1j / np.abs(self.Z)
+        elif self.weighting == "WLS":
+            weights = self.Zstd
+        fit_output = self._fit_data(model, parameters, log=self.log,
+                                    eps=self.eps, weights=weights, weighting_model=weighting_model)
         if self.log:
             Z_fit = np.power(10, fit_output.best_fit)
         elif self.eps:
             Z_fit = 1. / (1j * self.omega * fit_output.best_fit * parameters['c0all'])
+        elif self.weighting_model:
+            tmp_model = get_equivalent_circuit_model(self.modelname)
+            Z_fit = tmp_model.eval(omega=self.omega, **fit_output.best_values)
         else:
             Z_fit = fit_output.best_fit
         logger.debug("Fit successful")
@@ -954,7 +907,8 @@ class Fitter(object):
                 logger.info("Going to save plot of fit result to file.")
             title = "fit_result_" + filename
             plot_impedance(self.omega, self.Z, title=title, Z_fit=Z_fit,
-                           show=self.show, save=self.savefig)
+                           show=self.show, save=self.savefig, residual=residual,
+                           limits_residual=limits_residual)
         return fit_output
 
     def plot_initial_best_fit(self, sequential=False):
@@ -1253,7 +1207,8 @@ class Fitter(object):
                           radius=1e-4, weighted=False,
                           burn=500,
                           steps=10e3,
-                          thin=10):
+                          thin=10,
+                          fix_parameters=[]):
         """Prepare initial configuration based on previous least squares run.
 
 
@@ -1278,6 +1233,8 @@ class Fitter(object):
             Take only every `thin`-th step into account.
         weighted: bool
             If `False`, `lnsigma` will be used.
+        fix_parameters: list
+            Tell emcee to fix certain parameters to their least squares result.
 
         Notes
         -----
@@ -1301,12 +1258,16 @@ class Fitter(object):
             parameters_dict[l]['value'] = leastsquaresresult.params[l].value
             parameters_dict[l]['min'] = -np.inf
             parameters_dict[l]['max'] = np.inf
-            parameters_dict[l]['vary'] = leastsquaresresult.params[l].vary
+            if l in fix_parameters:
+                parameters_dict[l]['vary'] = False
+            else:
+                parameters_dict[l]['vary'] = leastsquaresresult.params[l].vary
 
         # get parameters in right order
         parameters = []
         for p in leastsquaresresult.var_names:
-            parameters.append(p)
+            if parameters_dict[p]["vary"] is True:
+                parameters.append(p)
 
         # for__lnsigma if lnsigma has not been fitted yet
         if '__lnsigma' not in parameters:
