@@ -163,7 +163,7 @@ def plot_dielectric_modulus(omega, Z, c0, Z_comp=None,
 
 
 def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, save=False, logscale="permittivity",
-                               labels=None, append=False, markers=[None, None], **plotkwargs):
+                               labels=None, append=False, markers=[None, None], legend=True, **plotkwargs):
     '''
     Parameters
     ----------
@@ -190,6 +190,8 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
         Give custom labels. Needs to be a list of length 2.
     append: bool, optional
         Decide if you want to show plot or add line to existing plot.
+    legend: bool, optional
+        Switch legend on/off
 
     '''
     eps_r, cond_fit = return_diel_properties(omega, Z, c0)
@@ -218,7 +220,7 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.plot(omega / (2. * np.pi), eps_r, label=labels[0], marker=markers[0], **plotkwargs)
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), eps_r2, label=labels[1], marker=markers[1], **plotkwargs)
-    if Z_comp is not None or append is True:
+    if legend:
         plt.legend()
 
     if len(axes) < 2:
@@ -235,7 +237,7 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.plot(omega / (2. * np.pi), cond_fit, label=labels[0], marker=markers[0], **plotkwargs)
     if Z_comp is not None:
         plt.plot(omega / (2. * np.pi), cond_fit2, label=labels[1], marker=markers[1], **plotkwargs)
-    if Z_comp is not None or append is True:
+    if legend:
         plt.legend()
     plt.tight_layout()
     if save and not append:
@@ -246,8 +248,8 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
         plt.close()
 
 
-def plot_cole_cole(omega, Z, c0, Z_comp=None, diff=False,
-                   title="", show=True, save=False, labels=None):
+def plot_cole_cole(omega, Z, c0, Z_comp=None, append=False, legend=True, markers=[None, None],
+                   title="", show=True, save=False, labels=None, limits=None):
     '''
     Parameters
     ----------
@@ -262,8 +264,6 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None, diff=False,
         complex-valued impedance array. Might be used to compare the properties of two data sets.
     title: str, optional
         title of plot. Default is an empty string.
-    diff: bool, optional
-        Compare two results numerically by plotting difference (default False)
     show: bool, optional
         show figure (default is True)
     save: bool, optional
@@ -275,6 +275,12 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None, diff=False,
     labels: list, optional
         Give custom labels. Needs to be a list of length 2.
     '''
+    axes = []
+    plt.figure("colecoleplot")
+    axes = plt.gcf().axes
+    if len(axes) == 1:
+        plt.sca(axes[0])
+
     eps_r, cond_fit = return_diel_properties(omega, Z, c0)
     epsc_fit = eps_r - 1j * cond_fit / (e0 * omega)
     if labels is None:
@@ -283,35 +289,26 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None, diff=False,
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
         epsc_fit2 = eps_r2 - 1j * cond_fit2 / (e0 * omega)
-        if diff:
-            plt.figure()
-            plt.subplot(211)
 
     plt.title("Cole-Cole plot")
     plt.xlabel(r"Re $\varepsilon$")
     plt.ylabel(r"-Im $\varepsilon$")
-    plt.plot(epsc_fit.real, -epsc_fit.imag, label=labels[0])
+    plt.plot(epsc_fit.real, -epsc_fit.imag, label=labels[0], marker=markers[0])
+    if limits is not None:
+        plt.xlim(limits[0])
+        plt.ylim(limits[1])
     if Z_comp is not None:
-        plt.plot(epsc_fit2.real, -epsc_fit2.imag, label=labels[1])
-        plt.legend()
-
-    if Z_comp is not None and diff:
-        plt.subplot(212)
-        plt.title("Comparison")
-        plt.ylabel("Relative difference / %")
-        plt.xlabel('Frequency / Hz')
-        plt.xscale('log')
-        plt.plot(omega / (2. * np.pi), 100. * np.abs((epsc_fit.real - epsc_fit2.real) / epsc_fit.real), label="real")
-        plt.plot(omega / (2. * np.pi), 100. * np.abs((epsc_fit.imag - epsc_fit2.imag) / epsc_fit.imag), label="imag")
-        plt.plot(omega / (2. * np.pi), 100. * np.abs((epsc_fit - epsc_fit2) / epsc_fit), label="abs")
+        plt.plot(epsc_fit2.real, -epsc_fit2.imag, label=labels[1], marker=markers[1])
+    if legend:
         plt.legend()
     plt.tight_layout()
-    if save:
+    if save and not append:
         plt.savefig(str(title).replace(" ", "_") + "_cole_cole_plot.pdf")
-    if show:
+    if show and not append:
         plt.show()
-    else:
+    elif not show and not append:
         plt.close()
+    return
 
 
 def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,

@@ -20,6 +20,63 @@
 from scipy.constants import epsilon_0 as e0
 
 
+def eps_cell(omega, em, km, kcp, ecp, dm, Rc):
+    r"""Single Shell model
+
+    Parameters
+    -----------
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    em: double
+        membrane permittivity, value for :math:`\varepsilon_\mathrm{m}`
+    km: double
+        membrane conductivity, value for :math:`\sigma_\mathrm{m}`
+    ecp: double
+        cytoplasm permittivity, value for :math:`\varepsilon_\mathrm{cp}`
+    kcp: double
+        cytoplasm conductivity, value for :math:`\sigma_\mathrm{cp}`
+    dm: double
+        membrane thickness, value for :math:`d_\mathrm{m}`
+    Rc: double
+        cell radius, value for :math:`R_\mathrm{c}`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Complex permittivity array
+    """
+    v1 = (1. - dm / Rc)**3
+
+    epsi_cp = ecp - 1j * kcp / (e0 * omega)
+    epsi_m = em - 1j * km / (e0 * omega)
+    # model
+    E1 = epsi_cp / epsi_m
+    epsi_cell = epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1) / ((2. + v1) + (1. - v1) * E1)
+    return epsi_cell
+
+
+def eps_sus(epsi_med, epsi_cell, p):
+    r"""Single Shell model
+
+    Parameters
+    -----------
+    epsi_med: :class:`numpy.ndarray`, complex
+        complex permittivities of medium
+    epsi_cell: :class:`numpy.ndarray`, complex
+        complex permittivities of cell (computed from `eps_sus`)
+    p: double
+        volume fraction
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Complex permittivity array
+    """
+
+    return epsi_med * (((2. * epsi_med + epsi_cell) - 2. * p * (epsi_med - epsi_cell))
+                       / ((2. * epsi_med + epsi_cell) + p * (epsi_med - epsi_cell)))
+
+
 def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc):
     r"""Single Shell model
 
@@ -109,18 +166,12 @@ def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc):
     c0 *= 1e-12  # use pF as unit
     km *= 1e-6
 
-    v1 = (1. - dm / Rc)**3
+    # cell model
+    epsi_cell = eps_cell(omega, em, km, kcp, ecp, dm, Rc)
 
-    epsi_cp = ecp - 1j * kcp / (e0 * omega)
-    epsi_m = em - 1j * km / (e0 * omega)
     epsi_med = emed - 1j * kmed / (e0 * omega)
-    # model
-    E1 = epsi_cp / epsi_m
-    epsi_cell = epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1) / ((2. + v1) + (1. - v1) * E1)
-
     # electrode polarization and calculation of Z
-    esus = epsi_med * (((2. * epsi_med + epsi_cell) - 2. * p * (epsi_med - epsi_cell))
-                       / ((2. * epsi_med + epsi_cell) + p * (epsi_med - epsi_cell)))
+    esus = eps_sus(epsi_med, epsi_cell, p)
     Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
     Z_fit = 1 / Ys
 

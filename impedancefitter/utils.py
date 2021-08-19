@@ -89,7 +89,7 @@ def convert_diel_properties_to_impedance(omega, eps_r, sigma, c0):
         \omega \varepsilon_\mathrm{r}^\ast
 
     """
-    epsc = omega * eps - 1j * sigma / e0
+    epsc = omega * eps_r - 1j * sigma / e0
     return 1. / (1j * epsc * c0)
 
 
