@@ -163,7 +163,7 @@ def plot_dielectric_modulus(omega, Z, c0, Z_comp=None,
 
 
 def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, save=False, logscale="permittivity",
-                               labels=None, append=False, markers=[None, None], legend=True, **plotkwargs):
+                               labels=None, append=False, markers=[None, None], legend=True, limits=None, **plotkwargs):
     '''
     Parameters
     ----------
@@ -214,6 +214,8 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.title("Relative permittivity")
     plt.ylabel("Relative permittivity")
     plt.xlabel('Frequency / Hz')
+    if limits:
+        plt.ylim(limits[0])
     if logscale == 'permittivity' or logscale == 'both':
         plt.yscale('log')
     plt.xscale('log')
@@ -230,6 +232,8 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
 
     plt.title("Conductivity")
     plt.ylabel(r"Conductivity / S$\cdot$m$^{-1}$")
+    if limits:
+        plt.ylim(limits[1])
     plt.xlabel('Frequency / Hz')
     if logscale == 'conductivity' or logscale == 'both':
         plt.yscale('log')

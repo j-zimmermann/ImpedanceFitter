@@ -20,7 +20,7 @@
 from scipy.constants import epsilon_0 as e0
 
 
-def eps_cell(omega, em, km, kcp, ecp, dm, Rc):
+def eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc):
     r"""Single Shell model
 
     Parameters

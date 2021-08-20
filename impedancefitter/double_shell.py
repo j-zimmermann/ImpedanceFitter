@@ -17,7 +17,68 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from scipy.constants import epsilon_0 as e0
+from .suspensionmodels import eps_sus_MW
 
+
+def eps_cell_double_shell(omega, km, em, kcp, ecp, ene, kne, knp, enp, dm, Rc, dn, Rn):
+    r"""Double Shell model.
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+        value for :math:`c_0`, unit capacitance in pF
+    em: double
+        membrane permittivity,membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
+    km: double
+        membrane conductivity,  value for :math:`\sigma_\mathrm{m}` in :math:`\mu`\ S/m
+    ecp: double
+        cytoplasm permittivity,  value for :math:`\varepsilon_\mathrm{cp}`
+    kcp: double
+        cytoplasm conductivity,  value for :math:`\sigma_\mathrm{cp}`
+    ene: double
+        nuclear envelope permittivity,  value for :math:`\varepsilon_\mathrm{ne}`
+    kne: double
+        nuclear envelope conductivity,  value for :math:`\sigma_\mathrm{ne}` in mS/m
+    enp: double
+        nucleoplasm permittivity,  value for :math:`\varepsilon_\mathrm{np}`
+    knp: double
+        nucleoplasm conductivity,  value for :math:`\sigma_\mathrm{np}`
+    dm: double
+        membrane thickness, value for :math:`d_\mathrm{m}`
+    Rc: double
+        cell radius, value for :math:`R_\mathrm{c}`
+    dn: double
+        nuclear envelope thickness, value for :math:`d_\mathrm{n}`
+    Rn: double
+        nucleus radius, value for :math:`R_\mathrm{n}`
+
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Permittivity array
+
+    """
+
+
+    v1 = (1. - dm / Rc)**3
+    v2 = (Rn / (Rc - dm))**3
+    v3 = (1. - dn / Rn)**3
+
+    epsi_m = em + km / (1j * omega * e0)
+    epsi_cp = ecp + kcp / (1j * omega * e0)
+    epsi_ne = ene + kne / (1j * omega * e0)
+    epsi_np = enp + knp / (1j * omega * e0)
+    E3 = epsi_np / epsi_ne
+    E2 = ((epsi_ne / epsi_cp) * (2. * (1. - v3) + (1. + 2. * v3) * E3)
+          / ((2. + v3) + (1. - v3) * E3))
+    E1 = ((epsi_cp / epsi_m) * (2. * (1. - v2) + (1. + 2. * v2) * E2)
+          / ((2. + v2) + (1. - v2) * E2))
+
+    epsi_cell = (epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1)
+                 / ((2. + v1) + (1. - v1) * E1))
+    return epsi_cell
 
 def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, dm, Rc, dn, Rn):
     r"""Double Shell model.
@@ -179,26 +240,10 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
     km *= 1e-6
     kne *= 1e-3
 
-    v1 = (1. - dm / Rc)**3
-    v2 = (Rn / (Rc - dm))**3
-    v3 = (1. - dn / Rn)**3
-
-    epsi_m = em + km / (1j * omega * e0)
-    epsi_cp = ecp + kcp / (1j * omega * e0)
-    epsi_ne = ene + kne / (1j * omega * e0)
-    epsi_np = enp + knp / (1j * omega * e0)
     epsi_med = emed + kmed / (1j * omega * e0)
 
-    E3 = epsi_np / epsi_ne
-    E2 = ((epsi_ne / epsi_cp) * (2. * (1. - v3) + (1. + 2. * v3) * E3)
-          / ((2. + v3) + (1. - v3) * E3))
-    E1 = ((epsi_cp / epsi_m) * (2. * (1. - v2) + (1. + 2. * v2) * E2)
-          / ((2. + v2) + (1. - v2) * E2))
-
-    epsi_cell = (epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1)
-                 / ((2. + v1) + (1. - v1) * E1))
-    E0 = epsi_cell / epsi_med
-    esus = epsi_med * (2. * (1. - p) + (1. + 2. * p) * E0) / ((2. + p) + (1. - p) * E0)
+    epsi_cell = eps_cell_double_shell(omega, km, em, kcp, ecp, ene, kne, knp, enp, dm, Rc, dn, Rn)
+    esus = eps_sus_MW(epsi_med, epsi_cell, p)
     Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
     Z_fit = 1 / Ys
     return Z_fit

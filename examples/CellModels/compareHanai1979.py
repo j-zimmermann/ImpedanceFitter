@@ -1,7 +1,7 @@
 import numpy as np
 import impedancefitter as ifit
-from impedancefitter.bruggemanhanai import bhcubic_eps_single_shell_model, bh_eps_single_shell_model
-from impedancefitter.single_shell import eps_cell, eps_sus
+from impedancefitter.suspensionmodels import bhcubic_eps_single_shell_model, bh_eps_single_shell_model, eps_sus_MW
+from impedancefitter.single_shell import eps_cell_single_shell
 from scipy.constants import epsilon_0 as e0
 
 em = 6.5
@@ -29,9 +29,9 @@ Zcubic = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductiv
 Zint = ifit.utils.convert_diel_properties_to_impedance(omega, eps2_r, conductivity2, c0)
 ifit.plot_dielectric_properties(omega, Zcubic, c0, Z_comp=Zint, labels=["Cubic", "Integral"])
 
-eps_cMW = eps_cell(omega, em, km, kcp, ecp, dm, Rc)
+eps_cMW = eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc)
 epsi_med = emed - 1j * kmed / (e0 * omega)
-esus = eps_sus(epsi_med, eps_cMW, p)
+esus = eps_sus_MW(epsi_med, eps_cMW, p)
 Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
 Z_fit = 1 / Ys
 
@@ -64,7 +64,7 @@ while p < 0.95:
     conductivity = -epsc.imag * e0 * omega
     Zcubic = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductivity - conductivity[0], c0)
     Zcubicfull = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductivity, c0)
-    esus = eps_sus(epsi_med, eps_cMW, p)
+    esus = eps_sus_MW(epsi_med, eps_cMW, p)
     epsMW_r = esus.real
     conductivityMW = -esus.imag * e0 * omega
     Z_fit = ifit.utils.convert_diel_properties_to_impedance(omega, epsMW_r, conductivityMW - conductivityMW[0], c0)
