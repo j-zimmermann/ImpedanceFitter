@@ -18,6 +18,7 @@
 
 
 from scipy.constants import epsilon_0 as e0
+from .suspensionmodels import eps_sus_MW
 
 
 def eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc):
@@ -53,28 +54,6 @@ def eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc):
     E1 = epsi_cp / epsi_m
     epsi_cell = epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1) / ((2. + v1) + (1. - v1) * E1)
     return epsi_cell
-
-
-def eps_sus(epsi_med, epsi_cell, p):
-    r"""Single Shell model
-
-    Parameters
-    -----------
-    epsi_med: :class:`numpy.ndarray`, complex
-        complex permittivities of medium
-    epsi_cell: :class:`numpy.ndarray`, complex
-        complex permittivities of cell (computed from `eps_sus`)
-    p: double
-        volume fraction
-
-    Returns
-    -------
-    :class:`numpy.ndarray`, complex
-        Complex permittivity array
-    """
-
-    return epsi_med * (((2. * epsi_med + epsi_cell) - 2. * p * (epsi_med - epsi_cell))
-                       / ((2. * epsi_med + epsi_cell) + p * (epsi_med - epsi_cell)))
 
 
 def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc):
@@ -171,7 +150,7 @@ def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc):
 
     epsi_med = emed - 1j * kmed / (e0 * omega)
     # electrode polarization and calculation of Z
-    esus = eps_sus(epsi_med, epsi_cell, p)
+    esus = eps_sus_MW(epsi_med, epsi_cell, p)
     Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
     Z_fit = 1 / Ys
 

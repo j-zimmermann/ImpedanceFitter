@@ -17,32 +17,11 @@
 
 
 from scipy.constants import epsilon_0 as e0
-
-
-def eps_sus(epsi_med, epsi_p, p):
-    r"""Single Shell model
-
-    Parameters
-    -----------
-    epsi_med: :class:`numpy.ndarray`, complex
-        complex permittivities of medium
-    epsi_p: :class:`numpy.ndarray`, complex
-        complex permittivities of disperse phase / particles
-    p: double
-        volume fraction
-
-    Returns
-    -------
-    :class:`numpy.ndarray`, complex
-        Complex permittivity array
-    """
-
-    return epsi_med * (((2. * epsi_med + epsi_p) - 2. * p * (epsi_med - epsi_p))
-                       / ((2. * epsi_med + epsi_p) + p * (epsi_med - epsi_p)))
+from .suspensionmodels import eps_sus_MW
 
 
 def particle_model(omega, ep, kp, kmed, emed, p, c0):
-    r"""Single Shell model
+    r"""Single particle in suspension model
 
     Parameters
     -----------
@@ -79,7 +58,7 @@ def particle_model(omega, ep, kp, kmed, emed, p, c0):
 
     epsi_med = emed - 1j * kmed / (e0 * omega)
     epsi_p = ep - 1j * kp / (e0 * omega)
-    esus = eps_sus(epsi_med, epsi_p, p)
+    esus = eps_sus_MW(epsi_med, epsi_p, p)
     Ys = 1j * esus * omega * c0  # suspension admittance spectrum
     Z_fit = 1 / Ys
 

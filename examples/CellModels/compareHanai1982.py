@@ -3,13 +3,13 @@
 # by T. Hanai, T. Imakita, and N. Koizumi
 import numpy as np
 import impedancefitter as ifit
-from impedancefitter.bruggemanhanai import bhcubic_eps_suspension_model
-from impedancefitter.particle_suspension import eps_sus
+from impedancefitter.suspensionmodels import bhcubic_eps_model, eps_sus_MW
 from scipy.constants import epsilon_0 as e0
 
 freq = np.logspace(1, 7)
 omega = 2. * np.pi * freq
 
+# parameters for Hanai model
 kmed = 0.023e-7
 emed = 2.23
 kp = 2.93e-4
@@ -17,12 +17,15 @@ ep = 79.6
 c0 = 1e-12
 p = 0.736
 
-epsc = bhcubic_eps_suspension_model(omega, ep, kp, kmed, emed, p)
+epsi_med = emed - 1j * kmed / (e0 * omega)
+epsi_p = ep - 1j * kp / (e0 * omega)
+
+epsc = bhcubic_eps_model(omega, epsi_med, epsi_p, p)
 eps_r = epsc.real
 conductivity = -epsc.imag * e0 * omega
 Z = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductivity, c0)
 
-
+# parameters for Maxwell-Wagner model
 kmed = 0.023e-7
 emed = 2.23
 kp = 1.28e-4
@@ -32,7 +35,8 @@ p = 0.947
 
 epsi_med = emed - 1j * kmed / (e0 * omega)
 epsi_p = ep - 1j * kp / (e0 * omega)
-epscMW = eps_sus(epsi_med, epsi_p, p)
+
+epscMW = eps_sus_MW(epsi_med, epsi_p, p)
 epsMW_r = epscMW.real
 conductivityMW = -epscMW.imag * e0 * omega
 ZMW = ifit.utils.convert_diel_properties_to_impedance(omega, epsMW_r, conductivityMW, c0)
