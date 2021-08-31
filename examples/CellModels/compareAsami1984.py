@@ -37,14 +37,14 @@ Z_fit = 1 / Ys
 YsDS = 1j * esusDS * omega * c0  # cell suspension admittance spectrum
 ZDS = 1 / YsDS
 
-epsc = bhcubic_eps_model(omega, epsi_med, eps_c, p)
-epsc2 = bh_eps_model(omega, epsi_med, eps_c, p)
+epsc = bhcubic_eps_model(epsi_med, eps_c, p)
+epsc2 = bh_eps_model(epsi_med, eps_c, p)
 eps_r = epsc.real
 conductivity = -epsc.imag * e0 * omega
 eps2_r = epsc2.real
 conductivity2 = -epsc2.imag * e0 * omega
 
-epscDS = bhcubic_eps_model(omega, epsi_med, epsDS_c, p)
+epscDS = bhcubic_eps_model(epsi_med, epsDS_c, p)
 epsDS_r = epscDS.real
 conductivityDS = -epscDS.imag * e0 * omega
 
@@ -69,7 +69,7 @@ doclist = [0, 5e-9, 20e-9, 80e-9]
 for doc in doclist:
     Rn = Rc - dm - doc
     epsDS_c = eps_cell_double_shell(omega, km, em, kcp, ecp, ene, kne, knp, enp, dm, Rc, dn, Rn)
-    epscDS = bhcubic_eps_model(omega, epsi_med, epsDS_c, p)
+    epscDS = bhcubic_eps_model(epsi_med, epsDS_c, p)
     epsDS_r = epscDS.real
     conductivityDS = -epscDS.imag * e0 * omega
     ZDSH = ifit.utils.convert_diel_properties_to_impedance(omega, epsDS_r, conductivityDS, c0)

@@ -46,13 +46,11 @@ def F(root, epsi_p, epsi_med, p):
     return 1. / (1. - p) * (root - epsi_p) / (epsi_med - epsi_p) * (epsi_med / root)**(1. / 3.)
 
 
-def bh_eps_model(omega, epsi_med, epsi_p, p):
+def bh_eps_model(epsi_med, epsi_p, p):
     r"""Complex permittvitiy of double shell model by Bruggeman-Hanai approach
 
     Parameters
     -----------
-    omega: :class:`numpy.ndarray`, double
-        list of frequencies
     epsi_med: :class:`numpy.ndarray`, complex
         Complex permittivity array of medium
     epsi_p: :class:`numpy.ndarray`, complex
@@ -89,7 +87,7 @@ def bh_eps_model(omega, epsi_med, epsi_p, p):
     epsi_sus_n = np.copy(epsi_med)
     # solution
     epsi_sus_n1 = np.zeros(epsi_sus_n.shape, dtype=np.complex128)
-    N = 150.  # use 150 steps, attention: hard-coded!
+    N = 150.  # use N steps, attention: hard-coded!
     h_p = p / N
     for i in range(int(N) + 1):
         epsi_sus_n1 = epsi_sus_n + h_p / (1. - h_p * float(i)) * (3. * epsi_sus_n * (epsi_p - epsi_sus_n)) / (2. * epsi_sus_n + epsi_p)
@@ -98,13 +96,11 @@ def bh_eps_model(omega, epsi_med, epsi_p, p):
 
 
 
-def bhcubic_eps_model(omega, epsi_med, epsi_p, p):
+def bhcubic_eps_model(epsi_med, epsi_p, p):
     r"""Complex permittvitiy of concentrated suspension model by Bruggeman-Hanai approach
 
     Parameters
     -----------
-    omega: :class:`numpy.ndarray`, double
-        list of frequencies
     epsi_med: :class:`numpy.ndarray`, complex
         Complex permittivity array of medium
     epsi_p: :class:`numpy.ndarray`, complex
@@ -130,14 +126,12 @@ def bhcubic_eps_model(omega, epsi_med, epsi_p, p):
         raise RuntimeError("Volume fraction is less than 10%. Use the standard single shell model in this case!")
     """
 
-    epsi_sus = np.zeros(omega.shape, dtype=np.complex128)
-    for i in range(len(omega)):
+    epsi_sus = np.zeros(epsi_med.shape, dtype=np.complex128)
+    for i in range(len(epsi_sus)):
         # Hanai: https://repository.kulib.kyoto-u.ac.jp/dspace/handle/2433/76842
         r1, r2, r3 = get_cubic_roots(-3. * epsi_p[i], (3. * np.power(epsi_p[i], 2.) + np.power((p - 1.) * (epsi_med[i] - epsi_p[i]), 3.) / epsi_med[i]), -np.power(epsi_p[i], 3.))
-        # print(r1, r2, r3)
         for r in [r1, r2, r3]:
             Fvalue = F(r, epsi_p[i], epsi_med[i], p)
-            # print(Fvalue)
             if np.isclose(Fvalue.real, 1):
                 epsi_sus[i] = r
                 continue

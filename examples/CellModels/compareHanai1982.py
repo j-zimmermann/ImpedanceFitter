@@ -20,7 +20,7 @@ p = 0.736
 epsi_med = emed - 1j * kmed / (e0 * omega)
 epsi_p = ep - 1j * kp / (e0 * omega)
 
-epsc = bhcubic_eps_model(omega, epsi_med, epsi_p, p)
+epsc = bhcubic_eps_model(epsi_med, epsi_p, p)
 eps_r = epsc.real
 conductivity = -epsc.imag * e0 * omega
 Z = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductivity, c0)
