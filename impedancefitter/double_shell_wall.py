@@ -18,12 +18,12 @@
 
 from scipy.constants import epsilon_0 as e0
 from .suspensionmodels import eps_sus_MW
-from .single_shell import eps_cell_single_shell
+from .double_shell import eps_cell_double_shell
 
 
 
-def eps_cell_single_shell_wall(omega, em, km, kcp, ecp, ew, kw, dm, Rc, dw):
-    r"""Single shell model with cell wall
+def eps_cell_double_shell_wall(omega, km, em, kcp, ecp, ene, kne, knp, enp, kw, ew, dm, Rc, dn, Rn, dw):
+    r"""Double shell model with cell wall
 
     Parameters
     -----------
@@ -46,7 +46,7 @@ def eps_cell_single_shell_wall(omega, em, km, kcp, ecp, ew, kw, dm, Rc, dw):
     Rc: double
         cell radius, value for :math:`R_\mathrm{c}`
     dw: double
-        cell wall thickness, value for :math:`R_\mathrm{c}`
+        cell wall thickness, value for :math:`d_\mathrm{w}`
 
     Returns
     -------
@@ -62,7 +62,7 @@ def eps_cell_single_shell_wall(omega, em, km, kcp, ecp, ew, kw, dm, Rc, dw):
     w = (1. - dw / (Rc + dw))
 
     epsi_w = ew - 1j * kw / (e0 * omega)
-    epsi_p = eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc)
+    epsi_p = eps_cell_double_shell(omega, km, em, kcp, ecp, ene, kne, knp, enp, dm, Rc, dn, Rn)
     # model
     epsi_cell = epsi_w * ((2. * epsi_w + epsi_p - 2. * w * (epsi_w - epsi_p))
                           / (2. * epsi_w + epsi_p + w * (epsi_w - epsi_p)))

@@ -1,4 +1,4 @@
-# Figure 2
+# Figure 3
 
 import numpy as np
 import impedancefitter as ifit
@@ -6,19 +6,21 @@ from impedancefitter.suspensionmodels import bhcubic_eps_model, bh_eps_model, ep
 from impedancefitter.single_shell_wall import eps_cell_single_shell_wall
 from scipy.constants import epsilon_0 as e0
 
-em = 5.
-dw = 250e-9
-Rc = 2.75e-6 - dw
+Cm = 0.01
 dm = 7e-9
+em = Cm * dm / e0 
+print("Membrane permittivity: ", em)
+Rc = .64e-6
 km = 0.0
-kcp = 0.5
-ecp = 50
+kcp = 0.3
+ecp = 60
 kmed = 0.3
 emed = 78.
 c0 = 1e-12
-p = 0.5
+p = 0.4
 ew = 60
 kw= 1.0 * kmed
+dw = (0.7 - 0.64) * 1e-6
 
 freq = np.logspace(5, 9, num=100)
 omega = 2. * np.pi * freq
@@ -35,7 +37,7 @@ eps_r = epsc.real
 conductivity = -epsc.imag * e0 * omega
 Zcubic = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductivity, c0)
 
-ifit.plot_dielectric_properties(omega, Zcubic, c0, Z_comp=Z_fit, labels=["Cubic", "MW"], limits=[(50, 3000), (0.05, 0.5)])
+ifit.plot_dielectric_properties(omega, Zcubic, c0, Z_comp=Z_fit, labels=["Cubic", "MW"], limits=[(20, 1000), (0.02, 1.0)], logscale="both")
 
 kwlist = [1.0 * kmed, 0.25 * kmed, 0.1 * kmed]
 for kw in kwlist:
@@ -54,4 +56,4 @@ for kw in kwlist:
     else:
         append = True
         show = False
-    ifit.plot_dielectric_properties(omega, Z, c0, labels=[label, ""], limits=[(50, 3000), (0.05, .5)], append=append, show=show)
+    ifit.plot_dielectric_properties(omega, Z, c0, labels=[label, ""], append=append, show=show, logscale="both")

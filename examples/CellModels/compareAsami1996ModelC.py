@@ -3,28 +3,35 @@
 import numpy as np
 import impedancefitter as ifit
 from impedancefitter.suspensionmodels import bhcubic_eps_model, bh_eps_model, eps_sus_MW
-from impedancefitter.single_shell_wall import eps_cell_single_shell_wall
+from impedancefitter.double_shell_wall import eps_cell_double_shell_wall
 from scipy.constants import epsilon_0 as e0
 
 em = 5.
+R0 = 2.75e-6
 dw = 250e-9
 Rc = 2.75e-6 - dw
 dm = 7e-9
 km = 0.0
 kcp = 0.5
 ecp = 50
+ene = 5
+kne = 0
+knp = 1.0
+enp = 50
 kmed = 0.3
 emed = 78.
 c0 = 1e-12
 p = 0.5
 ew = 60
 kw= 1.0 * kmed
+dn = 7e-9
+Rn = 0.3 * Rc
 
 freq = np.logspace(5, 9, num=100)
 omega = 2. * np.pi * freq
 
 # cell permittivities
-eps_c = eps_cell_single_shell_wall(omega, em, km, kcp, ecp, ew, kw, dm, Rc, dw)
+eps_c = eps_cell_double_shell_wall(omega, km, em, kcp, ecp, ene, kne, knp, enp, kw, ew, dm, Rc, dn, Rn, dw)
 epsi_med = emed - 1j * kmed / (e0 * omega)
 esus = eps_sus_MW(epsi_med, eps_c, p)
 Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
@@ -37,9 +44,9 @@ Zcubic = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductiv
 
 ifit.plot_dielectric_properties(omega, Zcubic, c0, Z_comp=Z_fit, labels=["Cubic", "MW"], limits=[(50, 3000), (0.05, 0.5)])
 
-kwlist = [1.0 * kmed, 0.25 * kmed, 0.1 * kmed]
-for kw in kwlist:
-    eps_c = eps_cell_single_shell_wall(omega, em, km, kcp, ecp, ew, kw, dm, Rc, dw)
+Rnlist = [1e-9, 0.3 * Rc, 0.5 * Rc]
+for Rn in Rnlist:
+    eps_c = eps_cell_double_shell_wall(omega, km, em, kcp, ecp, ene, kne, knp, enp, kw, ew, dm, Rc, dn, Rn, dw)
     epsi_med = emed - 1j * kmed / (e0 * omega)
     epsc = bhcubic_eps_model(epsi_med, eps_c, p)
     # epsc = eps_sus_MW(epsi_med, eps_c, p)
@@ -47,8 +54,8 @@ for kw in kwlist:
     conductivity = -epsc.imag * e0 * omega
 
     Z = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductivity, c0)
-    label = "{:.2f}".format(kw / kmed)
-    if np.isclose(kw, kwlist[-1]):
+    label = "{:.2f}".format(Rn / Rc)
+    if np.isclose(Rn, Rnlist[-1]):
         append = False
         show = True
     else:
