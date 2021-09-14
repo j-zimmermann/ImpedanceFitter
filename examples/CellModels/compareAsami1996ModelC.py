@@ -2,7 +2,7 @@
 
 import numpy as np
 import impedancefitter as ifit
-from impedancefitter.suspensionmodels import bhcubic_eps_model, bh_eps_model, eps_sus_MW
+from impedancefitter.suspensionmodels import bhcubic_eps_model, eps_sus_MW
 from impedancefitter.double_shell_wall import eps_cell_double_shell_wall
 from scipy.constants import epsilon_0 as e0
 
@@ -23,7 +23,7 @@ emed = 78.
 c0 = 1e-12
 p = 0.5
 ew = 60
-kw= 1.0 * kmed
+kw = 1.0 * kmed
 dn = 7e-9
 Rn = 0.3 * Rc
 
@@ -31,7 +31,7 @@ freq = np.logspace(5, 9, num=100)
 omega = 2. * np.pi * freq
 
 # cell permittivities
-eps_c = eps_cell_double_shell_wall(omega, km, em, kcp, ecp, ene, kne, knp, enp, kw, ew, dm, Rc, dn, Rn, dw)
+eps_c = eps_cell_double_shell_wall(omega, km, em, kcp, ecp, kne, ene, knp, enp, kw, ew, dm, Rc, dn, Rn, dw)
 epsi_med = emed - 1j * kmed / (e0 * omega)
 esus = eps_sus_MW(epsi_med, eps_c, p)
 Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
@@ -46,7 +46,7 @@ ifit.plot_dielectric_properties(omega, Zcubic, c0, Z_comp=Z_fit, labels=["Cubic"
 
 Rnlist = [1e-9, 0.3 * Rc, 0.5 * Rc]
 for Rn in Rnlist:
-    eps_c = eps_cell_double_shell_wall(omega, km, em, kcp, ecp, ene, kne, knp, enp, kw, ew, dm, Rc, dn, Rn, dw)
+    eps_c = eps_cell_double_shell_wall(omega, km, em, kcp, ecp, kne, ene, knp, enp, kw, ew, dm, Rc, dn, Rn, dw)
     epsi_med = emed - 1j * kmed / (e0 * omega)
     epsc = bhcubic_eps_model(epsi_med, eps_c, p)
     # epsc = eps_sus_MW(epsi_med, eps_c, p)

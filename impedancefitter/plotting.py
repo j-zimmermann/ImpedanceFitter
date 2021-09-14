@@ -643,7 +643,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
                              limits=limits_residual, legend=legend)
     plt.tight_layout()
     if save and not append:
-        plt.savefig(str(title).replace(" ", "_") + "_impedance_overview.pdf")
+        cleantitle = str(title).replace(" ", "_").replace("/", "")
+        plt.savefig(cleantitle + "_impedance_overview.pdf")
     if show:
         plt.show()
     elif not show and not append:

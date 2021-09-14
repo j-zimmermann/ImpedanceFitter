@@ -21,7 +21,7 @@ omega = 2. * np.pi * freq
 
 epsi_med = emed - 1j * kmed / (e0 * omega)
 
-eps_cMW = eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc)
+eps_cMW = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
 epsc = bhcubic_eps_model(epsi_med, eps_cMW, p)
 
 epsc2 = bh_eps_model(epsi_med, eps_cMW, p)
@@ -50,7 +50,7 @@ print("done")
 p = 0.1
 while p < 0.95:
     print(p)
-    eps_cMW = eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc)
+    eps_cMW = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
     epsc = bhcubic_eps_model(epsi_med, eps_cMW, p)
     eps_r = epsc.real
     conductivity = -epsc.imag * e0 * omega
@@ -63,7 +63,7 @@ while p < 0.95:
 p = 0.05
 while p < 0.95:
     print(p)
-    eps_cMW = eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc)
+    eps_cMW = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
     epsc = bhcubic_eps_model(epsi_med, eps_cMW, p)
     eps_r = epsc.real
     conductivity = -epsc.imag * e0 * omega

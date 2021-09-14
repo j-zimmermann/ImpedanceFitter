@@ -20,15 +20,15 @@ kne = 1e-6
 ene = 10.
 knp = 1.0
 enp = 80.
-doc = 0.0 # Rc 
+doc = 0.0  # Rc
 Rn = Rc - dm - doc
 
 freq = np.logspace(4, 9, num=100)
 omega = 2. * np.pi * freq
 
 # cell permittivities
-epsDS_c = eps_cell_double_shell(omega, km, em, kcp, ecp, ene, kne, knp, enp, dm, Rc, dn, Rn)
-eps_c = eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc)
+epsDS_c = eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn)
+eps_c = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
 epsi_med = emed - 1j * kmed / (e0 * omega)
 esus = eps_sus_MW(epsi_med, eps_c, p)
 esusDS = eps_sus_MW(epsi_med, epsDS_c, p)
@@ -68,7 +68,7 @@ doclist = [0, 5e-9, 20e-9, 80e-9]
 
 for doc in doclist:
     Rn = Rc - dm - doc
-    epsDS_c = eps_cell_double_shell(omega, km, em, kcp, ecp, ene, kne, knp, enp, dm, Rc, dn, Rn)
+    epsDS_c = eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn)
     epscDS = bhcubic_eps_model(epsi_med, epsDS_c, p)
     epsDS_r = epscDS.real
     conductivityDS = -epscDS.imag * e0 * omega

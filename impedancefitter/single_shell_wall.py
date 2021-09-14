@@ -17,12 +17,10 @@
 
 
 from scipy.constants import epsilon_0 as e0
-from .suspensionmodels import eps_sus_MW
 from .single_shell import eps_cell_single_shell
 
 
-
-def eps_cell_single_shell_wall(omega, em, km, kcp, ecp, ew, kw, dm, Rc, dw):
+def eps_cell_single_shell_wall(omega, km, em, kcp, ecp, kw, ew, dm, Rc, dw):
     r"""Single shell model with cell wall
 
     Parameters
@@ -62,7 +60,7 @@ def eps_cell_single_shell_wall(omega, em, km, kcp, ecp, ew, kw, dm, Rc, dw):
     w = (1. - dw / (Rc + dw))
 
     epsi_w = ew - 1j * kw / (e0 * omega)
-    epsi_p = eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc)
+    epsi_p = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
     # model
     epsi_cell = epsi_w * ((2. * epsi_w + epsi_p - 2. * w * (epsi_w - epsi_p))
                           / (2. * epsi_w + epsi_p + w * (epsi_w - epsi_p)))

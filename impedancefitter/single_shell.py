@@ -21,7 +21,7 @@ from scipy.constants import epsilon_0 as e0
 from .suspensionmodels import eps_sus_MW
 
 
-def eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc):
+def eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc):
     r"""Single Shell model
 
     Parameters
@@ -56,7 +56,7 @@ def eps_cell_single_shell(omega, em, km, kcp, ecp, dm, Rc):
     return epsi_cell
 
 
-def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc):
+def single_shell_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
     r"""Single Shell model
 
     Parameters
@@ -146,7 +146,7 @@ def single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc):
     km *= 1e-6
 
     # cell model
-    epsi_cell = eps_cell(omega, em, km, kcp, ecp, dm, Rc)
+    epsi_cell = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
 
     epsi_med = emed - 1j * kmed / (e0 * omega)
     # electrode polarization and calculation of Z

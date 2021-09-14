@@ -911,7 +911,7 @@ class Fitter(object):
                            limits_residual=limits_residual)
         return fit_output
 
-    def plot_initial_best_fit(self, sequential=False):
+    def plot_initial_best_fit(self, sequential=False, save=False, show=True):
         """Plot initial and best fit together.
 
         This method reveals how good the initial fit was.
@@ -929,8 +929,8 @@ class Fitter(object):
             else:
                 Z_fit = self.fittedValues.best_fit
                 Z_init = self.fittedValues.init_fit
-            plot_impedance(self.omega, self.Z, "", Z_fit=Z_fit,
-                           show=True, save=False, Z_comp=Z_init)
+            plot_impedance(self.omega, self.Z, "Comparison of initial and best fit", Z_fit=Z_fit,
+                           show=show, save=save, Z_comp=Z_init)
         else:
             for i in range(2):
                 Z_fit = getattr(self, "fittedValues" + str(i + 1)).best_fit
@@ -939,7 +939,7 @@ class Fitter(object):
                     Z_fit = np.power(10, Z_fit)
                     Z_init = np.power(10, Z_init)
                 plot_impedance(self.omega, self.Z, "", Z_fit=Z_fit,
-                               show=True, save=False, Z_comp=Z_init)
+                               show=show, save=save, Z_comp=Z_init)
 
     def cluster_emcee_result(self, constant=1e2, show=False):
         r"""Apply clustering to eliminate low-probability samples.

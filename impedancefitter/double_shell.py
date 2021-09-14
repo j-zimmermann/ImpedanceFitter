@@ -20,7 +20,7 @@ from scipy.constants import epsilon_0 as e0
 from .suspensionmodels import eps_sus_MW
 
 
-def eps_cell_double_shell(omega, km, em, kcp, ecp, ene, kne, knp, enp, dm, Rc, dn, Rn):
+def eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn):
     r"""Double Shell model.
 
     Parameters
@@ -242,7 +242,7 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
 
     epsi_med = emed + kmed / (1j * omega * e0)
 
-    epsi_cell = eps_cell_double_shell(omega, km, em, kcp, ecp, ene, kne, knp, enp, dm, Rc, dn, Rn)
+    epsi_cell = eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn)
     esus = eps_sus_MW(epsi_med, epsi_cell, p)
     Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
     Z_fit = 1 / Ys

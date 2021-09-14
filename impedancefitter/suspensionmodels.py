@@ -16,9 +16,9 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from scipy.constants import epsilon_0 as e0
 from .cubic_roots import get_cubic_roots
 import numpy as np
+
 
 def eps_sus_MW(epsi_med, epsi_p, p):
     r"""Maxwell-Wagner mixture model for dilute suspensions
@@ -67,6 +67,9 @@ def bh_eps_model(epsi_med, epsi_p, p):
     -----
 
     The implementation follows [Cottet2019]_.
+    Note that the approach here might not be numerically
+    as accurate as the cubic equation solver.
+    In the respective unit test, the deviation is below 1%, though.
 
     References
     ----------
@@ -80,20 +83,16 @@ def bh_eps_model(epsi_med, epsi_p, p):
     :meth:`impedancefitter.double_shell.double_shell_model`
     """
 
-    if p < 0.1:
-        raise RuntimeError("Volume fraction is less than 10%. Use the standard double shell model in this case!")
-
     # initial values
     epsi_sus_n = np.copy(epsi_med)
     # solution
     epsi_sus_n1 = np.zeros(epsi_sus_n.shape, dtype=np.complex128)
-    N = 150.  # use N steps, attention: hard-coded!
+    N = 200.  # use N steps, attention: hard-coded!
     h_p = p / N
     for i in range(int(N) + 1):
         epsi_sus_n1 = epsi_sus_n + h_p / (1. - h_p * float(i)) * (3. * epsi_sus_n * (epsi_p - epsi_sus_n)) / (2. * epsi_sus_n + epsi_p)
         epsi_sus_n = epsi_sus_n1
     return epsi_sus_n
-
 
 
 def bhcubic_eps_model(epsi_med, epsi_p, p):
@@ -119,11 +118,6 @@ def bhcubic_eps_model(epsi_med, epsi_p, p):
     References
     ----------
 
-    """
-
-    """
-    if p < 0.1:
-        raise RuntimeError("Volume fraction is less than 10%. Use the standard single shell model in this case!")
     """
 
     epsi_sus = np.zeros(epsi_med.shape, dtype=np.complex128)
