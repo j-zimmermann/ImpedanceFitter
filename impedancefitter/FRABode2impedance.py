@@ -172,7 +172,8 @@ def readBodeRuS(filename):
                 else:
                     pass
 
-    return np.array(Frequency), np.array(Gain), np.array(Phase)
+    # Note: take negative of phase
+    return np.array(Frequency), np.array(Gain), -np.array(Phase)
 
 
 def wrapPhase(phase):
