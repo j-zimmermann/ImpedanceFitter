@@ -36,6 +36,17 @@ def eps_sus_MW(epsi_med, epsi_p, p):
     -------
     :class:`numpy.ndarray`, complex
         Complex permittivity array
+
+    Notes
+    -----
+
+    The complex permittivity of the suspension $\varepsilon_\mathrm{sus}^\ast$ is given by
+
+    .. math::
+        \varepsilon_\mathrm{sus}^\ast = \varepsilon_\mathrm{med}^\ast\frac{(2\varepsilon_\mathrm{med}^\ast+\varepsilon_\mathrm{p}^\ast)-2p(\varepsilon_\mathrm{med}^\ast-\varepsilon_\mathrm{p}^\ast)}{(2\varepsilon_\mathrm{med}^\ast+\varepsilon_\mathrm{p}^\ast)+p(\varepsilon_\mathrm{med}^\ast-\varepsilon_\mathrm{p}^\ast)} \enspace ,
+
+    with $\varepsilon_\mathrm{med}^\ast$ being the permittivity of the liquid medium and $\varepsilon_\mathrm{p}^\ast$ the permittivity of the suspended particle (e.g., cells).
+
     """
 
     return epsi_med * (((2. * epsi_med + epsi_p) - 2. * p * (epsi_med - epsi_p))
@@ -68,7 +79,7 @@ def bh_eps_model(epsi_med, epsi_p, p):
 
     The implementation follows [Cottet2019]_.
     Note that the approach here might not be numerically
-    as accurate as the cubic equation solver.
+    as accurate as the cubic equation solver (:meth:`impedancefitter.suspensionmodels.bhcubic_eps_model`).
     In the respective unit test, the deviation is below 1%, though.
 
     References
@@ -80,7 +91,8 @@ def bh_eps_model(epsi_med, epsi_p, p):
 
     See Also
     --------
-    :meth:`impedancefitter.double_shell.double_shell_model`
+    :meth:`impedancefitter.suspensionmodels.bhcubic_eps_model`
+
     """
 
     # initial values
@@ -115,8 +127,33 @@ def bhcubic_eps_model(epsi_med, epsi_p, p):
     Notes
     -----
 
+    The complex permittivity of the suspension $\varepsilon_\mathrm{sus}^\ast$ is given by [Hanai1979]_
+
+    .. math::
+        \frac{\varepsilon_\mathrm{sus}^\ast - \varepsilon_\mathrm{p}^\ast}{\varepsilon_\mathrm{med}^\ast - \varepsilon_\mathrm{p}^\ast} \left(\frac{\varepsilon_\mathrm{med}^\ast}{\varepsilon_\mathrm{sus}^\ast}\right)^{1/3} = 1 - p \enspace ,
+
+    with $\varepsilon_\mathrm{med}^\ast$ being the permittivity of the liquid medium and $\varepsilon_\mathrm{p}^\ast$ the permittivity of the suspended particle (e.g., cells).
+
+    Cubing the equation yields a cubic equation.
+    The cubic roots (three in total) are the possible solutions for the complex permittivity
+    of the suspension. Only one of them is physical, which can be found by substituting
+    the cubic roots into another function [Hanai1979]_.
+
+    A numerical solution is implemented in
+    :meth:`impedancefitter.suspensionmodels.bh_eps_model`
+
     References
     ----------
+
+    .. [Hanai1979] Hanai, T., Asami, K., & Korzumi, N. (1979).
+                   Dielectric Theory of Concentrated Suspensions of Shell-Spheres in Particular Reference to the Analysis of Biological Cell Suspensions.
+                   Bull. Inst. Chem. Res., Kyoto Univ, 57(4), 297–305.
+                   http://hdl.handle.net/2433/76842
+
+    See Also
+    --------
+
+    :meth:`impedancefitter.suspensionmodels.bh_eps_model`
 
     """
 
