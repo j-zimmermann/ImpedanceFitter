@@ -18,10 +18,11 @@
 
 from scipy.constants import epsilon_0 as e0
 from .double_shell import eps_cell_double_shell
+from .suspensionmodels import eps_sus_MW, bhcubic_eps_model
 
 
 def eps_cell_double_shell_wall(omega, km, em, kcp, ecp, kne, ene, knp, enp, kw, ew, dm, Rc, dn, Rn, dw):
-    r"""Double shell model with cell wall
+    r"""Complex permittivity of double shell model with cell wall
 
     Parameters
     -----------
@@ -65,3 +66,154 @@ def eps_cell_double_shell_wall(omega, km, em, kcp, ecp, kne, ene, knp, enp, kw, 
     epsi_cell = epsi_w * ((2. * epsi_w + epsi_p - 2. * w * (epsi_w - epsi_p))
                           / (2. * epsi_w + epsi_p + w * (epsi_w - epsi_p)))
     return epsi_cell
+
+
+def double_shell_wall_model(omega, km, em, kcp, ecp, kne, ene, knp, enp, kw, ew, kmed, emed, p, c0, dm, Rc, dn, Rn, dw):
+    r"""Impedance of double shell model with cell wall
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for :math:`c_0`, unit capacitance in pF
+    em: double
+        membrane permittivity,membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
+    km: double
+        membrane conductivity,  value for :math:`\sigma_\mathrm{m}` in :math:`\mu`\ S/m
+    ecp: double
+        cytoplasm permittivity,  value for :math:`\varepsilon_\mathrm{cp}`
+    kcp: double
+        cytoplasm conductivity,  value for :math:`\sigma_\mathrm{cp}`
+    ene: double
+        nuclear envelope permittivity,  value for :math:`\varepsilon_\mathrm{ne}`
+    kne: double
+        nuclear envelope conductivity,  value for :math:`\sigma_\mathrm{ne}` in mS/m
+    enp: double
+        nucleoplasm permittivity,  value for :math:`\varepsilon_\mathrm{np}`
+    knp: double
+        nucleoplasm conductivity,  value for :math:`\sigma_\mathrm{np}`
+    kw: double
+        cell wall conductivity,  value for :math:`\sigma_\mathrm{w}` in S/m
+    ew: double
+        cell wall permittivity,  value for :math:`\varepsilon_\mathrm{w}`
+    emed: double
+        medium permittivity,  value for :math:`\varepsilon_\mathrm{med}`
+    kmed: double
+        medium conductivity,  value for :math:`\sigma_\mathrm{med}`
+    p: double
+        volume fraction
+    dm: double
+        membrane thickness, value for :math:`d_\mathrm{m}`
+    Rc: double
+        cell radius, value for :math:`R_\mathrm{c}`
+    dn: double
+        nuclear envelope thickness, value for :math:`d_\mathrm{n}`
+    Rn: double
+        nucleus radius, value for :math:`R_\mathrm{n}`
+    dw: double
+        cell wall thickness
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+
+    .. warning::
+
+        The unit capacitance is in pF!
+
+    """
+
+    c0 *= 1e-12
+    km *= 1e-6
+    kne *= 1e-3
+
+    epsi_med = emed + kmed / (1j * omega * e0)
+
+    epsi_cell = eps_cell_double_shell_wall(omega, km, em, kcp, ecp, kne, ene, knp, enp, kw, ew, dm, Rc, dn, Rn, dw)
+    esus = eps_sus_MW(epsi_med, epsi_cell, p)
+    Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
+    Z_fit = 1 / Ys
+    return Z_fit
+
+
+def double_shell_wall_bh_model(omega, km, em, kcp, ecp, kne, ene, knp, enp, kw, ew, kmed, emed, p, c0, dm, Rc, dn, Rn, dw):
+    r"""Impedance of double shell model with cell wall using Bruggeman-Hanai approach
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for :math:`c_0`, unit capacitance in pF
+    em: double
+        membrane permittivity,membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
+    km: double
+        membrane conductivity,  value for :math:`\sigma_\mathrm{m}` in :math:`\mu`\ S/m
+    ecp: double
+        cytoplasm permittivity,  value for :math:`\varepsilon_\mathrm{cp}`
+    kcp: double
+        cytoplasm conductivity,  value for :math:`\sigma_\mathrm{cp}`
+    ene: double
+        nuclear envelope permittivity,  value for :math:`\varepsilon_\mathrm{ne}`
+    kne: double
+        nuclear envelope conductivity,  value for :math:`\sigma_\mathrm{ne}` in mS/m
+    kw: double
+        cell wall conductivity,  value for :math:`\sigma_\mathrm{w}` in S/m
+    ew: double
+        cell wall permittivity,  value for :math:`\varepsilon_\mathrm{w}`
+    enp: double
+        nucleoplasm permittivity,  value for :math:`\varepsilon_\mathrm{np}`
+    knp: double
+        nucleoplasm conductivity,  value for :math:`\sigma_\mathrm{np}`
+    emed: double
+        medium permittivity,  value for :math:`\varepsilon_\mathrm{med}`
+    kmed: double
+        medium conductivity,  value for :math:`\sigma_\mathrm{med}`
+    p: double
+        volume fraction
+    dm: double
+        membrane thickness, value for :math:`d_\mathrm{m}`
+    Rc: double
+        cell radius, value for :math:`R_\mathrm{c}`
+    dn: double
+        nuclear envelope thickness, value for :math:`d_\mathrm{n}`
+    Rn: double
+        nucleus radius, value for :math:`R_\mathrm{n}`
+    dw: double
+        wall thickness
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+
+    .. warning::
+
+        The unit capacitance is in pF!
+
+    Note that here the Bruggeman-Hanai formula is used.
+
+    See Also
+    --------
+    :meth:`impedancefitter.double_shell.double_shell_model`
+    """
+
+    c0 *= 1e-12
+    km *= 1e-6
+    kne *= 1e-3
+
+    epsi_med = emed + kmed / (1j * omega * e0)
+
+    epsi_cell = eps_cell_double_shell_wall(omega, km, em, kcp, ecp, kne, ene, knp, enp, kw, ew, dm, Rc, dn, Rn, dw)
+    esus = bhcubic_eps_model(epsi_med, epsi_cell, p)
+    Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
+    Z_fit = 1 / Ys
+    return Z_fit

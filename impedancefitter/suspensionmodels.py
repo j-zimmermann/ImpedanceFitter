@@ -40,12 +40,12 @@ def eps_sus_MW(epsi_med, epsi_p, p):
     Notes
     -----
 
-    The complex permittivity of the suspension $\varepsilon_\mathrm{sus}^\ast$ is given by
+    The complex permittivity of the suspension :math:`\varepsilon_\mathrm{sus}^\ast` is given by
 
     .. math::
         \varepsilon_\mathrm{sus}^\ast = \varepsilon_\mathrm{med}^\ast\frac{(2\varepsilon_\mathrm{med}^\ast+\varepsilon_\mathrm{p}^\ast)-2p(\varepsilon_\mathrm{med}^\ast-\varepsilon_\mathrm{p}^\ast)}{(2\varepsilon_\mathrm{med}^\ast+\varepsilon_\mathrm{p}^\ast)+p(\varepsilon_\mathrm{med}^\ast-\varepsilon_\mathrm{p}^\ast)} \enspace ,
 
-    with $\varepsilon_\mathrm{med}^\ast$ being the permittivity of the liquid medium and $\varepsilon_\mathrm{p}^\ast$ the permittivity of the suspended particle (e.g., cells).
+    with :math:`\varepsilon_\mathrm{med}^\ast` being the permittivity of the liquid medium and :math:`\varepsilon_\mathrm{p}^\ast` the permittivity of the suspended particle (e.g., cells).
 
     """
 
@@ -86,11 +86,12 @@ def bh_eps_model(epsi_med, epsi_p, p):
     ----------
 
     .. [Cottet2019] Cottet, J., Fabregue, O., Berger, C., Buret, F., Renaud, P., & Frénéa-Robin, M. (2019).
-    MyDEP: A New Computational Tool for Dielectric Modeling of Particles and Cells. Biophysical Journal, 116(1), 12–18.
-    https://doi.org/10.1016/j.bpj.2018.11.021
+                    MyDEP: A New Computational Tool for Dielectric Modeling of Particles and Cells. Biophysical Journal, 116(1), 12–18.
+                    https://doi.org/10.1016/j.bpj.2018.11.021
 
     See Also
     --------
+
     :meth:`impedancefitter.suspensionmodels.bhcubic_eps_model`
 
     """
@@ -127,12 +128,12 @@ def bhcubic_eps_model(epsi_med, epsi_p, p):
     Notes
     -----
 
-    The complex permittivity of the suspension $\varepsilon_\mathrm{sus}^\ast$ is given by [Hanai1979]_
+    The complex permittivity of the suspension :math:`\varepsilon_\mathrm{sus}^\ast` is given by [Hanai1979]_
 
     .. math::
         \frac{\varepsilon_\mathrm{sus}^\ast - \varepsilon_\mathrm{p}^\ast}{\varepsilon_\mathrm{med}^\ast - \varepsilon_\mathrm{p}^\ast} \left(\frac{\varepsilon_\mathrm{med}^\ast}{\varepsilon_\mathrm{sus}^\ast}\right)^{1/3} = 1 - p \enspace ,
 
-    with $\varepsilon_\mathrm{med}^\ast$ being the permittivity of the liquid medium and $\varepsilon_\mathrm{p}^\ast$ the permittivity of the suspended particle (e.g., cells).
+    with :math:`\varepsilon_\mathrm{med}^\ast` being the permittivity of the liquid medium and :math:`\varepsilon_\mathrm{p}^\ast` the permittivity of the suspended particle (e.g., cells).
 
     Cubing the equation yields a cubic equation.
     The cubic roots (three in total) are the possible solutions for the complex permittivity

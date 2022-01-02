@@ -36,11 +36,14 @@ from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo, eps
 from .loss import Z_in, Z_loss, Z_skin
 from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model, havriliak_negami, cole_cole_2tissue_model, havriliak_negamitissue, raicu
-from .double_shell import double_shell_model
 from .randles import Z_randles, Z_randles_CPE
 from .RC import RC_model, rc_model, drc_model, rc_tau_model
 from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model, cpe_onset_model, cpetissue_model, cpe_ct_tissue_model
-from .single_shell import single_shell_model
+from .particle_suspension import particle_model, particle_bh_model
+from .single_shell import single_shell_model, single_shell_bh_model
+from .single_shell_wall import single_shell_wall_model, single_shell_wall_bh_model
+from .double_shell import double_shell_model, double_shell_bh_model
+from .double_shell_wall import double_shell_wall_model, double_shell_wall_bh_model
 from lmfit import Model, CompositeModel
 from copy import deepcopy
 from packaging import version
@@ -475,7 +478,7 @@ def get_labels(params):
 
 
 def available_models():
-    """return list of available models
+    """Return list of available models
     """
     models = ['ColeCole',
               'ColeColeR',
@@ -488,8 +491,16 @@ def available_models():
               'RandlesCPE',
               'RCfull',
               'RC',
+              'ParticleSuspension',
+              'ParticleSuspensionBH',
               'SingleShell',
+              'SingleShellBH',
+              'SingleShellWall',
+              'SingleShellWallBH',
               'DoubleShell',
+              'DoubleShellBH',
+              'DoubleShellWall',
+              'DoubleShellWallBH',
               'CPE',
               'CPEonset',
               'CPECT',
@@ -587,10 +598,26 @@ def _model_function(modelname):
         model = rc_model
     elif modelname == 'RCtau':
         model = rc_tau_model
+    elif modelname == 'ParticleSuspension':
+        model = particle_model
+    elif modelname == 'ParticleSuspensionBH':
+        model = particle_bh_model
     elif modelname == 'SingleShell':
         model = single_shell_model
+    elif modelname == 'SingleShellWall':
+        model = single_shell_wall_model
+    elif modelname == 'SingleShellWallBH':
+        model = single_shell_wall_bh_model
+    elif modelname == 'SingleShellBH':
+        model = single_shell_bh_model
     elif modelname == 'DoubleShell':
         model = double_shell_model
+    elif modelname == 'DoubleShellWall':
+        model = double_shell_wall_model
+    elif modelname == 'DoubleShellWallBH':
+        model = double_shell_wall_bh_model
+    elif modelname == 'DoubleShellBH':
+        model = double_shell_bh_model
     elif modelname == 'CPE':
         model = cpe_model
     elif modelname == 'CPETissue':
@@ -871,8 +898,16 @@ def _model_label(model):
               'RandlesCPE': 'Randles w/ CPE',
               'RCfull': 'RC',
               'RC': 'RC micro',
+              'ParticleSuspension': 'Particle suspension',
+              'ParticleSuspensionBH': 'Particle suspension Bruggeman Hanai',
               'SingleShell': 'Single Shell',
-              'DoubleShell': 'DoubleShell',
+              'SingleShellBH': 'Single Shell Bruggeman Hanai',
+              'SingleShellWall': 'Single Shell Wall',
+              'SingleShellWallBH': 'Single Shell Wall Bruggeman Hanai',
+              'DoubleShell': 'Double Shell',
+              'DoubleShellBH': 'Double Shell Bruggeman Hanai',
+              'DoubleShellWall': 'Double Shell Wall',
+              'DoubleShellWallBH': 'Double Shell Wall Bruggeman Hanai',
               'CPE': 'CPE',
               'CPETissue': 'CPE for tissues',
               'CPEonset': 'CPEonset',
@@ -912,8 +947,17 @@ def _get_element(name):
                     'RCfull',
                     'RC',
                     'DRC',
+                    'ParticleSuspension',
+                    'ParticleSuspensionBH',
                     'SingleShell',
-                    'DoubleShell']
+                    'SingleShellBH',
+                    'SingleShellWall',
+                    'SingleShellWallBH',
+                    'DoubleShell',
+                    'DoubleShellBH',
+                    'DoubleShellWall',
+                    'DoubleShellWallBH'
+                    ]
     capacitorlike = ['CPE',
                      'CPEonset',
                      'CPETissue',

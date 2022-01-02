@@ -18,6 +18,7 @@
 
 from scipy.constants import epsilon_0 as e0
 from .single_shell import eps_cell_single_shell
+from .suspensionmodels import eps_sus_MW, bhcubic_eps_model
 
 
 def eps_cell_single_shell_wall(omega, km, em, kcp, ecp, kw, ew, dm, Rc, dw):
@@ -65,3 +66,133 @@ def eps_cell_single_shell_wall(omega, km, em, kcp, ecp, kw, ew, dm, Rc, dw):
     epsi_cell = epsi_w * ((2. * epsi_w + epsi_p - 2. * w * (epsi_w - epsi_p))
                           / (2. * epsi_w + epsi_p + w * (epsi_w - epsi_p)))
     return epsi_cell
+
+
+def single_shell_wall_model(omega, km, em, kcp, ecp, kw, ew, kmed, emed, p, c0, dm, Rc, dw):
+    r"""Impedance of single shell model
+
+    Parameters
+    -----------
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for :math:`c_0`, unit capacitance in pF
+    em: double
+        membrane permittivity, value for :math:`\varepsilon_\mathrm{m}`
+    km: double
+        membrane conductivity, value for :math:`\sigma_\mathrm{m}` in :math:`\mu`\ S/m
+    ecp: double
+        cytoplasm permittivity, value for :math:`\varepsilon_\mathrm{cp}`
+    kcp: double
+        cytoplasm conductivity, value for :math:`\sigma_\mathrm{cp}`
+    ew: double
+        cell wall permittivity, value for :math:`\varepsilon_\mathrm{w}`
+    kw: double
+        cell wall conductivity, value for :math:`\sigma_\mathrm{w}`
+    emed: double
+        medium permittivity, value for :math:`\varepsilon_\mathrm{med}`
+    kmed: double
+        medium conductivity, value for :math:`\sigma_\mathrm{med}`
+    p: double
+        volume fraction
+    dm: double
+        membrane thickness, value for :math:`d_\mathrm{m}`
+    Rc: double
+        cell radius, value for :math:`R_\mathrm{c}`
+    dw: double
+        cell wall thickness, value for :math:`d_\mathrm{w}`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+
+    .. warning::
+
+        The unit capacitance is in pF!
+        The membrane conductivity is in uS/m!
+
+    See Also
+    --------
+    :meth:`impedancefitter.single_shell.single_shell_wall_model`
+    """
+    c0 *= 1e-12  # use pF as unit
+    km *= 1e-6
+
+    # cell model
+    epsi_cell = eps_cell_single_shell_wall(omega, km, em, kcp, ecp, kw, ew, dm, Rc, dw)
+
+    epsi_med = emed - 1j * kmed / (e0 * omega)
+    esus = eps_sus_MW(epsi_med, epsi_cell, p)
+    Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
+    Z_fit = 1 / Ys
+
+    return Z_fit
+
+
+def single_shell_wall_bh_model(omega, km, em, kcp, ecp, kw, ew, kmed, emed, p, c0, dm, Rc, dw):
+    r"""Impedance of single shell model using Bruggeman-Hanai approach
+
+    Parameters
+    -----------
+    omega: :class:`numpy.ndarray`, double
+        list of frequencies
+    c0: double
+        value for :math:`c_0`, unit capacitance in pF
+    em: double
+        membrane permittivity, value for :math:`\varepsilon_\mathrm{m}`
+    km: double
+        membrane conductivity, value for :math:`\sigma_\mathrm{m}` in :math:`\mu`\ S/m
+    ecp: double
+        cytoplasm permittivity, value for :math:`\varepsilon_\mathrm{cp}`
+    kcp: double
+        cytoplasm conductivity, value for :math:`\sigma_\mathrm{cp}`
+    ew: double
+        cell wall permittivity, value for :math:`\varepsilon_\mathrm{w}`
+    kw: double
+        cell wall conductivity, value for :math:`\sigma_\mathrm{w}`
+    emed: double
+        medium permittivity, value for :math:`\varepsilon_\mathrm{med}`
+    kmed: double
+        medium conductivity, value for :math:`\sigma_\mathrm{med}`
+    p: double
+        volume fraction
+    dm: double
+        membrane thickness, value for :math:`d_\mathrm{m}`
+    Rc: double
+        cell radius, value for :math:`R_\mathrm{c}`
+    dw: double
+        cell wall thickness, value for :math:`d_\mathrm{w}`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+    Notes
+    -----
+
+    .. warning::
+
+        The unit capacitance is in pF!
+        The membrane conductivity is in uS/m!
+
+    See Also
+    --------
+    :meth:`impedancefitter.single_shell.single_shell_wall_model`
+    """
+    c0 *= 1e-12  # use pF as unit
+    km *= 1e-6
+
+    # cell model
+    epsi_cell = eps_cell_single_shell_wall(omega, km, em, kcp, ecp, kw, ew, dm, Rc, dw)
+
+    epsi_med = emed - 1j * kmed / (e0 * omega)
+    esus = bhcubic_eps_model(epsi_med, epsi_cell, p)
+    Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
+    Z_fit = 1 / Ys
+
+    return Z_fit
