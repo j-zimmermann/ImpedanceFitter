@@ -66,6 +66,12 @@ class Fitter(object):
         Useful for instance, if there are files like `*_data.csv` and
         `*_result.csv` around and only the first should
         be fitted.
+    excludeFilter: string, optional
+        Files containing a certain string are ignored (if they are files with the
+        same ending as the chosen inputformat).
+        Useful for instance, if there are files that were measured using
+        different measurement voltages. For example, files containing `_25mV`
+        should not be fitted.
     ending: string, optional
         When `inputformat` is `TXT`, an alternative file ending is possible.
         The default is `.TXT`.
@@ -167,6 +173,10 @@ class Fitter(object):
                 logger.info("""Skipped file {}
                              due to excluded ending.""".format(filename))
                 continue
+            if self.excludeFilter in filename and self.excludeFilter != "":
+                logger.info("""Skipped file {}
+                             due to excluded substring.""".format(filename))
+                continue
 
             # continues only if data could be read in
             (status, omega, zarray) = self._read_data(filename)
@@ -185,6 +195,7 @@ class Fitter(object):
         self.maximumFrequency = None
         self.LogLevel = 'INFO'
         self.excludeEnding = "impossibleEndingLoL"
+        self.excludeFilter = ""
         self.ending = ".TXT"
         self.data_sets = None
         self.current_threshold = None
@@ -217,37 +228,39 @@ class Fitter(object):
         if 'LogLevel' in kwargs:
             self.LogLevel = kwargs['LogLevel']
         if 'minimumFrequency' in kwargs:
-            self.minimumFrequency = kwargs['minimumFrequency']
+            self.minimumFrequency = float(kwargs['minimumFrequency'])
         if 'maximumFrequency' in kwargs:
-            self.maximumFrequency = kwargs['maximumFrequency']
+            self.maximumFrequency = float(kwargs['maximumFrequency'])
         if 'excludeEnding' in kwargs:
-            self.excludeEnding = kwargs['excludeEnding']
+            self.excludeEnding = str(kwargs['excludeEnding'])
+        if 'excludeFilter' in kwargs:
+            self.excludeFilter = str(kwargs['excludeFilter'])
         if 'ending' in kwargs:
-            self.ending = kwargs['ending']
+            self.ending = str(kwargs['ending'])
         if 'data_sets' in kwargs:
-            self.data_sets = kwargs['data_sets']
+            self.data_sets = int(kwargs['data_sets'])
         if 'current_threshold' in kwargs:
-            self.current_threshold = kwargs['current_threshold']
+            self.current_threshold = float(kwargs['current_threshold'])
         if 'voltage_threshold' in kwargs:
-            self.voltage_threshold = kwargs['voltage_threshold']
+            self.voltage_threshold = float(kwargs['voltage_threshold'])
         if 'E4980AL_tolerance' in kwargs:
-            self.E4980AL_tolerance = kwargs['E4980AL_tolerance']
+            self.E4980AL_tolerance = float(kwargs['E4980AL_tolerance'])
         if 'write_output' in kwargs:
-            self.write_output = kwargs['write_output']
+            self.write_output = bool(kwargs['write_output'])
         if 'fileList' in kwargs:
             self.fileList = kwargs['fileList']
         if 'trace_b' in kwargs:
             self.trace_b = kwargs['trace_b']
         if 'skiprows_txt' in kwargs:
-            self.skiprows_txt = kwargs['skiprows_txt']
+            self.skiprows_txt = int(kwargs['skiprows_txt'])
         if 'skiprows_trace' in kwargs:
-            self.skiprows_trace = kwargs['skiprows_trace']
+            self.skiprows_trace = int(kwargs['skiprows_trace'])
         if 'show' in kwargs:
-            self.show = kwargs['show']
+            self.show = bool(kwargs['show'])
         if 'savefig' in kwargs:
-            self.savefig = kwargs['savefig']
+            self.savefig = bool(kwargs['savefig'])
         if 'delimiter' in kwargs:
-            self.delimiter = kwargs['delimiter']
+            self.delimiter = str(kwargs['delimiter'])
 
     def visualize_data(self, savefig=False, Zlog=False,
                        allinone=False, plottype="impedance",
