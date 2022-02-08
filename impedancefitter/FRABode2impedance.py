@@ -163,7 +163,7 @@ def read_bode_csv_rus(filename):
     return np.array(Frequency), np.array(Attenuation), np.array(Phase)
 
 
-def wrapPhase(phase):
+def wrap_phase(phase):
     """
     wraps the phase to -90deg to 90deg
     TODO: maybe there is a python function for this
@@ -175,7 +175,7 @@ def wrapPhase(phase):
     return phase
 
 
-def readBode(filename, devicename):
+def read_bode_csv(filename, devicename):
     """
     CSV to Bode Plot Parser
 
@@ -225,5 +225,5 @@ def bode_csv_to_impedance(filename, devicename, R_device=1e6):
     :class:`numpy.ndarray`, complex
         Impedance array
     """
-    frequency, attenuation, phase = readBode(filename, devicename)
+    frequency, attenuation, phase = read_bode_csv(filename, devicename)
     return bode_to_impedance(frequency, attenuation, phase, R_device=R_device)
