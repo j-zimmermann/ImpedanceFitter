@@ -38,5 +38,5 @@ from .fitter import Fitter
 from .postprocess import PostProcess
 from .utils import get_labels, available_models, get_equivalent_circuit_model, draw_scheme, available_file_format, KK_integral_transform
 from .plotting import plot_compare_to_data, plot_impedance, plot_dielectric_properties, emcee_plot, plot_bode, plot_cole_cole, plot_complex_permittivity, plot_admittance, plot_dielectric_dispersion, plot_dielectric_modulus
-from .FRABode2impedance import bode_to_impedance, bode_csv_to_impedance, parallel
+from .FRABode2impedance import bode_to_impedance, bode_csv_to_impedance, parallel, open_short_compensation
 from .__version__ import __version__

@@ -30,6 +30,29 @@ author: Henning Bathel
 """
 
 
+def open_short_compensation(Z_meas, Z_open, Z_short):
+    """
+    compensates the measured impedance with open and short reference measurements
+
+    please make sure the parameters stayed the same for all measurements
+
+    Parameters
+    ----------
+    Z_meas: int or float or :class:`numpy.ndarray`
+        measured impedance of the DUT
+    Z_open, Z_short: int or float or :class:`numpy.ndarray`
+        reference measurements with open / short circuit
+    Returns
+    -------
+    input dependent,
+        impedance of Z_dut compensated
+
+    """
+    Z_dut = (Z_meas - Z_short) / (1 - (Z_meas - Z_short) * (1 / Z_open))
+
+    return Z_dut
+
+
 def parallel(val_1, val_2):
     """
     convenience function to calculate the value of two resistors in parallel (or caps in series)
