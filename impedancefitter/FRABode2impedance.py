@@ -30,6 +30,24 @@ author: Henning Bathel
 """
 
 
+def parallel(val_1, val_2):
+    """
+    convenience function to calculate the value of two resistors in parallel (or caps in series)
+
+    may be used to set R_device if a shunt resistor is used in parallel to device input
+
+    Parameters
+    ----------
+    val_1, val_2: float
+        values of the individual resistors in parallel
+    Returns
+    -------
+    float,
+        apparent value of the two parallel resistors
+    """
+    return val_1 * val_2 / (val_1 + val_2)
+
+
 def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
     """
     Bode diagram (Attenuation and phase) to Impedance calculator
@@ -60,8 +78,8 @@ def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
 
     vratio = np.sqrt(10**(attenuation / 10))
     Z_dut = vratio * R_device - R_device
-    R_dut = Z_dut * np.cos(phase * np.pi / 180)
-    X_dut = Z_dut * np.sin(phase * np.pi / 180)
+    R_dut = Z_dut * np.cos(np.radians(phase))
+    X_dut = Z_dut * np.sin(np.radians(phase))
     omega = 2. * np.pi * frequency
     Z_dut_complex = R_dut + 1j * X_dut
 
