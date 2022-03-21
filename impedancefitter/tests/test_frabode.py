@@ -1,4 +1,4 @@
-from impedancefitter.FRABode2impedance import bode_to_impedance, bode_csv_to_impedance
+from fra import bode_to_impedance, bode_csv_to_impedance
 import numpy as np
 
 freq = np.logspace(1, 6)
