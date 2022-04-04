@@ -19,6 +19,7 @@
 
 import pandas
 import numpy as np
+import logging
 
 """
 Collection of useful functions to get Impedance from Bode Diagram CSV files
@@ -28,6 +29,8 @@ created: Nov 19 2021
 author: Henning Bathel
 
 """
+
+logger = logging.getLogger(__name__)
 
 
 def open_short_compensation(Z_meas, Z_open, Z_short):
@@ -130,7 +133,12 @@ def read_bode_csv_moku(filename):
     data = pandas.read_csv(filename, header=6)
 
     freq = np.array(data[data.columns[0]])
-    atten_math = np.array(data[" Math (Ka B / Ka A) Magnitude (dBm)"])
+    try:
+        logger.warning("Moku:Go file format used dBm")
+        atten_math = np.array(data[" Math (Ka B / Ka A) Magnitude (dBm)"])
+    except KeyError:
+        logger.warning("Moku:Go file format used dB")
+        atten_math = np.array(data[" Math (Ka B / Ka A) Magnitude (dB)"])
     phase_math = np.array(data[" Math (Ka B / Ka A) Phase (deg)"])
 
     return np.array(freq), np.array(atten_math), np.array(phase_math)
