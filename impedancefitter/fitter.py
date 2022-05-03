@@ -1303,7 +1303,7 @@ class Fitter(object):
                          'is_weighted': weighted}
         return solver_kwargs, parameters_dict
 
-    def linkk_test(self, capacitance=False, inductance=False,
+    def linkk_test(self, capacitance=False, inductance=False, save=False,
                    c=0.85, maxM=100, show=True, limits=[-2, 2], weighting="modulus"):
         """Lin-KK test to check Kramers-Kronig validity.
 
@@ -1359,6 +1359,13 @@ class Fitter(object):
         residuals = {}
         titlebegin = "Lin-KK test "
 
+        if save != self.savefig:
+            logger.warning("Used the global `savefig` attribute instead of the `save` kwarg.")
+            save = self.savefig
+        if show != self.show:
+            logger.warning("Used the global `show` attribute instead of the `show` kwarg.")
+            show = self.show
+
         if capacitance:
             titlebegin += "capacitance "
         if inductance:
@@ -1385,11 +1392,11 @@ class Fitter(object):
                 results[key + str(i)], mus[key + str(i)], residuals[key + str(i)] = (
                     self._linkk_core(self.omega, self.Z, capacitance,
                                      inductance, c, maxM, weighting=weighting))
-                if show or self.savefig:
+                if show or save:
                     Z_fit = self._get_linkk_impedance(results[key + str(i)])
                     plot_impedance(self.omega, self.Z, title=titlebegin + str(key) + str(i),
                                    Z_fit=Z_fit, residual="absolute", limits_residual=limits,
-                                   show=show, save=self.savefig, sign=True)
+                                   show=show, save=save, sign=True)
 
         return results, mus, residuals
 
