@@ -58,7 +58,7 @@ def eps_cell_double_shell_wall(omega, km, em, kcp, ecp, kne, ene, knp, enp, kw, 
     Asami, K. (2002). Characterization of biological cells by dielectric spectroscopy. Journal of Non-Crystalline Solids, 305(1–3), 268–277. https://doi.org/10.1016/S0022-3093(02)01110-9
 
     """
-    w = (1. - dw / (Rc + dw))
+    w = (1. - dw / (Rc + dw))**3
 
     epsi_w = ew - 1j * kw / (e0 * omega)
     epsi_p = eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn)
