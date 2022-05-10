@@ -221,7 +221,7 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.xscale('log')
     plt.plot(omega / (2. * np.pi), eps_r, label=labels[0], marker=markers[0], **plotkwargs)
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), eps_r2, label=labels[1], marker=markers[1], **plotkwargs)
+        plt.plot(omega / (2. * np.pi), eps_r2, linestyle='--', label=labels[1], marker=markers[1], **plotkwargs)
     if legend:
         plt.legend()
 
@@ -240,7 +240,7 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     plt.xscale('log')
     plt.plot(omega / (2. * np.pi), cond_fit, label=labels[0], marker=markers[0], **plotkwargs)
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), cond_fit2, label=labels[1], marker=markers[1], **plotkwargs)
+        plt.plot(omega / (2. * np.pi), cond_fit2, linestyle='--', label=labels[1], marker=markers[1], **plotkwargs)
     if legend:
         plt.legend()
     plt.tight_layout()
