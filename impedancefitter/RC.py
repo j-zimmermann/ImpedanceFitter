@@ -26,9 +26,9 @@ def RC_model(omega, Rd, Cd):
     Parameters
     ----------
 
-    omega: double or array of double
+    omega: :class:`numpy.ndarray`, double
         list of frequencies
-    Rd: complex
+    Rd: double
         Resistance.
     Cd: double
         Capacitance
@@ -55,7 +55,7 @@ def rc_model(omega, c0, kdc, eps):
     Parameters
     -----------
 
-    omega: double or array of double
+    omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
         unit capacitance in pF
@@ -92,7 +92,7 @@ def drc_model(omega, RE, tauE, alpha, beta):
     Parameters
     -----------
 
-    omega: double or array of double
+    omega: :class:`numpy.ndarray`, double
         list of frequencies
     RE: double
         resistance
@@ -136,7 +136,7 @@ def rc_tau_model(omega, Rk, tauk):
     Parameters
     -----------
 
-    omega: double or array of double
+    omega: :class:`numpy.ndarray`, double
         list of frequencies
     Rk: double
         resistance

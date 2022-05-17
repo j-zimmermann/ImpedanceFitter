@@ -93,9 +93,9 @@ def readin_Data_from_collection(filepath, fileformat, delimiter=None,
     f = values[:, 0]
     omega = 2. * np.pi * f
     # construct complex-valued array from float data
-    zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
+    zarray = np.zeros((np.int32((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
 
-    for i in range(np.int((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
+    for i in range(np.int32((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
         zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
     return omega, zarray
 
@@ -175,9 +175,9 @@ def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequen
         logger.info("maximumFrequency is {}".format(f.max()))
 
     # construct complex-valued array from float data
-    zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
+    zarray = np.zeros((np.int32((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
 
-    for i in range(np.int((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
+    for i in range(np.int32((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
         zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
 
     return omega, zarray
@@ -248,10 +248,10 @@ def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None,
         raise
     filteredvalues = np.empty((0, fileDataArray.shape[1]))
     if minimumFrequency is None:
-        minimumFrequency = fileDataArray[0, 0].astype(np.float)
+        minimumFrequency = fileDataArray[0, 0].astype(np.float64)
         logger.info("minimumFrequency is {}".format(minimumFrequency))
     if maximumFrequency is None:
-        maximumFrequency = fileDataArray[-1, 0].astype(np.float)
+        maximumFrequency = fileDataArray[-1, 0].astype(np.float64)
         logger.info("maximumFrequency is {}".format(maximumFrequency))
     for i in range(fileDataArray.shape[0]):
         if (np.greater_equal(fileDataArray[i, 0], minimumFrequency)
@@ -261,7 +261,7 @@ def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None,
             filteredvalues = np.append(filteredvalues, bufdict, axis=0)
     fileDataArray = filteredvalues
 
-    f = fileDataArray[:, 0].astype(np.float)
+    f = fileDataArray[:, 0].astype(np.float64)
     omega = 2. * np.pi * f
     Z_real = fileDataArray[:, 1]
     Z_im = fileDataArray[:, 2]
@@ -336,9 +336,9 @@ def readin_Data_from_dta(filepath, minimumFrequency=None, maximumFrequency=None)
         logger.info("maximumFrequency is {}".format(f.max()))
 
     # construct complex-valued array from float data
-    zarray = np.zeros((np.int((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
+    zarray = np.zeros((np.int32((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
 
-    for i in range(np.int((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
+    for i in range(np.int32((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
         zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
 
     return omega, zarray

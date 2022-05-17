@@ -1,4 +1,5 @@
 import numpy as np
+from impedancefitter.single_shell import single_shell_model
 from impedancefitter.double_shell import double_shell_model
 omega = 2. * np.pi * np.logspace(0, 12, num=30)
 
@@ -38,3 +39,13 @@ def test_double_shell_shape():
     Z = double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed,
                            emed, p, c0, dm, Rc, dn, Rn)
     assert Z.shape == omega.shape
+
+
+def test_equivalence_single_double():
+    # set radius of nucleus to zero: models should be equivalent
+    Rn = 1e-12
+    Z1 = double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed,
+                            emed, p, c0, dm, Rc, dn, Rn)
+    Z2 = single_shell_model(omega, km, em, kcp, ecp, kmed,
+                            emed, p, c0, dm, Rc)
+    assert np.all(np.isclose(Z1, Z2))

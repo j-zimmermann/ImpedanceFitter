@@ -66,6 +66,12 @@ class Fitter(object):
         Useful for instance, if there are files like `*_data.csv` and
         `*_result.csv` around and only the first should
         be fitted.
+    excludeFilter: string, optional
+        Files containing a certain string are ignored (if they are files with the
+        same ending as the chosen inputformat).
+        Useful for instance, if there are files that were measured using
+        different measurement voltages. For example, files containing `_25mV`
+        should not be fitted.
     ending: string, optional
         When `inputformat` is `TXT`, an alternative file ending is possible.
         The default is `.TXT`.
@@ -167,6 +173,10 @@ class Fitter(object):
                 logger.info("""Skipped file {}
                              due to excluded ending.""".format(filename))
                 continue
+            if self.excludeFilter in filename and self.excludeFilter != "":
+                logger.info("""Skipped file {}
+                             due to excluded substring.""".format(filename))
+                continue
 
             # continues only if data could be read in
             (status, omega, zarray) = self._read_data(filename)
@@ -185,6 +195,7 @@ class Fitter(object):
         self.maximumFrequency = None
         self.LogLevel = 'INFO'
         self.excludeEnding = "impossibleEndingLoL"
+        self.excludeFilter = ""
         self.ending = ".TXT"
         self.data_sets = None
         self.current_threshold = None
@@ -217,37 +228,39 @@ class Fitter(object):
         if 'LogLevel' in kwargs:
             self.LogLevel = kwargs['LogLevel']
         if 'minimumFrequency' in kwargs:
-            self.minimumFrequency = kwargs['minimumFrequency']
+            self.minimumFrequency = float(kwargs['minimumFrequency'])
         if 'maximumFrequency' in kwargs:
-            self.maximumFrequency = kwargs['maximumFrequency']
+            self.maximumFrequency = float(kwargs['maximumFrequency'])
         if 'excludeEnding' in kwargs:
-            self.excludeEnding = kwargs['excludeEnding']
+            self.excludeEnding = str(kwargs['excludeEnding'])
+        if 'excludeFilter' in kwargs:
+            self.excludeFilter = str(kwargs['excludeFilter'])
         if 'ending' in kwargs:
-            self.ending = kwargs['ending']
+            self.ending = str(kwargs['ending'])
         if 'data_sets' in kwargs:
-            self.data_sets = kwargs['data_sets']
+            self.data_sets = int(kwargs['data_sets'])
         if 'current_threshold' in kwargs:
-            self.current_threshold = kwargs['current_threshold']
+            self.current_threshold = float(kwargs['current_threshold'])
         if 'voltage_threshold' in kwargs:
-            self.voltage_threshold = kwargs['voltage_threshold']
+            self.voltage_threshold = float(kwargs['voltage_threshold'])
         if 'E4980AL_tolerance' in kwargs:
-            self.E4980AL_tolerance = kwargs['E4980AL_tolerance']
+            self.E4980AL_tolerance = float(kwargs['E4980AL_tolerance'])
         if 'write_output' in kwargs:
-            self.write_output = kwargs['write_output']
+            self.write_output = bool(kwargs['write_output'])
         if 'fileList' in kwargs:
             self.fileList = kwargs['fileList']
         if 'trace_b' in kwargs:
             self.trace_b = kwargs['trace_b']
         if 'skiprows_txt' in kwargs:
-            self.skiprows_txt = kwargs['skiprows_txt']
+            self.skiprows_txt = int(kwargs['skiprows_txt'])
         if 'skiprows_trace' in kwargs:
-            self.skiprows_trace = kwargs['skiprows_trace']
+            self.skiprows_trace = int(kwargs['skiprows_trace'])
         if 'show' in kwargs:
-            self.show = kwargs['show']
+            self.show = bool(kwargs['show'])
         if 'savefig' in kwargs:
-            self.savefig = kwargs['savefig']
+            self.savefig = bool(kwargs['savefig'])
         if 'delimiter' in kwargs:
-            self.delimiter = kwargs['delimiter']
+            self.delimiter = str(kwargs['delimiter'])
 
     def visualize_data(self, savefig=False, Zlog=False,
                        allinone=False, plottype="impedance",
@@ -911,7 +924,7 @@ class Fitter(object):
                            limits_residual=limits_residual)
         return fit_output
 
-    def plot_initial_best_fit(self, sequential=False):
+    def plot_initial_best_fit(self, sequential=False, save=False, show=True):
         """Plot initial and best fit together.
 
         This method reveals how good the initial fit was.
@@ -929,8 +942,8 @@ class Fitter(object):
             else:
                 Z_fit = self.fittedValues.best_fit
                 Z_init = self.fittedValues.init_fit
-            plot_impedance(self.omega, self.Z, "", Z_fit=Z_fit,
-                           show=True, save=False, Z_comp=Z_init)
+            plot_impedance(self.omega, self.Z, "Comparison of initial and best fit", Z_fit=Z_fit,
+                           show=show, save=save, Z_comp=Z_init)
         else:
             for i in range(2):
                 Z_fit = getattr(self, "fittedValues" + str(i + 1)).best_fit
@@ -939,7 +952,7 @@ class Fitter(object):
                     Z_fit = np.power(10, Z_fit)
                     Z_init = np.power(10, Z_init)
                 plot_impedance(self.omega, self.Z, "", Z_fit=Z_fit,
-                               show=True, save=False, Z_comp=Z_init)
+                               show=show, save=save, Z_comp=Z_init)
 
     def cluster_emcee_result(self, constant=1e2, show=False):
         r"""Apply clustering to eliminate low-probability samples.
@@ -1290,7 +1303,7 @@ class Fitter(object):
                          'is_weighted': weighted}
         return solver_kwargs, parameters_dict
 
-    def linkk_test(self, capacitance=False, inductance=False,
+    def linkk_test(self, capacitance=False, inductance=False, save=False,
                    c=0.85, maxM=100, show=True, limits=[-2, 2], weighting="modulus"):
         """Lin-KK test to check Kramers-Kronig validity.
 
@@ -1346,6 +1359,13 @@ class Fitter(object):
         residuals = {}
         titlebegin = "Lin-KK test "
 
+        if save != self.savefig:
+            logger.warning("Used the global `savefig` attribute instead of the `save` kwarg.")
+            save = self.savefig
+        if show != self.show:
+            logger.warning("Used the global `show` attribute instead of the `show` kwarg.")
+            show = self.show
+
         if capacitance:
             titlebegin += "capacitance "
         if inductance:
@@ -1372,11 +1392,11 @@ class Fitter(object):
                 results[key + str(i)], mus[key + str(i)], residuals[key + str(i)] = (
                     self._linkk_core(self.omega, self.Z, capacitance,
                                      inductance, c, maxM, weighting=weighting))
-                if show or self.savefig:
+                if show or save:
                     Z_fit = self._get_linkk_impedance(results[key + str(i)])
                     plot_impedance(self.omega, self.Z, title=titlebegin + str(key) + str(i),
                                    Z_fit=Z_fit, residual="absolute", limits_residual=limits,
-                                   show=show, save=self.savefig, sign=True)
+                                   show=show, save=save, sign=True)
 
         return results, mus, residuals
 

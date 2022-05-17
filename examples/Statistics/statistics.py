@@ -76,4 +76,6 @@ print("Chisquared best model for R:",
       postp.best_model_chisquared('R', ['Normal', 'Beta', 'Gamma'])[0])
 print("Kolmogorov best model for R:",
       postp.best_model_kolmogorov('R', ['Normal', 'Beta', 'Gamma'])[0])
+print("Lilliefors best model for R:",
+      postp.best_model_lilliefors("R", ['Normal', 'Beta', 'Gamma'])[0])
 print("Expected result:\nNormal(mu = {}, sigma = {})".format(R, 0.05 * R))

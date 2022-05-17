@@ -27,7 +27,7 @@ def Z_randles(omega, Rct, Rs, Aw, C0):
     Parameters
     -----------
 
-    omega: double or array of double
+    omega: :class:`numpy.ndarray`, double 
         list of frequencies
     Rct: double
         Resistance in series with Warburg element, e.g.
@@ -82,7 +82,7 @@ def Z_randles_CPE(omega, Rct, Rs, Aw, k, alpha):
     Parameters
     -----------
 
-    omega: double or array of double
+    omega: :class:`numpy.ndarray`, double
         list of frequencies
     Rct: double
         Resistance in series with Warburg element, e.g.

@@ -1,7 +1,6 @@
 #    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
 #
-#    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2021 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,11 +17,12 @@
 
 
 from scipy.constants import epsilon_0 as e0
+from .single_shell import eps_cell_single_shell
 from .suspensionmodels import eps_sus_MW, bhcubic_eps_model
 
 
-def eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc):
-    r"""Complex permittivity of single shell model
+def eps_cell_single_shell_wall(omega, km, em, kcp, ecp, kw, ew, dm, Rc, dw):
+    r"""Single shell model with cell wall
 
     Parameters
     -----------
@@ -36,27 +36,39 @@ def eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc):
         cytoplasm permittivity, value for :math:`\varepsilon_\mathrm{cp}`
     kcp: double
         cytoplasm conductivity, value for :math:`\sigma_\mathrm{cp}`
+    ew: double
+        cell wall permittivity, value for :math:`\varepsilon_\mathrm{w}`
+    kw: double
+        cell wall conductivity, value for :math:`\sigma_\mathrm{w}`
     dm: double
         membrane thickness, value for :math:`d_\mathrm{m}`
     Rc: double
         cell radius, value for :math:`R_\mathrm{c}`
+    dw: double
+        cell wall thickness, value for :math:`R_\mathrm{c}`
 
     Returns
     -------
     :class:`numpy.ndarray`, complex
         Complex permittivity array
-    """
-    v1 = (1. - dm / Rc)**3
 
-    epsi_cp = ecp - 1j * kcp / (e0 * omega)
-    epsi_m = em - 1j * km / (e0 * omega)
+    Note
+    ----
+
+    Asami, K. (2002). Characterization of biological cells by dielectric spectroscopy. Journal of Non-Crystalline Solids, 305(1–3), 268–277. https://doi.org/10.1016/S0022-3093(02)01110-9
+
+    """
+    w = (1. - dw / (Rc + dw))**3
+
+    epsi_w = ew - 1j * kw / (e0 * omega)
+    epsi_p = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
     # model
-    E1 = epsi_cp / epsi_m
-    epsi_cell = epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1) / ((2. + v1) + (1. - v1) * E1)
+    epsi_cell = epsi_w * ((2. * epsi_w + epsi_p - 2. * w * (epsi_w - epsi_p))
+                          / (2. * epsi_w + epsi_p + w * (epsi_w - epsi_p)))
     return epsi_cell
 
 
-def single_shell_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
+def single_shell_wall_model(omega, km, em, kcp, ecp, kw, ew, kmed, emed, p, c0, dm, Rc, dw):
     r"""Impedance of single shell model
 
     Parameters
@@ -73,6 +85,10 @@ def single_shell_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
         cytoplasm permittivity, value for :math:`\varepsilon_\mathrm{cp}`
     kcp: double
         cytoplasm conductivity, value for :math:`\sigma_\mathrm{cp}`
+    ew: double
+        cell wall permittivity, value for :math:`\varepsilon_\mathrm{w}`
+    kw: double
+        cell wall conductivity, value for :math:`\sigma_\mathrm{w}`
     emed: double
         medium permittivity, value for :math:`\varepsilon_\mathrm{med}`
     kmed: double
@@ -83,6 +99,8 @@ def single_shell_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
         membrane thickness, value for :math:`d_\mathrm{m}`
     Rc: double
         cell radius, value for :math:`R_\mathrm{c}`
+    dw: double
+        cell wall thickness, value for :math:`d_\mathrm{w}`
 
     Returns
     -------
@@ -95,58 +113,17 @@ def single_shell_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
     .. warning::
 
         The unit capacitance is in pF!
-
-    Equations for the single-shell-model [Feldman2003]_:
-
-    .. math::
-
-            \nu_1 = \left(1-\frac{d_\mathrm{m}}{R_\mathrm{c}}\right)^3
-
-    .. math::
-
-        \varepsilon_\mathrm{m} = \varepsilon_\mathrm{m} - j \frac{\sigma_\mathrm{m}}{\varepsilon_0 \omega}
-
-    .. math::
-
-        \varepsilon_\mathrm{cp} = \varepsilon_\mathrm{cp} - j \frac{\sigma_\mathrm{cp}}{\varepsilon_0 \omega}
-
-    .. math::
-
-        \varepsilon_\mathrm{cell}^\ast = \varepsilon_\mathrm{m}^\ast \frac{2 (1 - \nu_1) + (1 + 2 \nu_1) E_1}{(2 + \nu_1) + (1 - \nu_1) E_1}
-
-    .. math::
-
-        E_1 = \frac{\varepsilon_\mathrm{cp}^\ast}{\varepsilon_\mathrm{m}^\ast}
-
-    .. math::
-
-        \varepsilon_\mathrm{sus}^\ast = \varepsilon_\mathrm{med}^\ast
-        \frac{(2 \varepsilon_\mathrm{med}^\ast + \varepsilon_\mathrm{cell}^\ast) - 2 p
-        (\varepsilon_\mathrm{med}^\ast - \varepsilon_\mathrm{cell}^\ast)}
-        {(2 \varepsilon_\mathrm{med}^\ast + \varepsilon_\mathrm{cell}^\ast) + p
-        (\varepsilon_\mathrm{med}^\ast - \varepsilon_\mathrm{cell}^\ast)}
-
-    .. math::
-
-        Z = \frac{1}{j \varepsilon_\mathrm{sus}^\ast \omega c_0}
-
-    References
-    ----------
-
-    .. [Feldman2003] Feldman, Y., Ermolina, I., & Hayashi, Y. (2003).
-           Time domain dielectric spectroscopy study of biological systems.
-           IEEE Transactions on Dielectrics and Electrical Insulation, 10, 728–753.
-           https://doi.org/10.1109/TDEI.2003.1237324
+        The membrane conductivity is in uS/m!
 
     See Also
     --------
-    :meth:`impedancefitter.double_shell.double_shell_model`
+    :meth:`impedancefitter.single_shell.single_shell_wall_model`
     """
     c0 *= 1e-12  # use pF as unit
     km *= 1e-6
 
     # cell model
-    epsi_cell = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
+    epsi_cell = eps_cell_single_shell_wall(omega, km, em, kcp, ecp, kw, ew, dm, Rc, dw)
 
     epsi_med = emed - 1j * kmed / (e0 * omega)
     esus = eps_sus_MW(epsi_med, epsi_cell, p)
@@ -156,8 +133,8 @@ def single_shell_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
     return Z_fit
 
 
-def single_shell_bh_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
-    r"""Impedance of single shell model  using Bruggeman-Hanai approach
+def single_shell_wall_bh_model(omega, km, em, kcp, ecp, kw, ew, kmed, emed, p, c0, dm, Rc, dw):
+    r"""Impedance of single shell model using Bruggeman-Hanai approach
 
     Parameters
     -----------
@@ -173,6 +150,10 @@ def single_shell_bh_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
         cytoplasm permittivity, value for :math:`\varepsilon_\mathrm{cp}`
     kcp: double
         cytoplasm conductivity, value for :math:`\sigma_\mathrm{cp}`
+    ew: double
+        cell wall permittivity, value for :math:`\varepsilon_\mathrm{w}`
+    kw: double
+        cell wall conductivity, value for :math:`\sigma_\mathrm{w}`
     emed: double
         medium permittivity, value for :math:`\varepsilon_\mathrm{med}`
     kmed: double
@@ -183,6 +164,8 @@ def single_shell_bh_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
         membrane thickness, value for :math:`d_\mathrm{m}`
     Rc: double
         cell radius, value for :math:`R_\mathrm{c}`
+    dw: double
+        cell wall thickness, value for :math:`d_\mathrm{w}`
 
     Returns
     -------
@@ -195,16 +178,17 @@ def single_shell_bh_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
     .. warning::
 
         The unit capacitance is in pF!
+        The membrane conductivity is in uS/m!
 
     See Also
     --------
-    :meth:`impedancefitter.single_shell.single_shell_model`
+    :meth:`impedancefitter.single_shell.single_shell_wall_model`
     """
     c0 *= 1e-12  # use pF as unit
     km *= 1e-6
 
     # cell model
-    epsi_cell = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
+    epsi_cell = eps_cell_single_shell_wall(omega, km, em, kcp, ecp, kw, ew, dm, Rc, dw)
 
     epsi_med = emed - 1j * kmed / (e0 * omega)
     esus = bhcubic_eps_model(epsi_med, epsi_cell, p)

@@ -17,8 +17,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import csv
+import pandas
 import numpy as np
+import logging
 
 """
 Collection of useful functions to get Impedance from Bode Diagram CSV files
@@ -28,6 +29,49 @@ created: Nov 19 2021
 author: Henning Bathel
 
 """
+
+logger = logging.getLogger(__name__)
+
+
+def open_short_compensation(Z_meas, Z_open, Z_short):
+    """
+    compensates the measured impedance with open and short reference measurements
+
+    please make sure the parameters stayed the same for all measurements
+
+    Parameters
+    ----------
+    Z_meas: int or float or :class:`numpy.ndarray`
+        measured impedance of the DUT
+    Z_open, Z_short: int or float or :class:`numpy.ndarray`
+        reference measurements with open / short circuit
+    Returns
+    -------
+    input dependent,
+        impedance of Z_dut compensated
+
+    """
+    Z_dut = (Z_meas - Z_short) / (1 - (Z_meas - Z_short) * (1 / Z_open))
+
+    return Z_dut
+
+
+def parallel(val_1, val_2):
+    """
+    convenience function to calculate the value of two resistors in parallel (or caps in series)
+
+    may be used to set R_device if a shunt resistor is used in parallel to device input
+
+    Parameters
+    ----------
+    val_1, val_2: float
+        values of the individual resistors in parallel
+    Returns
+    -------
+    float,
+        apparent value of the two parallel resistors
+    """
+    return val_1 * val_2 / (val_1 + val_2)
 
 
 def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
@@ -60,15 +104,15 @@ def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
 
     vratio = np.sqrt(10**(attenuation / 10))
     Z_dut = vratio * R_device - R_device
-    R_dut = Z_dut * np.cos(phase * np.pi / 180)
-    X_dut = Z_dut * np.sin(phase * np.pi / 180)
+    R_dut = Z_dut * np.cos(np.radians(phase))
+    X_dut = Z_dut * np.sin(np.radians(phase))
     omega = 2. * np.pi * frequency
     Z_dut_complex = R_dut + 1j * X_dut
 
     return omega, Z_dut_complex
 
 
-def readBodeMoku(filename):
+def read_bode_csv_moku(filename):
     """
     specialised function to generate appropriate format from MokuGo-csv files
 
@@ -86,46 +130,21 @@ def readBodeMoku(filename):
     :class:`numpy.ndarray`
         Phase
     """
-    freq = []
-    gain_ch1 = []
-    phase_ch1 = []
-    gain_ch2 = []
-    phase_ch2 = []
+    data = pandas.read_csv(filename, header=6)
 
-    gain_ratio = []
-    phase_ratio = []
+    freq = np.array(data[data.columns[0]])
+    try:
+        logger.warning("Moku:Go file format used dBm")
+        atten_math = np.array(data[" Math (Ka B / Ka A) Magnitude (dBm)"])
+    except KeyError:
+        logger.warning("Moku:Go file format used dB")
+        atten_math = np.array(data[" Math (Ka B / Ka A) Magnitude (dB)"])
+    phase_math = np.array(data[" Math (Ka B / Ka A) Phase (deg)"])
 
-    with open(filename, 'r') as csvfile:
-        bode_plot = csv.reader(csvfile)
-
-        for line in bode_plot:
-            if(not any("%" in l for l in line)):  # skip header
-                for k, item in enumerate(line):
-                    if(k == 0):
-                        freq.append((float)(item))
-                    elif(k == 1):
-                        gain_ch1.append((float)(item))
-                    elif(k == 2):
-                        phase_ch1.append((float)(item))
-                    elif(k == 3):
-                        gain_ch2.append((float)(item))
-                    elif(k == 4):
-                        phase_ch2.append((float)(item))
-                    elif(k == 5):
-                        gain_ratio.append((float)(item))
-                    elif(k == 6):
-                        phase_ratio.append(wrapPhase((float)(item)))
-                    else:
-                        pass
-
-    if k < 5:
-        for gch1, gch2, pch1, pch2 in zip(gain_ch1, gain_ch2, phase_ch1, phase_ch2):
-            gain_ratio.append(gch2 - gch1)
-            phase_ratio.append(pch2 - pch1)
-    return np.array(freq), np.array(gain_ratio), np.array(phase_ratio)
+    return np.array(freq), np.array(atten_math), np.array(phase_math)
 
 
-def readBodeRuS(filename):
+def read_bode_csv_rus(filename):
     """
     special funtion to generate appr. format from Rohde and Schwarz csv-files
 
@@ -142,41 +161,17 @@ def readBodeRuS(filename):
         Attenuation
     :class:`numpy.ndarray`
         Phase
-
-    Notes
-    -----
-    TODO: R&S saves gain, needs the absolute value maybe.
     """
-    Sample = []
-    Frequency = []
-    Gain = []
-    Phase = []
-    Amplitude = []
+    data = pandas.read_csv(filename)
 
-    with open(filename, 'r') as csvfile:
-        bode_plot = csv.reader(csvfile)
+    Frequency = np.array(data["Frequency in Hz"])
+    Attenuation = -1 * np.array(data["Gain in dB"])
+    Phase = -1 * np.array(data["Phase in °"])
 
-        next(bode_plot)  # skip header
-        for line in bode_plot:
-            for k, item in enumerate(line):
-                if(k == 0):
-                    Sample.append((float)(item))
-                elif(k == 1):
-                    Frequency.append((float)(item))
-                elif(k == 2):
-                    Gain.append(abs((float)(item)))
-                elif(k == 3):
-                    Phase.append((float)(item))
-                elif(k == 4):
-                    Amplitude.append((float)(item))
-                else:
-                    pass
-
-    # Note: take negative of phase
-    return np.array(Frequency), np.array(Gain), -np.array(Phase)
+    return np.array(Frequency), np.array(Attenuation), np.array(Phase)
 
 
-def wrapPhase(phase):
+def wrap_phase(phase):
     """
     wraps the phase to -90deg to 90deg
     TODO: maybe there is a python function for this
@@ -188,7 +183,7 @@ def wrapPhase(phase):
     return phase
 
 
-def readBode(filename, devicename):
+def read_bode_csv(filename, devicename):
     """
     CSV to Bode Plot Parser
 
@@ -210,9 +205,9 @@ def readBode(filename, devicename):
     """
 
     if(devicename == "MokuGo"):
-        frequency, attenuation, phase = readBodeMoku(filename)
+        frequency, attenuation, phase = read_bode_csv_moku(filename)
     elif(devicename == "R&S"):
-        frequency, attenuation, phase = readBodeRuS(filename)
+        frequency, attenuation, phase = read_bode_csv_rus(filename)
     else:
         raise RuntimeError("Could not determine the device. Please check spelling. Possible options are 'MokuGo' and 'R&S'.")
     return frequency, attenuation, phase
@@ -238,5 +233,5 @@ def bode_csv_to_impedance(filename, devicename, R_device=1e6):
     :class:`numpy.ndarray`, complex
         Impedance array
     """
-    frequency, attenuation, phase = readBode(filename, devicename)
+    frequency, attenuation, phase = read_bode_csv(filename, devicename)
     return bode_to_impedance(frequency, attenuation, phase, R_device=R_device)
