@@ -53,4 +53,4 @@ def test_eps_cell_wall_double_shell_equivalence():
     # numerically not suitable
     # assert np.all(np.isclose(eps1, eps2, rtol=1e-4))
     assert np.all(np.isclose(eps1.real, eps2.real))
-    assert np.all(np.isclose(-eps1.imag * e0 * omega, -eps2.imag * e0 * omega))
+    assert np.all(np.isclose(-eps1.imag * e0 * omega, -eps2.imag * e0 * omega, rtol=1e-3))

@@ -44,4 +44,4 @@ def test_eps_cell_wall_single_shell_equivalence():
     eps2 = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
     # assert np.all(np.isclose(eps1, eps2, rtol=1e-4))
     assert np.all(np.isclose(eps1.real, eps2.real))
-    assert np.all(np.isclose(-eps1.imag * e0 * omega, -eps2.imag * e0 * omega))
+    assert np.all(np.isclose(-eps1.imag * e0 * omega, -eps2.imag * e0 * omega, rtol=1e-3))
