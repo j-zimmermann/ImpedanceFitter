@@ -1360,11 +1360,10 @@ class Fitter(object):
         titlebegin = "Lin-KK test "
 
         if save != self.savefig:
-            logger.warning("Used the global `savefig` attribute instead of the `save` kwarg.")
+            logger.warning("Kwarg `savefig' is overwriting the global `savefig` attribute.")
             save = self.savefig
         if show != self.show:
-            logger.warning("Used the global `show` attribute instead of the `show` kwarg.")
-            show = self.show
+            logger.warning("Kwarg `show' is overwriting the global `show` attribute.")
 
         if capacitance:
             titlebegin += "capacitance "
