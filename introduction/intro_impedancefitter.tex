@@ -1,0 +1,210 @@
+\documentclass[11pt]{beamer}
+\usetheme{Warsaw}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+
+\author{Julius Zimmermann}
+\title{Introduction to ImpedanceFitter}
+%\setbeamercovered{transparent} 
+%\setbeamertemplate{navigation symbols}{} 
+%\logo{} 
+%\institute{} 
+%\date{} 
+%\subject{} 
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+%\begin{frame}
+%\tableofcontents
+%\end{frame}
+
+\begin{frame}{Use case}
+
+\begin{itemize}
+\item Multiple impedance spectra have been recorded
+\begin{itemize}
+
+\item Visualization 
+\item Validity check
+\item Fitting, data analysis
+
+\end{itemize}
+\item An impedance model is available
+\begin{itemize}
+\item Expected impedance in a defined frequency range
+\item Decomposition of the model 
+\item Estimating dielectric properties
+\end{itemize}
+\end{itemize}
+
+\begin{block}{Advantages}
+\begin{itemize}
+\item High-level interface, batch processing
+\item Flexible choice of fitting algorithm
+\item Many relevant models implemented
+\end{itemize}
+
+\end{block}
+
+\end{frame}
+
+\begin{frame}{Getting started}
+\begin{itemize}
+\item Prerequisite: Python $>=$ 3.6 installed, download from \url{https://www.python.org}. \textbf{Make sure that Python is added to the PATH variable on Windows!}
+\item Ideally: Jupyter installed (to have Jupyter notebooks) from \url{https://jupyter.org/}
+\item Installation is a one-liner:
+\begin{center}
+\textbf{pip install impedancefitter}
+\end{center}
+\item Bugs? Please report them to me!
+\item Documentation on the website: \url{https://impedancefitter.readthedocs.io}
+\item Feedback is highly appreciated!
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{General idea}
+
+\begin{itemize}
+\item The impedance measured in electrochemical impedance spectroscopy (EIS) is assumed to be the linear response of the system
+\item[$\Rightarrow$] Only linear models (equivalent circuits) considered
+\item The impedance is modelled by a series or parallel connection of circuit elements and pre-defined circuits
+\item Realisation in ImpedanceFitter: model is defined in a string and parsed
+\item Example: Randles circuit
+\begin{lstlisting}
+model = 'R_s + parallel(R_ct + W, C)'
+model = 'Randles'
+\end{lstlisting}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{The model}
+
+\begin{itemize}
+\item The model is connects elements in series by \lstinline{+} and in parallel by \lstinline{parallel(a, b)}
+\item Example: Randles circuit
+\begin{lstlisting}
+model = 'R_s + parallel(R_ct + W, C)'
+model = 'Randles'
+\end{lstlisting}
+\item Question: find out more about the implementation of the Randles circuit and its parameters on the website
+\item To compute the impedance: generate an equivalent circuit and evaluate it
+\begin{lstlisting}
+Z = lmfit_model.eval(omega=2. * numpy.pi * frequencies, ct_R=Rct, s_R=Rs, C=C0, Aw=Aw)
+\end{lstlisting}
+\item[!] If you are new to Python please don't hesitate to ask questions!
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Post-processing the model data}
+
+\begin{itemize}
+\item Various functions to plot the data are available: \lstinline{'plot_admittance', 'plot_bode', 'plot_cole_cole', 'plot_comparison_dielectric_properties', 'plot_complex_permittivity', 'plot_dielectric_dispersion', 'plot_dielectric_modulus', 'plot_dielectric_properties', 'plot_impedance', 'plot_resistance_capacitance'}
+\item[$\Rightarrow$] Documentation on website or through docstrings
+\item Every device has a frequency independent unit capacitance $C_0$, which relates the impedance to the dielectric properties
+\begin{equation}
+Z = \frac{1}{j \omega \hat{\varepsilon} C_0}~\mathrm{with}~ \hat{\varepsilon} = \varepsilon_r - \frac{j \sigma}{\omega \varepsilon_0} \enspace .
+\end{equation}
+\item[$\Rightarrow$] Function: \lstinline{impedancefitter.utils.return_diel_properties}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{EIS data analysis: loading the data}
+\begin{itemize}
+\item Available file formats: \url{https://impedancefitter.readthedocs.io/en/latest/examples/fileformats.html}
+\item[!] Reach out to me if you want other file formats to be implemented
+\item General idea: fixed frequencies in one file, probably multiple impedance spectra (real and imaginary part)
+\item Other representations (polar, R-C, etc.) need to be converted before loaded
+\item Simplest starting point:
+\begin{lstlisting}
+fitter = impedancefitter.Fitter('CSV')
+fitter.visualize_data()
+fitter.visualize_data(allinone=True)
+\end{lstlisting}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{EIS data analysis: validating the data}
+\begin{itemize}
+\item Impedance data have to fulfil Kramers-Kronig relations
+\item Test based on general equivalent circuit\footnote{\tiny Boukamp, B. A. (1995). A Linear Kronig‐Kramers Transform Test for Immittance Data Validation. Journal of The Electrochemical Society, 142(6), 1885–1894.}
+\item Automated algorithm is implemented\footnote{\tiny Schönleber, M., Klotz, D., \& Ivers-Tiffée, E. (2014). A Method for Improving the Robustness of linear Kramers-Kronig Validity Tests. Electrochimica Acta, 131, 20–27.}
+\item Simple interface:\\
+\lstinline{results, mus, residuals = fitter.linkk_test()}
+\item Test: let's check two exemplary files
+\end{itemize}
+\end{frame}
+
+\begin{frame}{EIS data analysis: fitting the data}
+\begin{enumerate}
+\item Choose a model 
+\item Run the fit
+\item If real or imaginary part are close to zero, it is better to check the residual with respect to the absolute value of the impedance
+\item If the impedance varies a lot with frequency, it is advised to use a weighting algorithm
+\item The fit result should be scrutinised by checking the errors of the variables and their correlations in the fit report
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{EIS data analysis: post-processing the data}
+\begin{itemize}
+\item The fit result can be used to compute the impedance of the model and sub-models
+\item The data can be exported straightforwardly
+\item If much data has been fitted: ImpedanceFitter can be used to generate histograms  (not shown here, please be referred to online documentation)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Applications}
+\begin{block}{\tiny Zimmermann, J., et al. (2021) Using a Digital Twin of an Electrical Stimulation Device to Monitor and Control the Electrical Stimulation of Cells in vitro. Front. Bioeng. Biotechnol. 9:765516.}
+\begin{itemize}
+\item EIS of a stimulation device
+\item Extraction of different parameters related to electrical, thermal and (electro-)chemical effects by fitting
+\item Computation of impedances as input for models
+\end{itemize}
+\end{block}
+\begin{block}{\tiny Zimmermann, J., \& van Rienen, U. (2021). Ambiguity in the interpretation of the low-frequency dielectric properties of biological tissues. Bioelectrochemistry, 140, 107773.}
+\begin{itemize}
+\item Comparison of measured data and a parametric model
+\item Data analysis and model analysis
+\item Suggested correction (see \lstinline{Correction-Ambiguity.ipynb})
+\end{itemize}
+\end{block}
+\end{frame}
+
+\end{document}
