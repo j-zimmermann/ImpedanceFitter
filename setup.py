@@ -20,7 +20,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=['pyyaml==5.4.1', 'xlrd==2.0.1',
                       'openpyxl==3.0.7', 'pandas>=1.0.1',
                       'openturns>=1.17', 'lmfit==1.0.3',
