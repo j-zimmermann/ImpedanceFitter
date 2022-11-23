@@ -500,7 +500,7 @@ class Fitter(object):
                                                                 self.weighting_model)
                 self._process_fitting_results(key + '_' + str(i))
         if self.write_output is True and hasattr(self, "fit_data"):
-            outfile = open('outfile.yaml', 'W')
+            outfile = open('outfile.yaml', 'w')
             yaml.dump(self.fit_data, outfile)
         elif not hasattr(self, "fit_data"):
             logger.info("There was no file to process")
