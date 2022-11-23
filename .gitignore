@@ -4,9 +4,15 @@
 *.out
 *.swp
 *.swo
+*.nav
+*.nvm
+*.snm
+*.synctex.gz
+*.vrb
 build/
 _build/
 dist/
 outfile.yaml
 impedancefitter.egg-info/
 __pycache__/
+.ipynb_checkpoints/

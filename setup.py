@@ -20,9 +20,11 @@ setuptools.setup(
     author="Leonard Thiele, Julius Zimmermann",
     author_email="leonard.thiele@uni-rostock.de, julius.zimmermann@uni-rostock.de",
     description="Library for fitting impedance data to equivalent circuit models.",
+    license="GPL-3.0-only",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
-    python_requires='>=3.6',
     install_requires=install_requires,
+    package_data={"": ["LICENSE"]},
+    python_requires='>=3.7',
 )
