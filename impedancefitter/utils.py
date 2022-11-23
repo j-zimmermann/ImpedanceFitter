@@ -22,13 +22,8 @@ import yaml
 import pyparsing as pp
 import re
 import pandas as pd
-# to make it compatible with Python >= 3.7
-try:
-    import SchemDraw as schemdraw
-    import SchemDraw.elements as elm
-except ImportError:
-    import schemdraw
-    import schemdraw.elements.legacy as elm
+import schemdraw
+import schemdraw.elements.legacy as elm
 
 from scipy.integrate import simps
 from collections import Counter
