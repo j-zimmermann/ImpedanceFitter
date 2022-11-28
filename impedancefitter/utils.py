@@ -24,6 +24,7 @@ import re
 import pandas as pd
 import schemdraw
 import schemdraw.elements.legacy as elm
+from schemdraw.util import Point
 
 from scipy.integrate import simps
 from collections import Counter
@@ -1021,8 +1022,7 @@ def draw_scheme(modelname, show=True, save=False):
     start = deepcopy(source.start)
     d, endpts = _cycle_circuit(circuitstr.asList()[0], d, endpts=(source.start, source.end), depth=0)
     # finalize drawing
-    endpts[0][1] = 0.0
-    endpts[1][1] = 0.0
+    endpts = (Point((endpts[0][0], 0.0)), Point((endpts[1][0], 0.0)))
     d.add(elm.DOT, endpts=endpts)
     d.add(elm.LINE, d='up')
     d.add(elm.SOURCE_SIN, d='left', label="Impedance analyzer", tox=start)
@@ -1105,8 +1105,8 @@ def _add_series_drawing(circuit, d, endpts, step=3.0, depth=0):
         if c == '+':
             continue
         if depth == 0:
-            endpts[0][1] = 0.0
-            endpts[1][1] = 0.0
+            endpts = (Point((endpts[0][0], 0.0)), Point((endpts[1][0], 0.0)))
+
         d, endpts = _draw_element(c, d, endpts, step, depth=depth)
     return d, endpts
 
