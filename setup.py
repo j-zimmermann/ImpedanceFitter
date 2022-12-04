@@ -25,6 +25,6 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
     install_requires=install_requires,
-    package_data={"": ["LICENSE", "requirements.txt"]},
+    package_data={"": ["LICENSE"]},
     python_requires='>=3.7',
 )
