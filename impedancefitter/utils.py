@@ -485,8 +485,8 @@ def available_models():
               'Raicu',
               'Randles',
               'RandlesCPE',
-              'RCfull',
               'RC',
+              'Debye',
               'ParticleSuspension',
               'ParticleSuspensionBH',
               'SingleShell',
@@ -588,9 +588,9 @@ def _model_function(modelname):
         model = Z_randles_CPE
     elif modelname == 'DRC':
         model = drc_model
-    elif modelname == 'RCfull':
-        model = RC_model
     elif modelname == 'RC':
+        model = RC_model
+    elif modelname == 'LossyDielectric':
         model = rc_model
     elif modelname == 'RCtau':
         model = rc_tau_model
@@ -892,8 +892,8 @@ def _model_label(model):
               'Raicu': 'Raicu',
               'Randles': 'Randles',
               'RandlesCPE': 'Randles w/ CPE',
-              'RCfull': 'RC',
-              'RC': 'RC micro',
+              'RC': 'RC',
+              'LossyDielectric': 'Lossy dielectric',
               'ParticleSuspension': 'Particle suspension',
               'ParticleSuspensionBH': 'Particle suspension Bruggeman Hanai',
               'SingleShell': 'Single Shell',
@@ -940,8 +940,8 @@ def _get_element(name):
                     'HavriliakNegami',
                     'Randles',
                     'RandlesCPE',
-                    'RCfull',
                     'RC',
+                    'LossyDielectric',
                     'DRC',
                     'ParticleSuspension',
                     'ParticleSuspensionBH',

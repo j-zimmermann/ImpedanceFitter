@@ -50,7 +50,7 @@ def RC_model(omega, Rd, Cd):
 
 
 def rc_model(omega, c0, kdc, eps):
-    """Simple RC model to obtain dielectric properties.
+    """Simple RC model of a lossy dielectric to obtain dielectric properties.
 
     Parameters
     -----------
