@@ -50,7 +50,7 @@ class fra_device():
 
         """
 
-        if devicefile in ["RuS", "MokuGo"]:
+        if devicefile in ["R&S", "MokuGo"]:
             devicefile = "{}/devices/{}.json".format(package_directory, devicefile)
         with open(f"{devicefile}", "r") as dev_file:
             device = json.load(dev_file)
