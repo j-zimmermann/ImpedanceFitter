@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 
 def plot_complex_permittivity(omega, Z, c0, Z_comp=None,
                               title="", show=True, save=False,
-                              logscale="permittivity", labels=None):
+                              logscale="permittivity", labels=None,
+                              append=False):
     '''
     Parameters
     ----------
@@ -87,6 +88,8 @@ def plot_complex_permittivity(omega, Z, c0, Z_comp=None,
         plt.plot(omega / (2. * np.pi), cond_fit2 / (e0 * omega), label=labels[1])
         plt.legend()
     plt.tight_layout()
+    if append:
+        return
     if save:
         plt.savefig(str(title).replace(" ", "_") + "_complex_permittivity.pdf")
     if show:
@@ -97,7 +100,8 @@ def plot_complex_permittivity(omega, Z, c0, Z_comp=None,
 
 def plot_dielectric_modulus(omega, Z, c0, Z_comp=None,
                             title="", show=True, save=False,
-                            logscale=None, labels=None):
+                            logscale=None, labels=None,
+                            append=False):
     '''
     Parameters
     ----------
@@ -154,6 +158,8 @@ def plot_dielectric_modulus(omega, Z, c0, Z_comp=None,
         plt.plot(omega / (2. * np.pi), ImM2, label=labels[1])
         plt.legend()
     plt.tight_layout()
+    if append:
+        return
     if save:
         plt.savefig(str(title).replace(" ", "_") + "_dielectric_modulus.pdf")
     if show:
@@ -244,11 +250,13 @@ def plot_dielectric_properties(omega, Z, c0, Z_comp=None, title="", show=True, s
     if legend:
         plt.legend()
     plt.tight_layout()
-    if save and not append:
+    if append:
+        return
+    if save:
         plt.savefig(str(title).replace(" ", "_") + "_dielectric_properties.pdf")
-    if show and not append:
+    if show:
         plt.show()
-    elif not show and not append:
+    else:
         plt.close()
 
 
@@ -338,11 +346,13 @@ def plot_comparison_dielectric_properties(omega, Z, c0, Z_comp,
     if legend:
         plt.legend()
     plt.tight_layout()
-    if save and not append:
+    if append:
+        return
+    if save:
         plt.savefig(str(title).replace(" ", "_") + "_comparison_{}_dielectric_properties.pdf".format(residual))
-    if show and not append:
+    if show:
         plt.show()
-    elif not show and not append:
+    else:
         plt.close()
 
 
@@ -400,11 +410,13 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None, append=False, legend=True, markers
     if legend:
         plt.legend()
     plt.tight_layout()
-    if save and not append:
+    if append:
+        return
+    if save:
         plt.savefig(str(title).replace(" ", "_") + "_cole_cole_plot.pdf")
-    if show and not append:
+    if show:
         plt.show()
-    elif not show and not append:
+    else:
         plt.close()
     return
 
@@ -484,11 +496,13 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     if legend:
         plt.legend()
     plt.tight_layout()
-    if save and not append:
+    if append:
+        return
+    if save:
         plt.savefig(str(title).replace(" ", "_") + "_bode_plot.pdf")
-    if show and not append:
+    if show:
         plt.show()
-    elif not show and not append:
+    else:
         plt.close()
 
 
@@ -572,17 +586,19 @@ def plot_resistance_capacitance(omega, Z, title="", Z_fit=None, show=True, save=
     if legend:
         plt.legend()
     plt.tight_layout()
-    if save and not append:
+    if append:
+        return
+    if save:
         plt.savefig(str(title).replace(" ", "_") + "_rc_plot.pdf")
     if show:
         plt.show()
-    elif not show and not append:
+    else:
         plt.close()
 
 
 def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
                    labels=["Data", "Best fit", "Init fit"], residual="parts", sign=False,
-                   Zlog=False, append=False, limits_residual=None,
+                   Zlog=False, append=False, limits_residual=None, Nyquist_conventional=False,
                    omega_fit=None, omega_comp=None, legend=True, compare=True, **plotkwargs):
     """Plot the `result` and compare it to data `Z`.
 
@@ -632,7 +648,8 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         when using large datasets.
     compare: bool, optional
         Choose if the difference between fit and data should be computed.
-
+    Nyquist_conventional: bool, optional
+        Choose if the Nyquist plot should use the same limits for real and imaginary part.
 
     """
 
@@ -725,23 +742,45 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     if Zlog:
         plt.xscale('log')
         plt.yscale('log')
-    plt.plot(Z.real, -Z.imag, 'o', label=labels[0], **plotkwargs)
+    # set limits of Nyquist plot
+    if Nyquist_conventional:
+        Zmin_real = np.min(Z.real)
+        Zmin_imag = np.min(-Z.imag)
+        Zmax_real = np.max(Z.real)
+        Zmax_imag = np.max(-Z.imag)
+        if Z_fit is not None:
+            Zmin_real = np.min([Zmin_real, np.min(Z_fit.real)])
+            Zmin_imag = np.min([Zmin_imag, np.min(-Z_fit.imag)])
+            Zmax_real = np.max([Zmax_real, np.max(Z_fit.real)])
+            Zmax_imag = np.max([Zmax_imag, np.max(-Z_fit.imag)])
+        if Z_comp is not None:
+            Zmin_real = np.min([Zmin_real, np.min(Z_comp.real)])
+            Zmin_imag = np.min([Zmin_imag, np.min(-Z_comp.imag)])
+            Zmax_real = np.max([Zmax_real, np.max(Z_comp.real)])
+            Zmax_imag = np.max([Zmax_imag, np.max(-Z_comp.imag)])
+        Zmin = np.min([Zmin_real, Zmin_imag])
+        Zmax = np.max([Zmax_real, Zmax_imag])
+        plt.xlim(left=0.8 * Zmin, right=1.2 * Zmax)
+        plt.ylim(bottom=0.8 * Zmin, top=1.2 * Zmax)
     if Z_fit is not None:
         plt.plot(Z_fit.real, -Z_fit.imag, '^', label=labels[1], **plotkwargs)
     if Z_comp is not None:
         plt.plot(Z_comp.real, -Z_comp.imag, 'v', label=labels[2], **plotkwargs)
+    plt.plot(Z.real, -Z.imag, 'o', label=labels[0], **plotkwargs)
     if legend:
         plt.legend()
     if Z_fit is not None and np.all(omega == omega_fit) and compare:
         plot_compare_to_data(omega, Z, Z_fit, subplot=224, residual=residual, sign=sign,
                              limits=limits_residual, legend=legend, **plotkwargs)
     plt.tight_layout()
-    if save and not append:
+    if append:
+        return
+    if save:
         cleantitle = str(title).replace(" ", "_").replace("/", "")
         plt.savefig(cleantitle + "_impedance_overview.pdf")
     if show:
         plt.show()
-    elif not show and not append:
+    else:
         plt.close()
 
 
@@ -1087,16 +1126,18 @@ def plot_admittance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_com
         plot_compare_to_data(omega, Z, Z_fit, subplot=224, residual=residual, sign=sign,
                              limits=limits_residual, legend=legend)
     plt.tight_layout()
-    if save and not append:
+    if append:
+        return
+    if save:
         plt.savefig(str(title).replace(" ", "_") + "_admittance_overview.pdf")
     if show:
         plt.show()
-    elif not show and not append:
+    else:
         plt.close()
 
 
 def plot_dielectric_dispersion(omega, Z, c0, Z_comp=None, title="", show=True, save=False, logscale="permittivity",
-                               labels=None, **plotkwargs):
+                               labels=None, append=False, **plotkwargs):
     '''
     Parameters
     ----------
@@ -1151,6 +1192,8 @@ def plot_dielectric_dispersion(omega, Z, c0, Z_comp=None, title="", show=True, s
         plt.plot(omega / (2. * np.pi), cond_fit2 / (e0 * omega), ls="-.", **plotkwargs)
     ax1.legend()
     fig.tight_layout()
+    if append:
+        return
     if save:
         plt.savefig(str(title).replace(" ", "_") + "_dielectric_dispersion.pdf")
     if show:
