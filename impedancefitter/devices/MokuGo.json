@@ -1,0 +1,12 @@
+{
+    "name": "MokuGo",
+    
+    "frequency": "% Frequency (Hz)",
+    "magnitude": " Math (Ka B / Ka A) Magnitude (dBm)",
+    "magnitude_alt": " Math (Ka B / Ka A) Magnitude (dB)",
+    "phase": " Math (Ka B / Ka A) Phase (deg)",
+
+    "is_gain": false,
+
+    "header": 6
+}

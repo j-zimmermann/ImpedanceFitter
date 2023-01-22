@@ -1,8 +1,8 @@
 #    The ImpedanceFitter is a package to fit impedance spectra to
 #    equivalent-circuit models using open-source software.
 #
-#    Copyright (C) 2021 Henning Bathel, henning.bathel2[AT]uni-rostock.de
-#    Copyright (C) 2021 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2021, 2023 Henning Bathel, henning.bathel2[AT]uni-rostock.de
+#    Copyright (C) 2021, 2023 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,8 +18,10 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pandas
+import json
 import numpy as np
 import logging
+import os
 
 """
 Collection of useful functions to get Impedance from Bode Diagram CSV files
@@ -31,6 +33,35 @@ author: Henning Bathel
 """
 
 logger = logging.getLogger(__name__)
+package_directory = os.path.dirname(os.path.abspath(__file__))
+
+
+class fra_device():
+    """Class containing FRA device specifications.
+
+    """
+    def __init__(self, devicefile):
+        """Load provided FRA device file
+
+        Parameters
+        ----------
+        devicefile: str
+            Provide name of device or devicefile.
+
+        """
+
+        if devicefile in ["RuS", "MokuGo"]:
+            devicefile = "{}/devices/{}.json".format(package_directory, devicefile)
+        with open(f"{devicefile}", "r") as dev_file:
+            device = json.load(dev_file)
+
+        # populate fra with settings
+        self.header = device["header"]
+        self.frequency_label = device["frequency"]
+        self.attenuation_label = device["magnitude"]
+        self.attenuation_label_alt = device["magnitude_alt"]
+        self.phase_label = device["phase"]
+        self.is_gain = device["is_gain"]
 
 
 def open_short_compensation(Z_meas, Z_open, Z_short):
@@ -56,22 +87,28 @@ def open_short_compensation(Z_meas, Z_open, Z_short):
     return Z_dut
 
 
-def parallel(val_1, val_2):
+def parallel(val_list):
     """
-    convenience function to calculate the value of two resistors in parallel (or caps in series)
+    convenience function to calculate the value of a list of resistors in parallel (or capacitors in series)
 
     may be used to set R_device if a shunt resistor is used in parallel to device input
 
     Parameters
     ----------
-    val_1, val_2: float
+    val_list: list of float
         values of the individual resistors in parallel
     Returns
     -------
     float,
-        apparent value of the two parallel resistors
+        apparent value of the parallel resistors
     """
-    return val_1 * val_2 / (val_1 + val_2)
+    try:
+        tmp = 0.
+        for e in val_list:
+            tmp = tmp + 1 / e
+        return 1 / tmp
+    except ZeroDivisionError:
+        logger.error("Elements must not be 0!")
 
 
 def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
@@ -101,8 +138,7 @@ def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
 
     TBD: explain conversion formula
     """
-
-    vratio = np.sqrt(10**(attenuation / 10))
+    vratio = 10**(attenuation / 20)
     Z_dut = vratio * R_device - R_device
     R_dut = Z_dut * np.cos(np.radians(phase))
     X_dut = Z_dut * np.sin(np.radians(phase))
@@ -110,65 +146,6 @@ def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
     Z_dut_complex = R_dut + 1j * X_dut
 
     return omega, Z_dut_complex
-
-
-def read_bode_csv_moku(filename):
-    """
-    specialised function to generate appropriate format from MokuGo-csv files
-
-    Parameters
-    ----------
-    filename: string
-        relative path to csv file
-
-    Returns
-    ----------
-    :class:`numpy.ndarray`
-        Frequency
-    :class:`numpy.ndarray`
-        Attenuation
-    :class:`numpy.ndarray`
-        Phase
-    """
-    data = pandas.read_csv(filename, header=6)
-
-    freq = np.array(data[data.columns[0]])
-    try:
-        logger.warning("Moku:Go file format used dBm")
-        atten_math = np.array(data[" Math (Ka B / Ka A) Magnitude (dBm)"])
-    except KeyError:
-        logger.warning("Moku:Go file format used dB")
-        atten_math = np.array(data[" Math (Ka B / Ka A) Magnitude (dB)"])
-    phase_math = np.array(data[" Math (Ka B / Ka A) Phase (deg)"])
-
-    return np.array(freq), np.array(atten_math), np.array(phase_math)
-
-
-def read_bode_csv_rus(filename):
-    """
-    special funtion to generate appr. format from Rohde and Schwarz csv-files
-
-    Parameters
-    ----------
-    filename: string
-        relative path to csv file
-
-    Returns
-    ----------
-    :class:`numpy.ndarray`
-        Frequency
-    :class:`numpy.ndarray`
-        Attenuation
-    :class:`numpy.ndarray`
-        Phase
-    """
-    data = pandas.read_csv(filename)
-
-    Frequency = np.array(data["Frequency in Hz"])
-    Attenuation = -1 * np.array(data["Gain in dB"])
-    Phase = -1 * np.array(data["Phase in °"])
-
-    return np.array(Frequency), np.array(Attenuation), np.array(Phase)
 
 
 def wrap_phase(phase):
@@ -183,6 +160,45 @@ def wrap_phase(phase):
     return phase
 
 
+def read_bode_csv_dev(filename, device):
+    """
+    special funtion to generate appr. format from provided device csv-files
+
+    Parameters
+    ----------
+    filename: string
+        relative path to csv file
+
+    Returns
+    ----------
+    :class:`numpy.ndarray`
+        Frequency
+    :class:`numpy.ndarray`
+        Attenuation
+    :class:`numpy.ndarray`
+        Phase
+    """
+    data = pandas.read_csv(filename, header=device["header"])
+
+    Frequency = np.array(data[device["frequency"]])
+    try:
+        Attenuation = np.array(data[device["magnitude"]])
+    except KeyError:
+        logger.warning("Could not determine magnitude key. Tries magnitude-alt next.")
+        try:
+            Attenuation = np.array(data[device["magnitude_alt"]])
+        except KeyError:
+            logger.error("Could not determine the right key for magnitude.")
+
+    Phase = np.array(data[device["phase"]])
+
+    if device["is_gain"]:
+        Attenuation = -1. * Attenuation
+        Phase = -1. * Phase
+
+    return Frequency, Attenuation, Phase
+
+
 def read_bode_csv(filename, devicename):
     """
     CSV to Bode Plot Parser
@@ -193,24 +209,24 @@ def read_bode_csv(filename, devicename):
         relative path to csv file
 
     devicename: string
-        devicename to determine specialised functions
+        specify json file which will load device parameters
 
     output: Bode Plot
-    format: Frequency, Gain_ch1, Phase_ch1, Gain_ch2, Phase_ch2, optional: [Gain_Ratio, Phase_Ratio]
+    format: Frequency, Attenuation, Phase
 
     Notes
     -----
-
     This function was tested for a MokuGo (Liquid Instruments) and an Rohde & Schwarz oscilloscope RTB2004
     """
-
-    if(devicename == "MokuGo"):
-        frequency, attenuation, phase = read_bode_csv_moku(filename)
-    elif(devicename == "R&S"):
-        frequency, attenuation, phase = read_bode_csv_rus(filename)
-    else:
-        raise RuntimeError("Could not determine the device. Please check spelling. Possible options are 'MokuGo' and 'R&S'.")
-    return frequency, attenuation, phase
+    try:
+        if(devicename in ["R&S", "MokuGo"]):
+            devicename = f"{package_directory}/devices/{devicename}"
+        with open(f"{devicename}.json", "r") as dev_file:
+            device = json.load(dev_file)
+        return read_bode_csv_dev(filename, device)
+    except Exception as e:
+        logger.error(f"Could not find the file: {e}")
+        return 0, 0, 0
 
 
 def bode_csv_to_impedance(filename, devicename, R_device=1e6):
@@ -222,7 +238,7 @@ def bode_csv_to_impedance(filename, devicename, R_device=1e6):
     filename: string
         relative path to csv file with Bode info
     devicename: string
-        devicename, currently only MokuGo and R&S are supported
+        "MokuGo" and "R&S" are supported (devices/xx.json), or provide own device
     R_device: float
         Input impedance of the device. Default is 1 MegOhm.
 

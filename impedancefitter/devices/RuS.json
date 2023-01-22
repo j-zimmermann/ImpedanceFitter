@@ -1,0 +1,11 @@
+{
+    "name": "Rohde und Schwarz",
+
+    "frequency": "Frequency in Hz",
+    "magnitude": "Gain in dB",
+    "phase": "Phase in °",
+
+    "is_gain": true,
+
+    "header": 0
+}
