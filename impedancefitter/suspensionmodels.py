@@ -59,7 +59,6 @@ def Lk(Rx, Ry, Rz, k):
     else:
         raise RuntimeError("The parameter k in L_k must be in [0, 2]")
     integral = quad(Lk_body, 0, np.inf, args=(Rk, Rx, Ry, Rz))
-    print(integral[1])
     return 0.5 * Rx * Ry * Rz * integral[0]
 
 
@@ -215,15 +214,19 @@ def bhcubic_eps_model(epsi_med, epsi_p, p):
     return epsi_sus
 
 
-def eps_sus_ellipsoid_MW(epsi_med, epsi_p, p, Rx, Ry, Rz):
+def eps_sus_ellipsoid_MW(epsi_med, epsi_px, epsi_py, epsi_pz, p, Rx, Ry, Rz):
     r"""Maxwell-Wagner mixture model for dilute suspensions of ellipsoidal particles:w
 
     Parameters
     -----------
     epsi_med: :class:`numpy.ndarray`, complex
         complex permittivities of medium
-    epsi_p: :class:`numpy.ndarray`, complex
-        complex permittivities of suspension phase (cells, particles...)
+    epsi_px: :class:`numpy.ndarray`, complex
+        complex permittivities of suspension phase in x-direction (cells, particles...)
+    epsi_py: :class:`numpy.ndarray`, complex
+        complex permittivities of suspension phase in y-direction (cells, particles...)
+    epsi_pz: :class:`numpy.ndarray`, complex
+        complex permittivities of suspension phase in z-direction (cells, particles...)
     p: double
         volume fraction
     Rx: double
@@ -262,7 +265,8 @@ def eps_sus_ellipsoid_MW(epsi_med, epsi_p, p, Rx, Ry, Rz):
     """
 
     sum_components = np.zeros(epsi_med.shape, dtype=np.complex128)
+    epsi_p = [epsi_px, epsi_py, epsi_pz]
     for i in range(3):
         L_i = Lk(Rx, Ry, Rz, i)
-        sum_components += (epsi_p - epsi_med) / (epsi_med + (epsi_p - epsi_med) * L_i)
+        sum_components += (epsi_p[i] - epsi_med) / (epsi_med + (epsi_p[i] - epsi_med) * L_i)
     return epsi_med * (1.0 + p / 3.0 * sum_components)
