@@ -18,10 +18,54 @@
 
 from .cubic_roots import get_cubic_roots
 import numpy as np
+from scipy.integrate import quad
+
+
+def Lk_body(s, Rk, Rx, Ry, Rz):
+    Rs = np.sqrt((Rx**2 + s) * (Ry**2 + s) * (Rz**2 + s))
+    return 1.0 / ((Rk**2 + s) * Rs)
+
+
+def Lk(Rx, Ry, Rz, k):
+    r"""Depolarization factor for ellipsoids
+
+    Notes
+    -----
+
+    The depolarization factor is given as [Asami2002]_
+
+    .. math::
+
+        L_k = \frac{R_x R_y R_z}{2} \int_0^\infty \frac{\mathrm{d} s}{(R_k^2 + s)R_s}
+
+    with
+
+    .. math::
+
+        R_s = \sqrt{(R_x^2 + s)(R_y^2 + s)(R_z^2 + s)}
+
+    TODO: watch units!
+
+    """
+    if np.any(np.less_equal(np.array([Rx, Ry, Rz]), 1e-3)):
+        raise RuntimeError("Attention! The radius is small so the integral will not evaluate properly!")
+    Rk = None
+    if k == 0:
+        Rk = Rx
+    elif k == 1:
+        Rk = Ry
+    elif k == 2:
+        Rk = Rz
+    else:
+        raise RuntimeError("The parameter k in L_k must be in [0, 2]")
+    integral = quad(Lk_body, 0, np.inf, args=(Rk, Rx, Ry, Rz))
+    print(integral[1])
+    return 0.5 * Rx * Ry * Rz * integral[0]
 
 
 def eps_sus_MW(epsi_med, epsi_p, p):
-    r"""Maxwell-Wagner mixture model for dilute suspensions
+    r"""Maxwell-Wagner mixture model for dilute suspensions of spherical particles:w
+
 
     Parameters
     -----------
@@ -86,7 +130,8 @@ def bh_eps_model(epsi_med, epsi_p, p):
     ----------
 
     .. [Cottet2019] Cottet, J., Fabregue, O., Berger, C., Buret, F., Renaud, P., & Frénéa-Robin, M. (2019).
-                    MyDEP: A New Computational Tool for Dielectric Modeling of Particles and Cells. Biophysical Journal, 116(1), 12–18.
+                    MyDEP: A New Computational Tool for Dielectric Modeling of Particles and Cells.
+                    Biophysical Journal, 116(1), 12–18.
                     https://doi.org/10.1016/j.bpj.2018.11.021
 
     See Also
@@ -168,3 +213,56 @@ def bhcubic_eps_model(epsi_med, epsi_p, p):
                 epsi_sus[i] = r
                 continue
     return epsi_sus
+
+
+def eps_sus_ellipsoid_MW(epsi_med, epsi_p, p, Rx, Ry, Rz):
+    r"""Maxwell-Wagner mixture model for dilute suspensions of ellipsoidal particles:w
+
+    Parameters
+    -----------
+    epsi_med: :class:`numpy.ndarray`, complex
+        complex permittivities of medium
+    epsi_p: :class:`numpy.ndarray`, complex
+        complex permittivities of suspension phase (cells, particles...)
+    p: double
+        volume fraction
+    Rx: double
+        radius for x-semiaxis, value for :math:`R_\mathrm{x}`
+    Ry: double
+        radius for y-semiaxis, value for :math:`R_\mathrm{y}`
+    Rz: double
+        radius for z-semiaxis, value for :math:`R_\mathrm{z}`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Complex permittivity array
+
+    Notes
+    -----
+
+    The complex permittivity of the suspension :math:`\varepsilon_\mathrm{sus}^\ast` is given by
+
+    .. math::
+        \varepsilon_\mathrm{sus}^\ast = \varepsilon_\mathrm{med}^\ast\left(1 + \frac{1}{3} p \sum_{k=x,y,z} \frac{\varepsilon_\mathrm{p}^\ast - \varepsilon_\mathrm{med}^\ast}{\varepsilon_\mathrm{med}^\ast+(\varepsilon_\mathrm{p}^\ast-\varepsilon_\mathrm{med}^\ast)L_k}\right) \enspace ,
+
+    with :math:`\varepsilon_\mathrm{med}^\ast` being the permittivity of the liquid medium and :math:`\varepsilon_\mathrm{p}^\ast` the permittivity of the suspended particle (e.g., cells).
+    The depolarization factor :math:`L_k` is implemented in :meth:`Lk`.
+
+    Note that this approximation is valid only for :math:`p \ll 1`.
+    An overview of alternative approaches can, for example, be found in [Asami2002]_ (e.g., in Table 2 therein).
+
+    References
+    ----------
+
+    .. [Asami2002] Asami, K. (2002). Characterization of heterogeneous systems by dielectric spectroscopy.
+                   Progress in Polymer Science, 27(8), 1617–1659.
+                   https://doi.org/10.1016/S0079-6700(02)00015-1
+
+    """
+
+    sum_components = np.zeros(epsi_med.shape, dtype=np.complex128)
+    for i in range(3):
+        L_i = Lk(Rx, Ry, Rz, i)
+        sum_components += (epsi_p - epsi_med) / (epsi_med + (epsi_p - epsi_med) * L_i)
+    return epsi_med * (1.0 + p / 3.0 * sum_components)

@@ -4,7 +4,7 @@ Utilitites
 .. automodule:: impedancefitter.utils
         :members:
 
-.. automodule:: impedancefitter.FRABode2impedance
+.. automodule:: impedancefitter.fra
         :members:
 
 .. automodule:: impedancefitter.suspensionmodels
