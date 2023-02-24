@@ -37,9 +37,13 @@ from .RC import RC_model, rc_model, drc_model, rc_tau_model
 from .cpe import cpe_model, cpe_ct_model, cpe_ct_w_model, cpe_onset_model, cpetissue_model, cpe_ct_tissue_model
 from .particle_suspension import particle_model, particle_bh_model
 from .single_shell import single_shell_model, single_shell_bh_model
+from .single_shell_ellipsoid import single_shell_ellipsoid_model
+from .single_shell_wall_ellipsoid import single_shell_wall_ellipsoid_model
 from .single_shell_wall import single_shell_wall_model, single_shell_wall_bh_model
 from .double_shell import double_shell_model, double_shell_bh_model
+from .double_shell_ellipsoid import double_shell_ellipsoid_model
 from .double_shell_wall import double_shell_wall_model, double_shell_wall_bh_model
+from .double_shell_wall_ellipsoid import double_shell_wall_ellipsoid_model
 from lmfit import Model, CompositeModel
 from copy import deepcopy
 from packaging import version
@@ -490,12 +494,16 @@ def available_models():
               'ParticleSuspension',
               'ParticleSuspensionBH',
               'SingleShell',
+              'SingleShellEllipsoid',
               'SingleShellBH',
               'SingleShellWall',
+              'SingleShellWallEllipsoid',
               'SingleShellWallBH',
               'DoubleShell',
+              'DoubleShellEllipsoid',
               'DoubleShellBH',
               'DoubleShellWall',
+              'DoubleShellWallEllipsoid',
               'DoubleShellWallBH',
               'CPE',
               'CPEonset',
@@ -600,6 +608,10 @@ def _model_function(modelname):
         model = particle_bh_model
     elif modelname == 'SingleShell':
         model = single_shell_model
+    elif modelname == 'SingleShellEllipsoid':
+        model = single_shell_ellipsoid_model
+    elif modelname == 'SingleShellWallEllipsoid':
+        model = single_shell_wall_ellipsoid_model
     elif modelname == 'SingleShellWall':
         model = single_shell_wall_model
     elif modelname == 'SingleShellWallBH':
@@ -608,8 +620,12 @@ def _model_function(modelname):
         model = single_shell_bh_model
     elif modelname == 'DoubleShell':
         model = double_shell_model
+    elif modelname == 'DoubleShellEllipsoid':
+        model = double_shell_ellipsoid_model
     elif modelname == 'DoubleShellWall':
         model = double_shell_wall_model
+    elif modelname == 'DoubleShellWallEllipsoid':
+        model = double_shell_wall_ellipsoid_model
     elif modelname == 'DoubleShellWallBH':
         model = double_shell_wall_bh_model
     elif modelname == 'DoubleShellBH':

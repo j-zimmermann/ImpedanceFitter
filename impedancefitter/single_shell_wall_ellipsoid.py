@@ -20,7 +20,14 @@ from scipy.constants import epsilon_0 as e0
 from impedancefitter.suspensionmodels import Lk, eps_sus_ellipsoid_MW
 
 
-def eps_cell_single_shell_ellipsoid(omega, km, em, kcp, ecp, dm, Rcx, Rcy, Rcz):
+def f(epss, epsi, Lout_k, Lin_k, v):
+    """Helper function to compute multiple shells
+
+    """
+    return epss * (1. + v * (epsi - epss) / (epss + (epsi - epss) * Lin_k - v * (epsi - epss) * Lout_k))
+
+
+def eps_cell_single_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kw, ew, dm, dw, Rcx, Rcy, Rcz):
     r"""Complex permittivity of single shell model
 
     Parameters
@@ -35,38 +42,66 @@ def eps_cell_single_shell_ellipsoid(omega, km, em, kcp, ecp, dm, Rcx, Rcy, Rcz):
         cytoplasm permittivity, value for :math:`\varepsilon_\mathrm{cp}`
     kcp: double
         cytoplasm conductivity, value for :math:`\sigma_\mathrm{cp}`
+    ew: double
+        cell wall permittivity, value for :math:`\varepsilon_\mathrm{w}`
+    kw: double
+        cell wall conductivity, value for :math:`\sigma_\mathrm{w}`
     dm: double
         membrane thickness, value for :math:`d_\mathrm{m}`
+    dw: double
+        cell wall thickness, value for :math:`R_\mathrm{c}`
     Rcx: double
         cell radius for x-semiaxis, value for :math:`R_\mathrm{cx}`
     Rcy: double
         cell radius for y-semiaxis, value for :math:`R_\mathrm{cy}`
     Rcz: double
         cell radius for z-semiaxis, value for :math:`R_\mathrm{cz}`
+
+    Notes
+    -----
+
+    The approach is based on [Asami2002]_, section 3.3.
+
     Returns
     -------
+
     :class:`numpy.ndarray`, complex
         Complex permittivity array
+
     """
     Rix = Rcx - dm
     Riy = Rcy - dm
     Riz = Rcz - dm
 
-    v = (Rix * Riy * Riz / (Rcx * Rcy * Rcz))
+    Rwx = Rcx + dw
+    Rwy = Rcy + dw
+    Rwz = Rcz + dw
+
+    v1 = (Rix * Riy * Riz / (Rcx * Rcy * Rcz))
+    v2 = (Rcx * Rcy * Rcz / (Rwx * Rwy * Rwz))
 
     epsi_cp = ecp - 1j * kcp / (e0 * omega)
     epsi_m = em - 1j * km / (e0 * omega)
+    epsi_w = ew - 1j * kw / (e0 * omega)
+
     # model
     epsi_cell = []
+    # inner-most shell
     for i in range(3):
         Li_i = Lk(Rix, Riy, Riz, i)
         L_i = Lk(Rcx, Rcy, Rcz, i)
-        epsi_tmp = epsi_m * (1.0 + v * (epsi_cp - epsi_m) / (epsi_m + (epsi_cp - epsi_m) * (Li_i - v * L_i)))
+        epsi_tmp = f(epsi_m, epsi_cp, L_i, Li_i, v1)
         epsi_cell.append(epsi_tmp)
+    # wall shell
+    for i in range(3):
+        Li_i = Lk(Rcx, Rcy, Rcz, i)
+        L_i = Lk(Rwx, Rwy, Rwz, i)
+        epsi_cell[i] = f(epsi_w, epsi_cell[i], L_i, Li_i, v2)
+
     return epsi_cell
 
 
-def single_shell_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rcx, Rcy, Rcz):
+def single_shell_wall_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, kw, ew, p, c0, dm, dw, Rcx, Rcy, Rcz):
     r"""Impedance of single shell model
 
     Parameters
@@ -83,6 +118,10 @@ def single_shell_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm,
         cytoplasm permittivity, value for :math:`\varepsilon_\mathrm{cp}`
     kcp: double
         cytoplasm conductivity, value for :math:`\sigma_\mathrm{cp}`
+    ew: double
+        cell wall permittivity, value for :math:`\varepsilon_\mathrm{w}`
+    kw: double
+        cell wall conductivity, value for :math:`\sigma_\mathrm{w}`
     emed: double
         medium permittivity, value for :math:`\varepsilon_\mathrm{med}`
     kmed: double
@@ -91,6 +130,8 @@ def single_shell_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm,
         volume fraction
     dm: double
         membrane thickness, value for :math:`d_\mathrm{m}`
+    dw: double
+        cell wall thickness, value for :math:`R_\mathrm{c}`
     Rcx: double
         cell radius for x-semiaxis, value for :math:`R_\mathrm{cx}`
     Rcy: double
@@ -109,17 +150,18 @@ def single_shell_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm,
     .. warning::
 
         The unit capacitance is in pF!
-        The cell radii and the membrane thickness have to be passed in um!
 
+    The approach is based on [Asami2002]_, section 3.3.
+
+    See Also
+    --------
+    :meth:`impedancefitter.single_shell_ellipsoid.single_shell_ellipsoid_model`
     """
     c0 *= 1e-12  # use pF as unit
     km *= 1e-6
 
-    if dm < 1e-3:
-        raise RuntimeError("The membrane thickness is very small! It should be passed in um")
-
     # cell model, contains three components
-    epsi_cell = eps_cell_single_shell_ellipsoid(omega, km, em, kcp, ecp, dm, Rcx, Rcy, Rcz)
+    epsi_cell = eps_cell_single_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kw, ew, dm, dw, Rcx, Rcy, Rcz)
 
     epsi_med = emed - 1j * kmed / (e0 * omega)
     esus = eps_sus_ellipsoid_MW(epsi_med, *epsi_cell, p, Rcx, Rcy, Rcz)

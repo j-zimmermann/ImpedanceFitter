@@ -48,7 +48,7 @@ def test_MW_ellipsoid():
 
 
 def test_single_shell_ellipsoid_impedance():
-    Z = single_shell_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm * 1e6, Rcx, Rcy, Rcz)
+    Z = single_shell_ellipsoid_model(omega, km * 1e6, em, kcp, ecp, kmed, emed, p, c0, dm * 1e6, Rcx, Rcy, Rcz)
     assert isinstance(Z, np.ndarray)
 
 
