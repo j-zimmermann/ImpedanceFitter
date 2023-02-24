@@ -267,3 +267,41 @@ def Z_wo(omega, Aw, B):
     """
 
     return Aw / np.sqrt(1j * omega) / np.tanh(B * np.sqrt(1j * omega))
+
+
+def Z_ADIb_r(omega, Rw, wd, gamma):
+    r"""Anomalous diffusion with reflecting boundary
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+
+    Rw: double
+        Resistance
+    wd: double
+        :math:`\omega_d`
+    gamma: double
+        :math:`\gamma`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+
+    Notes
+    -----
+
+    This element is described in [Bisquert2001]_.
+
+    References
+    ----------
+
+    [Bisquert2001] Bisquert, J., and Compte, A. (2001).
+                   Theory of the electrochemical impedance of anomalous diffusion.
+                   Journal of Electroanalytical Chemistry, 499(1), 112–120.
+                   https://doi.org/10.1016/S0022-0728(00)00497-6
+    """
+
+    return Rw * np.pow(wd, gamma - 1.0) * np.pow(wd / (1j * omega), 1.0 - 0.5 * gamma) * np.cosh(np.pow(1j * omega / wd, 0.5 * gamma)) / np.sinh(np.pow(1j * omega / wd, 0.5 * gamma))
