@@ -247,7 +247,13 @@ def eps_sus_ellipsoid_MW(epsi_med, epsi_px, epsi_py, epsi_pz, p, Rx, Ry, Rz):
     The complex permittivity of the suspension :math:`\varepsilon_\mathrm{sus}^\ast` is given by
 
     .. math::
-        \varepsilon_\mathrm{sus}^\ast = \varepsilon_\mathrm{med}^\ast\left(1 + \frac{1}{3} p \sum_{k=x,y,z} \frac{\varepsilon_\mathrm{p}^\ast - \varepsilon_\mathrm{med}^\ast}{\varepsilon_\mathrm{med}^\ast+(\varepsilon_\mathrm{p}^\ast-\varepsilon_\mathrm{med}^\ast)L_k}\right) \enspace ,
+        \varepsilon_\mathrm{sus}^\ast = \frac{\varepsilon_\mathrm{med}^\ast(1 + 2 K)}{1-K} \enspace ,
+
+    where
+
+    .. math::
+        K = \frac{p}{9} \sum_{k=x,y,z} \frac{\varepsilon_\mathrm{p}^\ast - \varepsilon_\mathrm{med}^\ast}{\varepsilon_\mathrm{med}^\ast + (\varepsilon_\mathrm{p}^\ast - \varepsilon_\mathrm{med}^\ast)L_k}
+
 
     with :math:`\varepsilon_\mathrm{med}^\ast` being the permittivity of the liquid medium and :math:`\varepsilon_\mathrm{p}^\ast` the permittivity of the suspended particle (e.g., cells).
     The depolarization factor :math:`L_k` is implemented in :meth:`Lk`.
@@ -264,9 +270,13 @@ def eps_sus_ellipsoid_MW(epsi_med, epsi_px, epsi_py, epsi_pz, p, Rx, Ry, Rz):
 
     """
 
+    if np.any(np.less_equal(np.array([Rx, Ry, Rz]), 1e-3)):
+        raise RuntimeError("Attention! For numerical reasons, the radii are evaluated in um! Please scale the parameter accordingly")
+
     sum_components = np.zeros(epsi_med.shape, dtype=np.complex128)
     epsi_p = [epsi_px, epsi_py, epsi_pz]
     for i in range(3):
         L_i = Lk(Rx, Ry, Rz, i)
         sum_components += (epsi_p[i] - epsi_med) / (epsi_med + (epsi_p[i] - epsi_med) * L_i)
-    return epsi_med * (1.0 + p / 3.0 * sum_components)
+    K = p / 9.0 * sum_components
+    return epsi_med * (1.0 + 2.0 * K) / (1.0 - K)

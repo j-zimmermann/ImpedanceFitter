@@ -63,8 +63,9 @@ def test_single_shell_ellipsoid_permittivity():
 def test_equivalence_sphere_ellipsoid_impedance():
     Rc = 5.0e-6
     Rcx = Rcy = Rcz = 5.0
-    Z_sphere = single_shell_model(omega, em, km, kcp, ecp, kmed, emed, p, c0, dm, Rc)
-    Z_ellipsoid = single_shell_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm * 1e6, Rcx, Rcy, Rcz)
+    # account for unit of km
+    Z_sphere = single_shell_model(omega, km * 1e6, em, kcp, ecp, kmed, emed, p, c0, dm, Rc)
+    Z_ellipsoid = single_shell_ellipsoid_model(omega, km * 1e6, em, kcp, ecp, kmed, emed, p, c0, dm * 1e6, Rcx, Rcy, Rcz)
     assert np.all(np.isclose(Z_sphere, Z_ellipsoid))
 
 
@@ -77,3 +78,16 @@ def test_equivalence_sphere_ellipsoid_permittivity():
     for i in range(3):
         checks.append(np.all(np.isclose(eps_sphere, eps_ellipsoid[i])))
     assert np.all(checks)
+
+
+def test_equivalence_ellipsoid_ellipsoid_impedance():
+    Rcx = 5.0
+    Rcy = 10.0
+    Rcz = 2.0
+    # account for unit of km
+    Z_ellipsoid1 = single_shell_ellipsoid_model(omega, km * 1e6, em, kcp, ecp, kmed, emed, p, c0, dm * 1e6, Rcx, Rcy, Rcz)
+    Rcx = 10.0
+    Rcy = 5.0
+    Rcz = 2.0
+    Z_ellipsoid2 = single_shell_ellipsoid_model(omega, km * 1e6, em, kcp, ecp, kmed, emed, p, c0, dm * 1e6, Rcx, Rcy, Rcz)
+    assert np.all(np.isclose(Z_ellipsoid1, Z_ellipsoid2))
