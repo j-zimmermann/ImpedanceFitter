@@ -60,6 +60,8 @@ the experimental data could be raised.
 If you observe sinusoidal oscillations in your residuals,
 increase the number of RC-elements either manually or by decreasing
 the threshold to values below `0.85`.
+This happens when there are not many time constants are present in the impedance data.
+Such an example can be found in the `linkk_oneRC.py` example linked below. 
 
 If there is an inductive or capacitive element present, it can be benefitial
 to add an extra capacitance or inductance to the circuit.
@@ -105,6 +107,7 @@ See Also
 :download:`examples/LinKK/linkk_cap.py <../../examples/LinKK/linkk_cap.py>`.
 :download:`examples/LinKK/linkk_ind.py <../../examples/LinKK/linkk_ind.py>`.
 :download:`examples/LinKK/linkk_ind_cap.py <../../examples/LinKK/linkk_ind_cap.py>`.
+:download:`examples/LinKK/linkk_oneRC.py <../../examples/LinKK/linkk_oneRC.py>`.
 :download:`examples/KK/kk.py <../../examples/KK/kk.py>`.
 
 :meth:`impedancefitter.fitter.Fitter.linkk_test`
