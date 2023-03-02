@@ -515,7 +515,7 @@ def available_models():
               'C',
               'W',
               'Wo',
-              'ADIb_R',
+              'ADIbR',
               'LCR',
               'LR',
               'LRSkin',
@@ -653,7 +653,7 @@ def _model_function(modelname):
         model = Z_w
     elif modelname == "Wo":
         model = Z_wo
-    elif modelname == "ADIb_R":
+    elif modelname == "ADIbR":
         model = Z_ADIb_r
     elif modelname == "Ws":
         model = Z_ws

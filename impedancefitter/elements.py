@@ -304,4 +304,4 @@ def Z_ADIb_r(omega, Rw, wd, gamma):
                    https://doi.org/10.1016/S0022-0728(00)00497-6
     """
 
-    return Rw * np.pow(wd, gamma - 1.0) * np.pow(wd / (1j * omega), 1.0 - 0.5 * gamma) * np.cosh(np.pow(1j * omega / wd, 0.5 * gamma)) / np.sinh(np.pow(1j * omega / wd, 0.5 * gamma))
+    return Rw * np.power(wd, gamma - 1.0) * np.power(wd / (1j * omega), 1.0 - 0.5 * gamma) / np.tanh(np.power(1j * omega / wd, 0.5 * gamma))
