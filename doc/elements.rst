@@ -31,6 +31,12 @@ Names for building the model
 +-------+------------------------------------------+
 | Cstray| :meth:`impedancefitter.elements.Z_stray` |
 +-------+------------------------------------------+
+| ADIbR | :meth:`impedancefitter.elements.Z_ADIb_r`|
++-------+------------------------------------------+
+| ADIaR | :meth:`impedancefitter.elements.Z_ADIa_r`|
++-------+------------------------------------------+
+| ADIIR | :meth:`impedancefitter.elements.Z_ADII_r`|
++-------+------------------------------------------+
 
 API reference
 -------------

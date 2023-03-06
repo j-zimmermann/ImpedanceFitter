@@ -8,8 +8,9 @@ wd = 1
 freq = np.logspace(-0.75, 3, num=100)
 omega = 2. * np.pi * freq
 
-model = "ADIbR"
+models = ["Wo", "ADIaR", "ADIbR", "ADIIR"]
 
-ecm = ifit.get_equivalent_circuit_model(model)
-Z = ecm.eval(omega=omega, Rw=Rw, gamma=gamma, wd=wd)
-ifit.plot_impedance(omega, Z, Nyquist_conventional=True)
+for model in models:
+    ecm = ifit.get_equivalent_circuit_model(model)
+    Z = ecm.eval(omega=omega, Rw=Rw, gamma=gamma, wd=wd)
+    ifit.plot_impedance(omega, Z, Nyquist_conventional=True, title=model)
