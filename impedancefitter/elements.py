@@ -196,17 +196,17 @@ def Z_stray(omega, Cs):
     return Z_C(omega, Cs * 1e-12)
 
 
-def Z_ws(omega, Aw, B):
-    r"""Warburg short element
+def Z_ws(omega, Rw, wd):
+    r"""Warburg short element with absorbing boundary
 
     Parameters
     ----------
     omega: :class:`numpy.ndarray`
         List of frequencies.
 
-    Aw: double
-        Warburg coefficient
-    B: double
+    Rw: double
+        Warburg resistance
+    wd: double
         Second coefficient
 
     Returns
@@ -219,17 +219,17 @@ def Z_ws(omega, Aw, B):
 
     This element is also referred to as finite-length Warburg element
     with transmissive boundary [Barsoukov2018]_.
-    Here, the formulation
+    Here, the formulation from [Bisquert2001]_ is used
 
     .. math::
 
-        Z_\mathrm{W} = A_\mathrm{W} \frac{\tanh\left(B \sqrt{j \omega}\right)}{\sqrt{j \omega}}
+        Z_\mathrm{W} = R_\mathrm{W} \sqrt{\omega_d / (j \omega)} \tanh\left(\sqrt{j \omega / omega_d}\right)
 
     is implemented.
 
     """
 
-    return Aw / np.sqrt(1j * omega) * np.tanh(B * np.sqrt(1j * omega))
+    return Rw * np.sqrt(wd / (1j * omega)) * np.tanh(np.sqrt(1j * omega / wd))
 
 
 def Z_wo(omega, Rw, wd):
@@ -307,6 +307,37 @@ def Z_ADIb_r(omega, Rw, wd, gamma):
     return Rw * np.power(wd, gamma - 1.0) * np.power(wd / (1j * omega), 1.0 - 0.5 * gamma) / np.tanh(np.power(1j * omega / wd, 0.5 * gamma))
 
 
+def Z_ADIb_a(omega, Rw, wd, gamma):
+    r"""Anomalous diffusion Ib with absorbing boundary
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+
+    Rw: double
+        Resistance
+    wd: double
+        :math:`\omega_d`
+    gamma: double
+        :math:`\gamma`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+
+    Notes
+    -----
+
+    This element is described in [Bisquert2001]_.
+
+    """
+
+    return Rw * np.power(wd, gamma - 1.0) * np.power(wd / (1j * omega), 1.0 - 0.5 * gamma) * np.tanh(np.power(1j * omega / wd, 0.5 * gamma))
+
+
 def Z_ADIa_r(omega, Rw, wd, gamma):
     r"""Anomalous diffusion Ia with reflecting boundary
 
@@ -338,6 +369,37 @@ def Z_ADIa_r(omega, Rw, wd, gamma):
     return Rw * np.power(wd / (1j * omega), 0.5 * gamma) / np.tanh(np.power(1j * omega / wd, 0.5 * gamma))
 
 
+def Z_ADIa_a(omega, Rw, wd, gamma):
+    r"""Anomalous diffusion Ia with absorbing boundary
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+
+    Rw: double
+        Resistance
+    wd: double
+        :math:`\omega_d`
+    gamma: double
+        :math:`\gamma`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+
+    Notes
+    -----
+
+    This element is described in [Bisquert2001]_.
+
+    """
+
+    return Rw * np.power(wd / (1j * omega), 0.5 * gamma) * np.tanh(np.power(1j * omega / wd, 0.5 * gamma))
+
+
 def Z_ADII_r(omega, Rw, wd, gamma):
     r"""Anomalous diffusion II with reflecting boundary
 
@@ -367,3 +429,34 @@ def Z_ADII_r(omega, Rw, wd, gamma):
     """
 
     return Rw * np.power(wd, 1.0 - gamma) * np.power(wd / (1j * omega), 0.5 * gamma) / np.tanh(np.power(1j * omega / wd, 1.0 - 0.5 * gamma))
+
+
+def Z_ADII_a(omega, Rw, wd, gamma):
+    r"""Anomalous diffusion II with absorbing boundary
+
+    Parameters
+    ----------
+    omega: :class:`numpy.ndarray`
+        List of frequencies.
+
+    Rw: double
+        Resistance
+    wd: double
+        :math:`\omega_d`
+    gamma: double
+        :math:`\gamma`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`, complex
+        Impedance array
+
+
+    Notes
+    -----
+
+    This element is described in [Bisquert2001]_.
+
+    """
+
+    return Rw * np.power(wd, 1.0 - gamma) * np.power(wd / (1j * omega), 0.5 * gamma) * np.tanh(np.power(1j * omega / wd, 1.0 - 0.5 * gamma))

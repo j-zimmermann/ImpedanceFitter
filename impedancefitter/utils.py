@@ -29,7 +29,7 @@ from schemdraw.util import Point
 from scipy.integrate import simps
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
-from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo, eps, Z_ADIb_r, Z_ADIa_r, Z_ADII_r
+from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo, eps, Z_ADIb_r, Z_ADIa_r, Z_ADII_r, Z_ADIb_a, Z_ADIa_a, Z_ADII_a
 from .loss import Z_in, Z_loss, Z_skin
 from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model, havriliak_negami, cole_cole_2tissue_model, havriliak_negamitissue, raicu
 from .randles import Z_randles, Z_randles_CPE
@@ -518,6 +518,9 @@ def available_models():
               'ADIbR',
               'ADIaR',
               'ADIIR',
+              'ADIbA',
+              'ADIaA',
+              'ADIIA',
               'LCR',
               'LR',
               'LRSkin',
@@ -661,6 +664,13 @@ def _model_function(modelname):
         model = Z_ADIa_r
     elif modelname == "ADIIR":
         model = Z_ADII_r
+    elif modelname == "ADIbA":
+        model = Z_ADIb_a
+    elif modelname == "ADIaA":
+        model = Z_ADIa_a
+    elif modelname == "ADIIA":
+        model = Z_ADII_a
+
     elif modelname == "Ws":
         model = Z_ws
     elif modelname == "LCR":
