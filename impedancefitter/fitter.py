@@ -1533,7 +1533,7 @@ class Fitter(object):
 
         RC = self.initialize_model(modelRC)
 
-        while mu > c:
+        while np.greater(mu, c):
             A = np.copy(Abase)
             if M > 1:
                 for m in range(M):
@@ -1657,11 +1657,11 @@ def _compute_mu(fit_values):
         Value of :math:`\mu`.
     """
 
-    neg = 0
-    pos = 0
+    neg = 0.0
+    pos = 0.0
 
     for value in fit_values:
-        if value < 0:
+        if np.less(value, 0.0):
             neg += -value
         else:
             pos += value

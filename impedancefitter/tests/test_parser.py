@@ -93,3 +93,15 @@ def test_wrong_circuit6():
     model1 = "R_f1 + parallel(R_f2 + L)"
     with pytest.raises(Exception):
         get_equivalent_circuit_model(model1)
+
+
+def test_wrong_circuit7():
+    model1 = "R + parallel(R_f2, L)"
+    with pytest.raises(Exception):
+        get_equivalent_circuit_model(model1)
+
+
+def test_wrong_circuit8():
+    model1 = "R_f1 + parallel(R, L)"
+    with pytest.raises(Exception):
+        get_equivalent_circuit_model(model1)

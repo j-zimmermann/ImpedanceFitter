@@ -231,7 +231,6 @@ def check_parameters(bufdict):
     # can be negative and do not need to be checked
     exceptions = ['__lnsigma', 'Rk']
     for p in bufdict:
-
         if p in exceptions:
             continue
 
@@ -894,6 +893,7 @@ def get_equivalent_circuit_model(modelname, logscale=False, diel=False):
 
 def _check_models_suffix(circuit):
     baseparams = []
+    suffixes = {}
     for p in circuit.param_names:
         tmp = p.split("_")
         suf = None
@@ -904,9 +904,15 @@ def _check_models_suffix(circuit):
             par = tmp[0]
         else:
             raise RuntimeError("The parameter {} cannot be split in prefix and suffix.".format(p))
-        if par in baseparams and suf is None:
-            raise RuntimeError("The parameter {} has no prefix (its model has no suffix). This will lead to wrong parameter assignments. Change the part of the model, to which this parameter belongs (add a unique suffix).".format(p))
-        baseparams.append(par)
+        # fill baseparams list and check suffixes
+        if par in baseparams:
+            if len(suffixes[par]) == 0 or suf is None:
+                raise RuntimeError("There is an error with the parameter {}. Please make sure that all parameters of this type have a proper prefix according to its model's suffix. Otherwise, wrong parameter assignments will happen.".format(p))
+        else:
+            baseparams.append(par)
+            suffixes[par] = []
+            if suf is not None:
+                suffixes[par].append(suf)
 
 
 def dummy(omega):
@@ -928,6 +934,7 @@ def _model_label(model):
               'Randles': 'Randles',
               'RandlesCPE': 'Randles w/ CPE',
               'RC': 'RC',
+              'RCtau': 'RCtau',
               'LossyDielectric': 'Lossy dielectric',
               'ParticleSuspension': 'Particle suspension',
               'ParticleSuspensionBH': 'Particle suspension Bruggeman Hanai',
@@ -964,7 +971,7 @@ def _model_label(model):
 
 
 def _get_element(name):
-    resistors = ["R"]
+    resistors = ["R", "Rk"]
     capacitors = ["C", "Cstray"]
     resistorlike = ['ColeCole',
                     'ColeColeR',
@@ -976,6 +983,7 @@ def _get_element(name):
                     'Randles',
                     'RandlesCPE',
                     'RC',
+                    'RCtau',
                     'LossyDielectric',
                     'DRC',
                     'ParticleSuspension',
