@@ -312,6 +312,7 @@ class Fitter(object):
                     labels = [key + str(i), None, None]
                     showtmp = False
                 elif allinone and totaliters == 1:
+                    append = False
                     labels = [key + str(i), None, None]
                     savefigtmp = savefig
                     title = "allinone"
