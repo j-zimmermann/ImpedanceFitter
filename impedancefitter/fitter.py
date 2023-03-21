@@ -289,9 +289,14 @@ class Fitter(object):
             logger.warning("""visualize_data does not have any effect if you
                               neither save nor show the plot.""")
             return
+        totaliters = 0
         savefigtmp = savefig
         showtmp = show
         labels = ["Data", None, None]
+
+        for key in self.z_dict:
+            zarray = self.z_dict[key]
+            totaliters += zarray.shape[0]
 
         for key in self.omega_dict:
             append = False
@@ -301,13 +306,12 @@ class Fitter(object):
 
             for i in range(iters):
                 title = key + str(i)
-                if allinone and i < iters - 1:
+                if allinone and totaliters > 1:
                     append = True
                     savefigtmp = False
                     labels = [key + str(i), None, None]
                     showtmp = False
-                elif allinone and i == iters - 1:
-                    append = False
+                elif allinone and totaliters == 1:
                     labels = [key + str(i), None, None]
                     savefigtmp = savefig
                     title = "allinone"
@@ -326,8 +330,10 @@ class Fitter(object):
                                                 title=title, show=showtmp,
                                                 save=savefigtmp, append=append, labels=labels,
                                                 legend=legend)
+
                 else:
                     raise RuntimeError("You chose an invalid plottype")
+                totaliters -= 1
 
     def _initialize_parameters(self, model, parameters, emcee=False, weighting_model=False):
         """
