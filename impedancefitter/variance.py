@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def weighting_residual(params, omega, Zdata=None, model=None):
+def weighting_residual(params, omega, Zdata=None, model=None, model_kwargs={}):
     """Weight data using a model for the error
 
     Parameters
@@ -38,11 +38,10 @@ def weighting_residual(params, omega, Zdata=None, model=None):
     stdR = np.abs(Zdata) * stdA
     stdI = np.abs(Zdata) * (stdA + stdPhi) * np.angle(Zdata)
     weights = 1. / stdR**2 + 1j / stdI**2
-    Z1 = model.eval(omega=omega, **params)
+    Z1 = model.eval(omega=omega, params=params, **model_kwargs)
     diff = Z1 - Zdata
     diff = diff.ravel().view(float)
     weights = weights.ravel().view(float)
-    # diff = -1 * norm(0.0, weights).logpdf(diff).sum()
 
     diff = np.sum(np.log(1. / weights) + weights * diff * diff)
     return diff
