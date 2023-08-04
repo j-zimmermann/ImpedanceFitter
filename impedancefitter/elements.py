@@ -298,7 +298,7 @@ def Z_ADIb_r(omega, Rw, wd, gamma):
     References
     ----------
 
-    [Bisquert2001] Bisquert, J., and Compte, A. (2001).
+    .. [Bisquert2001] Bisquert, J., and Compte, A. (2001).
                    Theory of the electrochemical impedance of anomalous diffusion.
                    Journal of Electroanalytical Chemistry, 499(1), 112–120.
                    https://doi.org/10.1016/S0022-0728(00)00497-6
