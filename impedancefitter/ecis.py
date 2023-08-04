@@ -32,6 +32,8 @@ def Z_ECIS_Lo_Ferrier(omega, aecis, Lecis, Wecis, Rb, Cm, Rm, Zn=None):
 
     The model is described in [Lo1998]_.
 
+    Thanks to Paula Respondek (Uni Rostock)
+    who initially implemented the model.
 
     References
     ----------
