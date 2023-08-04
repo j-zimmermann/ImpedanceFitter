@@ -83,6 +83,8 @@ to each model.
 +-----------------------+----------------------------------------------------------------------+
 | HavriliakNegamiTissue | :meth:`impedancefitter.cole_cole.havriliak_negamitissue`             |
 +-----------------------+----------------------------------------------------------------------+
+| ECISLoFerrier         | :meth:`impedancefitter.ecis.Z_ECIS_Lo_Ferrier`                       |
++-----------------------+----------------------------------------------------------------------+
 
 Cole-Cole circuits
 ------------------
@@ -137,3 +139,8 @@ Randles circuits
 .. automodule:: impedancefitter.randles
 	:members:
 
+ECIS models
+-----------
+
+.. automodule:: impedancefitter.ecis
+        :members:

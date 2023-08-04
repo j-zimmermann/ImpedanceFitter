@@ -129,19 +129,9 @@ class Fitter(object):
         be lists when there was more than one impedance data set in the file.
     fit_data: dict
         Contains the fitting results for each individual file.
-        In case of a sequential run, the dictionary contains two
-        sub-dictionaries with keys `model1` and `model2` and the results.
     fittedValues: :class:`lmfit.model.ModelResult`
         The fitting result of the last data set that was fitted.
         Exists only when :meth:`run` was called.
-    fittedValues1: :class:`lmfit.model.ModelResult`
-        The fitting result of the last data set that was fitted.
-        Exists only when :meth:`sequential_run` was called and
-        corresponds to the first model in this run.
-    fittedValues2: :class:`lmfit.model.ModelResult`
-        The fitting result of the last data set that was fitted.
-        Exists only when :meth:`sequential_run` was called and
-        corresponds to the second model in this run.
     """
 
     def __init__(self, inputformat, directory=None, **kwargs):
@@ -312,6 +302,7 @@ class Fitter(object):
                     labels = [key + str(i), None, None]
                     showtmp = False
                 elif allinone and totaliters == 1:
+                    append = False
                     labels = [key + str(i), None, None]
                     savefigtmp = savefig
                     title = "allinone"
@@ -389,7 +380,7 @@ class Fitter(object):
         return model
 
     def run(self, modelname, solver=None, parameters=None,
-            solver_kwargs={}, log=False, weighting=None,
+            model_kwargs={}, solver_kwargs={}, log=False, weighting=None,
             show=False, report=False, savemodelresult=True, eps=False,
             residual="parts", limits_residual=None, weighting_model=False):
         """
@@ -409,6 +400,8 @@ class Fitter(object):
         parameters: dict, optional
             Provide parameters if you do not want
             to read them from a yaml file (for instance in parallel UQ runs).
+        model_kwargs: dict, optional
+            Provide additional keywords for the model function to be called in the fitting routine.
         solver_kwargs: dict, optional
             Customize the employed solver. Interface to the LMFIT routine.
         weighting: str, optional
@@ -497,114 +490,11 @@ class Fitter(object):
                                                                 self.model_parameters,
                                                                 residual,
                                                                 limits_residual,
-                                                                self.weighting_model)
+                                                                self.weighting_model,
+                                                                model_kwargs)
                 self._process_fitting_results(key + '_' + str(i))
         if self.write_output is True and hasattr(self, "fit_data"):
             outfile = open('outfile.yaml', 'w')
-            yaml.dump(self.fit_data, outfile)
-        elif not hasattr(self, "fit_data"):
-            logger.info("There was no file to process")
-
-    def sequential_run(self, model1, model2, communicate, solver=None,
-                       solver_kwargs={}, parameters1=None, parameters2=None,
-                       weighting=None):
-        """Main function that iterates through all data sets provided.
-
-        Here, two models are fitted sequentially and fitted parameters can
-        be communicated from one model to the other.
-
-        Parameters
-        ----------
-
-        model1: string
-            Name of first model. Must be built by those provided in
-            :func:`impedancefitter.utils.available_models` and using `+`
-            and `parallel(x, y)` as possible representations
-            of series or parallel circuit
-        model2: string
-            Name of second model. Must be built by those provided in
-            :func:`impedancefitter.utils.available_models` and using `+`
-            and `parallel(x, y)` as possible representations
-            of series or parallel circuit
-        communicate: list of strings
-            Names of parameters that should be communicated from model1 to model2.
-            Requires that model2 contains a parameter that is named appropriately.
-        solver: string, optional
-            choose an optimizer. Must be available in LMFIT. Default is least_squares
-        solver_kwargs: dict, optional
-            Customize the employed solver. Interface to the LMFIT routine.
-        parameters1: dict, optional
-            Parameters of model1.
-            Provide parameters if you do not want to use a yaml file.
-        parameters2: dict, optional
-            Parameters of model2.
-            Provide parameters if you do not want to use a yaml file.
-        weighting: str, optional
-            Choose a weighting scheme. Default is unit weighting.
-            Also possible: proportional weighting. See [Barsoukov2018]_ for more information.
-        """
-
-        # initialize solver
-        if solver is None:
-            self.solvername = "least_squares"
-        else:
-            self.solvername = solver
-        if self.solvername == "emcee":
-            self.emcee_tag = True
-        else:
-            self.emcee_tag = False
-        self.solver_kwargs = solver_kwargs
-        # initialize model
-        self.model1 = self.initialize_model(model1, self.log, self.eps)
-        self.model2 = self.initialize_model(model2, self.log, self.eps)
-
-        # initialize model parameters
-        if parameters1 is not None:
-            logger.debug("Using provided parameter dictionary.")
-            assert isinstance(parameters1, dict), "You need to provide an input dictionary!"
-        self.parameters1 = deepcopy(parameters1)
-        # initialize model parameters
-        if parameters2 is not None:
-            logger.debug("Using provided parameter dictionary.")
-            assert isinstance(parameters2, dict), "You need to provide an input dictionary!"
-        self.parameters2 = deepcopy(parameters2)
-
-        self.model_parameters1 = self._initialize_parameters(self.model1, self.parameters1, self.emcee_tag)
-        self.model_parameters2 = self._initialize_parameters(self.model2, self.parameters2, self.emcee_tag)
-
-        if self.write_output is True:
-            open('outfile.yaml', 'w')  # create output file
-        for key in self.omega_dict:
-            self.omega = self.omega_dict[key]
-            self.zarray = self.z_dict[key]
-            iters = 1
-            # determine number of iterations if more than 1 data set is in file
-            if len(self.zarray.shape) > 1:
-                self.iters = self.zarray.shape[0]
-                logger.debug("Number of data sets:" + str(iters))
-            if self.data_sets is not None:
-                self.iters = self.data_sets
-                logger.debug("""Will only iterate
-                                over {} data sets.""".format(self.iters))
-            for i in range(self.iters):
-                self.Z = self.zarray[i]
-                self.fittedValues1 = self.process_data_from_file(key + str(i),
-                                                                 self.model1,
-                                                                 self.model_parameters1)
-                for c in communicate:
-                    try:
-                        self.model_parameters2[c].value = self.fittedValues1.best_values[c]
-                        self.model_parameters2[c].vary = False
-                    except KeyError:
-                        logger.error("""Key {} you want to
-                                        communicate is not a valid model key.""".format(c))
-                        raise
-                self.fittedValues2 = self.process_data_from_file(key + str(i),
-                                                                 self.model2,
-                                                                 self.model_parameters2)
-                self._process_sequential_fitting_results(key + '_' + str(i))
-        if self.write_output is True and hasattr(self, "fit_data"):
-            outfile = open('outfile-sequential.yaml', 'W')
             yaml.dump(self.fit_data, outfile)
         elif not hasattr(self, "fit_data"):
             logger.info("There was no file to process")
@@ -681,36 +571,9 @@ class Fitter(object):
                 self.model_results = {}
             self.model_results[str(filename)] = self.fittedValues
 
-    def _process_sequential_fitting_results(self, filename):
-        '''Write output to yaml file to prepare statistical analysis of the results.
-
-        Parameters
-        ----------
-        filename: string
-            name of file that is used as key in the output dictionary.
-        '''
-        if not hasattr(self, "fit_data"):
-            self.fit_data = {}
-        values1 = self.fittedValues1.best_values
-        values2 = self.fittedValues2.best_values
-        # conversion into python native type
-        for key in values1:
-            values1[key] = float(values1[key])
-        for key in values2:
-            values2[key] = float(values2[key])
-
-        self.fit_data[str(filename)] = {}
-        self.fit_data[str(filename)]['model1'] = values1
-        self.fit_data[str(filename)]['model2'] = values2
-        if self.savemodelresult:
-            if not hasattr(self, "model_results"):
-                self.model_results = {}
-            self.model_results[str(filename)] = {}
-            self.model_results[str(filename)]['model1'] = self.fittedValues1
-            self.model_results[str(filename)]['model2'] = self.fittedValues2
-
     def _fit_data(self, model, parameters, weights=None,
-                  log=True, eps=False, weighting_model=False):
+                  log=True, eps=False, weighting_model=False,
+                  model_kwargs={}):
         """Fit data to model.
 
         Wrapper for LMFIT fitting routine.
@@ -755,7 +618,8 @@ class Fitter(object):
         else:
             tmp_dict = self.solver_kwargs
         if weighting_model:
-            model_result = lmfit.minimize(weighting_residual, params, method=self.solvername, args=(self.omega,), kws={'Zdata': Z, 'model': model})
+            model_result = lmfit.minimize(weighting_residual, params, method=self.solvername, args=(self.omega,),
+                                          kws={'Zdata': Z, 'model': model, "model_kwargs": model_kwargs})
             best_values = deepcopy(model_result.params.valuesdict())
             setattr(model_result, "best_values", best_values)
         else:
@@ -764,7 +628,8 @@ class Fitter(object):
                                      method=self.solvername,
                                      fit_kws=tmp_dict,
                                      weights=weights,
-                                     max_nfev=max_nfev)
+                                     max_nfev=max_nfev,
+                                     **model_kwargs)
             if self.weighting == "reweighting":
                 # raise NotImplementedError("Not yet implemented")
                 tol = 1e-7
@@ -862,7 +727,7 @@ class Fitter(object):
 
     def process_data_from_file(self, filename, model, parameters,
                                residual="parts", limits_residual=None,
-                               weighting_model=False):
+                               weighting_model=False, model_kwargs={}):
         """Fit data from input file to model.
 
         Wrapper for LMFIT fitting routine.
@@ -883,7 +748,8 @@ class Fitter(object):
             Plot difference (residual) if `diff`.
         limits_residual: list, optional
             List with entries `[bottom, top]` for y-axis of residual plot.
-
+        model_kwargs: dict, optional
+            Provide additional keywords for the model function to be called in the fitting routine.
 
         Returns
         -------
@@ -900,7 +766,7 @@ class Fitter(object):
             weights = 1. / np.abs(self.Z) + 1j / np.abs(self.Z)
         elif self.weighting == "WLS":
             weights = self.Zstd
-        fit_output = self._fit_data(model, parameters, log=self.log,
+        fit_output = self._fit_data(model, parameters, log=self.log, model_kwargs=model_kwargs,
                                     eps=self.eps, weights=weights, weighting_model=weighting_model)
         if self.log:
             Z_fit = np.power(10, fit_output.best_fit)
@@ -924,35 +790,27 @@ class Fitter(object):
                            limits_residual=limits_residual)
         return fit_output
 
-    def plot_initial_best_fit(self, sequential=False, save=False, show=True):
+    def plot_initial_best_fit(self, save=False, show=True):
         """Plot initial and best fit together.
 
         This method reveals how good the initial fit was.
 
         Parameters
         ----------
-        sequential: bool, optional
-            If a :meth:`sequential_run` was performed, set this value to True.
+        save: bool, optional
+            Save plot
+        show: bool, optional
+            Show plot
 
         """
-        if not sequential:
-            if self.log:
-                Z_fit = np.power(10, self.fittedValues.best_fit)
-                Z_init = np.power(10, self.fittedValues.init_fit)
-            else:
-                Z_fit = self.fittedValues.best_fit
-                Z_init = self.fittedValues.init_fit
-            plot_impedance(self.omega, self.Z, "Comparison of initial and best fit", Z_fit=Z_fit,
-                           show=show, save=save, Z_comp=Z_init)
+        if self.log:
+            Z_fit = np.power(10, self.fittedValues.best_fit)
+            Z_init = np.power(10, self.fittedValues.init_fit)
         else:
-            for i in range(2):
-                Z_fit = getattr(self, "fittedValues" + str(i + 1)).best_fit
-                Z_init = getattr(self, "fittedValues" + str(i + 1)).init_fit
-                if self.log:
-                    Z_fit = np.power(10, Z_fit)
-                    Z_init = np.power(10, Z_init)
-                plot_impedance(self.omega, self.Z, "", Z_fit=Z_fit,
-                               show=show, save=save, Z_comp=Z_init)
+            Z_fit = self.fittedValues.best_fit
+            Z_init = self.fittedValues.init_fit
+        plot_impedance(self.omega, self.Z, "Comparison of initial and best fit", Z_fit=Z_fit,
+                       show=show, save=save, Z_comp=Z_init)
 
     def cluster_emcee_result(self, constant=1e2, show=False):
         r"""Apply clustering to eliminate low-probability samples.
@@ -1114,15 +972,13 @@ class Fitter(object):
                 plt.savefig(fits + "__chains.pdf")
             plt.show()
 
-    def plot_uncertainty_interval(self, sigma=1, sequential=False):
+    def plot_uncertainty_interval(self, sigma=1):
         """Plot uncertainty interval around best fit.
 
         Parameters
         ----------
         sigma: {1, 2, 3}, optional
             Choose sigma for confidence interval.
-        sequential: bool, optional
-            Set to True if you performed a sequential run before.
 
         """
 
@@ -1132,16 +988,9 @@ class Fitter(object):
         assert hasattr(self, "model_results"), "You need to have saved the LMFIT model results."
 
         for d in self.fit_data:
-            if sequential:
-                iters = 2
-                endings = ["1", "2"]
-            else:
-                iters = 1
-                endings = [""]
+            iters = 1
             for i in range(iters):
                 modelresult = self.model_results[d]
-                if sequential:
-                    modelresult = modelresult['model' + endings[i]]
                 if self.solvername != "emcee":
                     logger.debug("Not Using emcee")
                     ci = modelresult.conf_interval()
@@ -1533,7 +1382,7 @@ class Fitter(object):
 
         RC = self.initialize_model(modelRC)
 
-        while mu > c:
+        while np.greater(mu, c):
             A = np.copy(Abase)
             if M > 1:
                 for m in range(M):
@@ -1657,11 +1506,11 @@ def _compute_mu(fit_values):
         Value of :math:`\mu`.
     """
 
-    neg = 0
-    pos = 0
+    neg = 0.0
+    pos = 0.0
 
     for value in fit_values:
-        if value < 0:
+        if np.less(value, 0.0):
             neg += -value
         else:
             pos += value
@@ -1682,7 +1531,7 @@ def _calculate_statistics(model_result):
 
     It corrects for the weighting and thus makes fits comparable.
     """
-    model_result.residual = (model_result.best_fit - model_result.data).ravel().view(np.float)
+    model_result.residual = (model_result.best_fit - model_result.data).ravel().view(np.float64)
     if isinstance(model_result.residual, np.ndarray):
         model_result.chisqr = (model_result.residual**2).sum()
     else:

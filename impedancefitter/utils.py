@@ -29,7 +29,7 @@ from schemdraw.util import Point
 from scipy.integrate import simps
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
-from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo, eps, Z_ADIb_r, Z_ADIa_r, Z_ADII_r
+from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo, eps, Z_ADIb_r, Z_ADIa_r, Z_ADII_r, Z_ADIb_a, Z_ADIa_a, Z_ADII_a
 from .loss import Z_in, Z_loss, Z_skin
 from .cole_cole import cole_cole_model, cole_cole_R_model, cole_cole_2_model, cole_cole_3_model, cole_cole_4_model, havriliak_negami, cole_cole_2tissue_model, havriliak_negamitissue, raicu
 from .randles import Z_randles, Z_randles_CPE
@@ -44,6 +44,7 @@ from .double_shell import double_shell_model, double_shell_bh_model
 from .double_shell_ellipsoid import double_shell_ellipsoid_model
 from .double_shell_wall import double_shell_wall_model, double_shell_wall_bh_model
 from .double_shell_wall_ellipsoid import double_shell_wall_ellipsoid_model
+from .ecis import Z_ECIS_Lo_Ferrier
 from lmfit import Model, CompositeModel
 from copy import deepcopy
 from packaging import version
@@ -231,7 +232,6 @@ def check_parameters(bufdict):
     # can be negative and do not need to be checked
     exceptions = ['__lnsigma', 'Rk']
     for p in bufdict:
-
         if p in exceptions:
             continue
 
@@ -485,6 +485,7 @@ def available_models():
               'ColeCole4',
               'ColeCole3',
               'ColeCole2',
+              "ECISLoFerrier",
               'HavriliakNegami',
               'Raicu',
               'Randles',
@@ -518,6 +519,9 @@ def available_models():
               'ADIbR',
               'ADIaR',
               'ADIIR',
+              'ADIbA',
+              'ADIaA',
+              'ADIIA',
               'LCR',
               'LR',
               'LRSkin',
@@ -593,6 +597,8 @@ def _model_function(modelname):
         model = raicu
     elif modelname == 'ColeColeR':
         model = cole_cole_R_model
+    elif modelname == "ECISLoFerrier":
+        model = Z_ECIS_Lo_Ferrier 
     elif modelname == 'Randles':
         model = Z_randles
     elif modelname == 'RandlesCPE':
@@ -661,6 +667,13 @@ def _model_function(modelname):
         model = Z_ADIa_r
     elif modelname == "ADIIR":
         model = Z_ADII_r
+    elif modelname == "ADIbA":
+        model = Z_ADIb_a
+    elif modelname == "ADIaA":
+        model = Z_ADIa_a
+    elif modelname == "ADIIA":
+        model = Z_ADII_a
+
     elif modelname == "Ws":
         model = Z_ws
     elif modelname == "LCR":
@@ -884,6 +897,7 @@ def get_equivalent_circuit_model(modelname, logscale=False, diel=False):
 
 def _check_models_suffix(circuit):
     baseparams = []
+    suffixes = {}
     for p in circuit.param_names:
         tmp = p.split("_")
         suf = None
@@ -894,9 +908,15 @@ def _check_models_suffix(circuit):
             par = tmp[0]
         else:
             raise RuntimeError("The parameter {} cannot be split in prefix and suffix.".format(p))
-        if par in baseparams and suf is None:
-            raise RuntimeError("The parameter {} has no prefix (its model has no suffix). This will lead to wrong parameter assignments. Change the part of the model, to which this parameter belongs (add a unique suffix).".format(p))
-        baseparams.append(par)
+        # fill baseparams list and check suffixes
+        if par in baseparams:
+            if len(suffixes[par]) == 0 or suf is None:
+                raise RuntimeError("There is an error with the parameter {}. Please make sure that all parameters of this type have a proper prefix according to its model's suffix. Otherwise, wrong parameter assignments will happen.".format(p))
+        else:
+            baseparams.append(par)
+            suffixes[par] = []
+            if suf is not None:
+                suffixes[par].append(suf)
 
 
 def dummy(omega):
@@ -918,6 +938,7 @@ def _model_label(model):
               'Randles': 'Randles',
               'RandlesCPE': 'Randles w/ CPE',
               'RC': 'RC',
+              'RCtau': 'RCtau',
               'LossyDielectric': 'Lossy dielectric',
               'ParticleSuspension': 'Particle suspension',
               'ParticleSuspensionBH': 'Particle suspension Bruggeman Hanai',
@@ -954,7 +975,7 @@ def _model_label(model):
 
 
 def _get_element(name):
-    resistors = ["R"]
+    resistors = ["R", "Rk"]
     capacitors = ["C", "Cstray"]
     resistorlike = ['ColeCole',
                     'ColeColeR',
@@ -966,6 +987,7 @@ def _get_element(name):
                     'Randles',
                     'RandlesCPE',
                     'RC',
+                    'RCtau',
                     'LossyDielectric',
                     'DRC',
                     'ParticleSuspension',

@@ -422,7 +422,8 @@ def plot_cole_cole(omega, Z, c0, Z_comp=None, append=False, legend=True, markers
 
 
 def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None,
-              labels=["Data", "Best fit", "Init fit"], append=False, legend=True):
+              labels=["Data", "Best fit", "Init fit"], append=False, legend=True,
+              markers=[None, '^', 'v']):
     """Bode plot of impedance.
 
     Plots phase and log of magnitude over log of frequency.
@@ -473,11 +474,11 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     plt.yscale('log')
     plt.ylabel(r"|Z| / $\Omega$")
     plt.xlabel('Frequency / Hz')
-    plt.plot(omega / (2. * np.pi), np.abs(Z), label=labels[0])
+    plt.plot(omega / (2. * np.pi), np.abs(Z), label=labels[0], marker=markers[0])
     if Z_fit is not None:
-        plt.plot(omega / (2. * np.pi), np.abs(Z_fit), '^', label=labels[1])
+        plt.plot(omega / (2. * np.pi), np.abs(Z_fit), label=labels[1], marker=markers[1])
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), np.abs(Z_comp), 'v', label=labels[2])
+        plt.plot(omega / (2. * np.pi), np.abs(Z_comp), label=labels[2], marker=markers[2])
     if legend:
         plt.legend()
 
@@ -488,11 +489,11 @@ def plot_bode(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp=None
     plt.xscale('log')
     plt.ylabel("Phase / °")
     plt.xlabel('Frequency / Hz')
-    plt.plot(omega / (2. * np.pi), np.angle(Z, deg=True), label=labels[0])
+    plt.plot(omega / (2. * np.pi), np.angle(Z, deg=True), label=labels[0], marker=markers[0])
     if Z_fit is not None:
-        plt.plot(omega / (2. * np.pi), np.angle(Z_fit, deg=True), '^', label=labels[1])
+        plt.plot(omega / (2. * np.pi), np.angle(Z_fit, deg=True), label=labels[1], marker=markers[1])
     if Z_comp is not None:
-        plt.plot(omega / (2. * np.pi), np.angle(Z_comp, deg=True), 'v', label=labels[2])
+        plt.plot(omega / (2. * np.pi), np.angle(Z_comp, deg=True), label=labels[2], marker=markers[2])
     if legend:
         plt.legend()
     plt.tight_layout()

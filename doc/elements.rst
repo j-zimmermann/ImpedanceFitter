@@ -37,6 +37,13 @@ Names for building the model
 +-------+------------------------------------------+
 | ADIIR | :meth:`impedancefitter.elements.Z_ADII_r`|
 +-------+------------------------------------------+
+| ADIbA | :meth:`impedancefitter.elements.Z_ADIb_a`|
++-------+------------------------------------------+
+| ADIaA | :meth:`impedancefitter.elements.Z_ADIa_a`|
++-------+------------------------------------------+
+| ADIIA | :meth:`impedancefitter.elements.Z_ADII_a`|
++-------+------------------------------------------+
+
 
 API reference
 -------------
