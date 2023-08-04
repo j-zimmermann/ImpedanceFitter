@@ -44,6 +44,7 @@ from .double_shell import double_shell_model, double_shell_bh_model
 from .double_shell_ellipsoid import double_shell_ellipsoid_model
 from .double_shell_wall import double_shell_wall_model, double_shell_wall_bh_model
 from .double_shell_wall_ellipsoid import double_shell_wall_ellipsoid_model
+from .ecis import Z_ECIS_Lo_Ferrier
 from lmfit import Model, CompositeModel
 from copy import deepcopy
 from packaging import version
@@ -484,6 +485,7 @@ def available_models():
               'ColeCole4',
               'ColeCole3',
               'ColeCole2',
+              "ECISLoFerrier",
               'HavriliakNegami',
               'Raicu',
               'Randles',
@@ -595,6 +597,8 @@ def _model_function(modelname):
         model = raicu
     elif modelname == 'ColeColeR':
         model = cole_cole_R_model
+    elif modelname == "ECISLoFerrier":
+        model = Z_ECIS_Lo_Ferrier 
     elif modelname == 'Randles':
         model = Z_randles
     elif modelname == 'RandlesCPE':
