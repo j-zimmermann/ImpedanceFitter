@@ -1683,7 +1683,7 @@ def _calculate_statistics(model_result):
 
     It corrects for the weighting and thus makes fits comparable.
     """
-    model_result.residual = (model_result.best_fit - model_result.data).ravel().view(np.float)
+    model_result.residual = (model_result.best_fit - model_result.data).ravel().view(np.float64)
     if isinstance(model_result.residual, np.ndarray):
         model_result.chisqr = (model_result.residual**2).sum()
     else:
