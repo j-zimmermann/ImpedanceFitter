@@ -64,6 +64,10 @@ class fra_device():
         self.is_gain = device["is_gain"]
 
 
+def mag_phase_to_complex(Z_mag, phase):
+    return Z_mag * np.exp(1j * np.deg2rad(phase))
+
+
 def open_short_compensation(Z_meas, Z_open, Z_short):
     """
     compensates the measured impedance with open and short reference measurements
@@ -149,10 +153,9 @@ def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
     """
     vratio = 10**(attenuation / 20)
     Z_dut = vratio * R_device - R_device
-    R_dut = Z_dut * np.cos(np.radians(phase))
-    X_dut = Z_dut * np.sin(np.radians(phase))
+
     omega = 2. * np.pi * frequency
-    Z_dut_complex = R_dut + 1j * X_dut
+    Z_dut_complex = mag_phase_to_complex(Z_dut, phase)
 
     return omega, Z_dut_complex
 
