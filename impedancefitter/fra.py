@@ -153,9 +153,9 @@ def wrap_phase(phase):
     wraps the phase to -90deg to 90deg
     TODO: maybe there is a python function for this
     """
-    while(phase > 90):
+    while phase > 90:
         phase -= 180
-    while(phase < -90):
+    while phase < -90:
         phase += 180
     return phase
 
@@ -219,7 +219,7 @@ def read_bode_csv(filename, devicename):
     This function was tested for a MokuGo (Liquid Instruments) and an Rohde & Schwarz oscilloscope RTB2004
     """
     try:
-        if(devicename in ["R&S", "MokuGo"]):
+        if devicename in ["R&S", "MokuGo"]:
             devicename = f"{package_directory}/devices/{devicename}"
         with open(f"{devicename}.json", "r") as dev_file:
             device = json.load(dev_file)
