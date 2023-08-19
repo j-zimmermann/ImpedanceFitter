@@ -263,3 +263,15 @@ def bode_csv_to_impedance(filename, devicename, R_device=1e6):
     """
     frequency, attenuation, phase = read_bode_csv(filename, devicename)
     return bode_to_impedance(frequency, attenuation, phase, R_device=R_device)
+
+
+def neisys_to_impedance(filename, header=2):
+    data = pandas.read_csv(filename, header=header)
+    frequencies = np.array(data['  Freq. [Hz]  '])
+    Z_dut = np.array(data['  |Z| [ohm]  '])
+    phase = np.array(data['  Phi [deg]'])
+
+    omega = 2. * np.pi * frequencies
+    Z = mag_phase_to_complex(Z_dut, phase)
+
+    return omega, Z
