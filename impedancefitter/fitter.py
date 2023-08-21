@@ -209,6 +209,9 @@ class Fitter(object):
         self.savemodelresult = True
         self.report = False
 
+        # for csv files
+        self.skiprows_csv = 0  # header rows inside the *.csv files
+
         # for txt files
         self.trace_b = None
         self.skiprows_txt = 1  # header rows inside the *.txt files
@@ -243,6 +246,8 @@ class Fitter(object):
             self.trace_b = kwargs['trace_b']
         if 'skiprows_txt' in kwargs:
             self.skiprows_txt = int(kwargs['skiprows_txt'])
+        if 'skiprows_csv' in kwargs:
+            self.skiprows_csv = int(kwargs['skiprows_csv'])
         if 'skiprows_trace' in kwargs:
             self.skiprows_trace = int(kwargs['skiprows_trace'])
         if 'show' in kwargs:
@@ -530,7 +535,8 @@ class Fitter(object):
             omega, zarray = readin_Data_from_collection(filepath, 'CSV',
                                                         delimiter=self.delimiter,
                                                         minimumFrequency=self.minimumFrequency,
-                                                        maximumFrequency=self.maximumFrequency)
+                                                        maximumFrequency=self.maximumFrequency,
+                                                        header=self.skiprows_csv)
         elif self.inputformat == 'CSV_E4980AL' and filename.endswith(".csv"):
             omega, zarray = readin_Data_from_csv_E4980AL(filepath,
                                                          minimumFrequency=self.minimumFrequency,

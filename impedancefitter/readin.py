@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 def readin_Data_from_collection(filepath, fileformat, delimiter=None,
-                                minimumFrequency=None, maximumFrequency=None):
+                                minimumFrequency=None, maximumFrequency=None, header=0):
     """read in data collection from Excel or CSV file.
 
     The file is structured like:
@@ -63,7 +63,7 @@ def readin_Data_from_collection(filepath, fileformat, delimiter=None,
         except XLRDError:
             EIS = pd.read_excel(filepath, engine="openpyxl")
     elif fileformat == 'CSV':
-        EIS = pd.read_csv(filepath, delimiter=delimiter)
+        EIS = pd.read_csv(filepath, delimiter=delimiter, header=header)
     else:
         raise NotImplementedError("File type not known")
 
