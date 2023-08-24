@@ -151,7 +151,7 @@ class Fitter(object):
         self.z_dict = {}
         # read in all data and store it
         if self.fileList is None:
-            self.fileList = os.listdir(self.directory)
+            self.fileList = sorted(os.listdir(self.directory))
         read_data_sets = 0
         for filename in self.fileList:
             if self.data_sets:
