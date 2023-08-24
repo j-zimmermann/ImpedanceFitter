@@ -275,3 +275,4 @@ def neisys_to_impedance(filename, header=2):
     Z = mag_phase_to_complex(Z_dut, phase)
 
     return omega, Z
+
