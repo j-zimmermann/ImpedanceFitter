@@ -64,6 +64,10 @@ class fra_device():
         self.is_gain = device["is_gain"]
 
 
+def mag_phase_to_complex(Z_mag, phase):
+    return Z_mag * np.exp(1j * np.deg2rad(phase))
+
+
 def open_short_compensation(Z_meas, Z_open, Z_short):
     """
     compensates the measured impedance with open and short reference measurements
@@ -135,15 +139,23 @@ def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
 
     Notes
     -----
+    Given the expression for the magnitude of a voltage in dB is
+    .. math::
+        M_{db} = 20 log{\frac{V_1}{V_{ref}}}
 
-    TBD: explain conversion formula
+    we calculte the voltage ratio from the attenuation in dB as
+    .. math::
+        ratio_{votlage} = 10^{M_{dB} / 20}
+
+    Then, the voltage divider rule results in the magnitude of the impedance as
+    .. math::
+        Z_{dut} = ratio * R_{shunt} - R_{shunt}
     """
     vratio = 10**(attenuation / 20)
     Z_dut = vratio * R_device - R_device
-    R_dut = Z_dut * np.cos(np.radians(phase))
-    X_dut = Z_dut * np.sin(np.radians(phase))
+
     omega = 2. * np.pi * frequency
-    Z_dut_complex = R_dut + 1j * X_dut
+    Z_dut_complex = mag_phase_to_complex(Z_dut, phase)
 
     return omega, Z_dut_complex
 
@@ -153,9 +165,9 @@ def wrap_phase(phase):
     wraps the phase to -90deg to 90deg
     TODO: maybe there is a python function for this
     """
-    while(phase > 90):
+    while phase > 90:
         phase -= 180
-    while(phase < -90):
+    while phase < -90:
         phase += 180
     return phase
 
@@ -219,7 +231,7 @@ def read_bode_csv(filename, devicename):
     This function was tested for a MokuGo (Liquid Instruments) and an Rohde & Schwarz oscilloscope RTB2004
     """
     try:
-        if(devicename in ["R&S", "MokuGo"]):
+        if devicename in ["R&S", "MokuGo"]:
             devicename = f"{package_directory}/devices/{devicename}"
         with open(f"{devicename}.json", "r") as dev_file:
             device = json.load(dev_file)
@@ -251,3 +263,16 @@ def bode_csv_to_impedance(filename, devicename, R_device=1e6):
     """
     frequency, attenuation, phase = read_bode_csv(filename, devicename)
     return bode_to_impedance(frequency, attenuation, phase, R_device=R_device)
+
+
+def neisys_to_impedance(filename, header=2):
+    data = pandas.read_csv(filename, header=header)
+    frequencies = np.array(data['  Freq. [Hz]  '])
+    Z_dut = np.array(data['  |Z| [ohm]  '])
+    phase = np.array(data['  Phi [deg]'])
+
+    omega = 2. * np.pi * frequencies
+    Z = mag_phase_to_complex(Z_dut, phase)
+
+    return omega, Z
+
