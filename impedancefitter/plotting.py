@@ -675,11 +675,11 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     plt.title("Impedance real part")
     plt.ylabel(r"Re Z / $\Omega$")
     plt.xlabel('Frequency / Hz')
-    line_Z, = plt.plot(omega / (2. * np.pi), Z.real, label=labels[0], **plotkwargs)
+    line_Z = plt.plot(omega / (2. * np.pi), Z.real, label=labels[0], **plotkwargs)
     if Z_fit is not None:
-        line_Zfit, = plt.plot(omega_fit / (2. * np.pi), Z_fit.real, linestyle='--', label=labels[1], **plotkwargs)
+        line_Zfit = plt.plot(omega_fit / (2. * np.pi), Z_fit.real, linestyle='--', label=labels[1], **plotkwargs)
     if Z_comp is not None:
-        line_Zcomp, = plt.plot(omega_comp / (2. * np.pi), Z_comp.real, linestyle='-.', label=labels[2], **plotkwargs)
+        line_Zcomp = plt.plot(omega_comp / (2. * np.pi), Z_comp.real, linestyle='-.', label=labels[2], **plotkwargs)
     if legend:
         plt.legend()
     # plot imaginary part of impedance
@@ -695,41 +695,41 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.yscale('log')
         if np.all(np.less_equal(Z.imag, 0)):
             plt.ylabel(r"-Im Z / $\Omega$")
-            plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0], color=line_Z.get_color(), **plotkwargs)
+            plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0], color=line_Z[0].get_color(), **plotkwargs)
             if Z_fit is not None:
-                plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '--', label=labels[1], color=line_Zfit.get_color(), **plotkwargs)
+                plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '--', label=labels[1], color=line_Zfit[0].get_color(), **plotkwargs)
             if Z_comp is not None:
-                plt.plot(omega_comp / (2. * np.pi), -Z_comp.imag, '-.', label=labels[2], color=line_Zcomp.get_color(), **plotkwargs)
+                plt.plot(omega_comp / (2. * np.pi), -Z_comp.imag, '-.', label=labels[2], color=line_Zcomp[0].get_color(), **plotkwargs)
 
         elif np.all(np.greater_equal(Z.imag, 0)):
             plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0], **plotkwargs)
             if Z_fit is not None:
-                plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '--', label=labels[1], color=line_Zfit.get_color(), **plotkwargs)
+                plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '--', label=labels[1], color=line_Zfit[0].get_color(), **plotkwargs)
             if Z_comp is not None:
-                plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, '-.', label=labels[2], color=line_Zcomp.get_color(), **plotkwargs)
+                plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, '-.', label=labels[2], color=line_Zcomp[0].get_color(), **plotkwargs)
 
         elif np.where(Z.imag < 0)[0].size > np.where(Z.imag > 0)[0].size:
             plt.ylabel(r"-Im Z / $\Omega$")
-            plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0], color=line_Z.get_color(), **plotkwargs)
+            plt.plot(omega / (2. * np.pi), -Z.imag, label=labels[0], color=line_Z[0].get_color(), **plotkwargs)
             if Z_fit is not None:
-                plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '--', label=labels[1], color=line_Zfit.get_color(), **plotkwargs)
+                plt.plot(omega_fit / (2. * np.pi), -Z_fit.imag, '--', label=labels[1], color=line_Zfit[0].get_color(), **plotkwargs)
             if Z_comp is not None:
-                plt.plot(omega_comp / (2. * np.pi), -Z_comp.imag, '-.', label=labels[2], color=line_Zcomp.get_color(), **plotkwargs)
+                plt.plot(omega_comp / (2. * np.pi), -Z_comp.imag, '-.', label=labels[2], color=line_Zcomp[0].get_color(), **plotkwargs)
 
         else:
-            plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0], color=line_Z.get_color(), **plotkwargs)
+            plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0], color=line_Z[0].get_color(), **plotkwargs)
             if Z_fit is not None:
-                plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '--', label=labels[1], color=line_Zfit.get_color(), **plotkwargs)
+                plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '--', label=labels[1], color=line_Zfit[0].get_color(), **plotkwargs)
             if Z_comp is not None:
-                plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, '-.', label=labels[2], color=line_Zcomp.get_color(), **plotkwargs)
+                plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, '-.', label=labels[2], color=line_Zcomp[0].get_color(), **plotkwargs)
 
     else:
         plt.plot(omega / (2. * np.pi), Z.imag, label=labels[0], **plotkwargs)
 
         if Z_fit is not None:
-            plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '--', label=labels[1], color=line_Zfit.get_color(), **plotkwargs)
+            plt.plot(omega_fit / (2. * np.pi), Z_fit.imag, '--', label=labels[1], color=line_Zfit[0].get_color(), **plotkwargs)
         if Z_comp is not None:
-            plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, '-.', label=labels[2], color=line_Zcomp.get_color(), **plotkwargs)
+            plt.plot(omega_comp / (2. * np.pi), Z_comp.imag, '-.', label=labels[2], color=line_Zcomp[0].get_color(), **plotkwargs)
     if legend:
         plt.legend()
     # plot real vs negative imaginary part
@@ -740,6 +740,7 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
     plt.title("Nyquist plot")
     plt.ylabel(r"-Im Z / $\Omega$")
     plt.xlabel(r"Re Z / $\Omega$")
+    plt.plot(Z.real, -Z.imag, 'o', label=labels[0], **plotkwargs)
     if Zlog:
         plt.xscale('log')
         plt.yscale('log')
@@ -764,10 +765,9 @@ def plot_impedance(omega, Z, title="", Z_fit=None, show=True, save=False, Z_comp
         plt.xlim(left=0.8 * Zmin, right=1.2 * Zmax)
         plt.ylim(bottom=0.8 * Zmin, top=1.2 * Zmax)
     if Z_fit is not None:
-        plt.plot(Z_fit.real, -Z_fit.imag, '^', label=labels[1], color=line_Zfit.get_color(), **plotkwargs)
+        plt.plot(Z_fit.real, -Z_fit.imag, '^', label=labels[1], color=line_Zfit[0].get_color(), **plotkwargs)
     if Z_comp is not None:
-        plt.plot(Z_comp.real, -Z_comp.imag, 'v', label=labels[2], color=line_Zcomp.get_color(), **plotkwargs)
-    plt.plot(Z.real, -Z.imag, 'o', label=labels[0], **plotkwargs)
+        plt.plot(Z_comp.real, -Z_comp.imag, 'v', label=labels[2], color=line_Zcomp[0].get_color(), **plotkwargs)
     if legend:
         plt.legend()
     if Z_fit is not None and np.all(omega == omega_fit) and compare:
