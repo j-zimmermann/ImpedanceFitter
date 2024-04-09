@@ -134,9 +134,10 @@ class Fitter(object):
         Exists only when :meth:`run` was called.
     """
 
-    def __init__(self, inputformat, directory=None, **kwargs):
+    def __init__(self, inputformat, directory=None, df=None, **kwargs):
         """ initializes the Fitter object
         """
+        self.df = df
 
         self.inputformat = inputformat
         self._parse_kwargs(kwargs)
@@ -151,18 +152,24 @@ class Fitter(object):
         self.z_dict = {}
         # read in all data and store it
         if self.fileList is None:
-            self.fileList = sorted(os.listdir(self.directory))
+            self.fileList = os.listdir(self.directory)
         read_data_sets = 0
+
         for filename in self.fileList:
+            # print(f"data_sets : {self.data_sets}")
+            # print(f"read_data_sets : {read_data_sets}")
+
             if self.data_sets:
                 if read_data_sets == self.data_sets:
                     logger.debug("Reached maximum number of data sets.")
                     break
             filename = os.fsdecode(filename)
+
             if filename.endswith(self.excludeEnding):
                 logger.info("""Skipped file {}
                              due to excluded ending.""".format(filename))
                 continue
+
             if self.excludeFilter in filename and self.excludeFilter != "":
                 logger.info("""Skipped file {}
                              due to excluded substring.""".format(filename))
@@ -174,6 +181,8 @@ class Fitter(object):
                 self.omega_dict[str(filename)] = omega
                 self.z_dict[str(filename)] = zarray
                 read_data_sets += 1
+                if self.df is not None:
+                    return
 
     def _parse_kwargs(self, kwargs):
         """parses the different kwargs when the Fitter object
