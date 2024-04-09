@@ -156,9 +156,6 @@ class Fitter(object):
         read_data_sets = 0
 
         for filename in self.fileList:
-            # print(f"data_sets : {self.data_sets}")
-            # print(f"read_data_sets : {read_data_sets}")
-
             if self.data_sets:
                 if read_data_sets == self.data_sets:
                     logger.debug("Reached maximum number of data sets.")
