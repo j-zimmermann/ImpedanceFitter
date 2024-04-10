@@ -80,7 +80,7 @@ def readin_Data_from_dataframe(df, format, minimumFrequency=None, maximumFrequen
         raise KeyError("The dataframe does not contain the required columns")
 
     formated_df = pd.concat([df_freq, df_imag, df_real], axis=1)
-    _readin_Data_from_formated_dataframe(formated_df, minimumFrequency, maximumFrequency)
+    return _readin_Data_from_formated_dataframe(formated_df, minimumFrequency, maximumFrequency)
 
 
 def readin_Data_from_collection(filepath, fileformat, delimiter=None,
@@ -125,7 +125,7 @@ def readin_Data_from_collection(filepath, fileformat, delimiter=None,
         EIS = pd.read_csv(filepath, delimiter=delimiter, header=header)
     else:
         raise NotImplementedError("File type not known")
-    _readin_Data_from_formated_dataframe(EIS, minimumFrequency, maximumFrequency)
+    return _readin_Data_from_formated_dataframe(EIS, minimumFrequency, maximumFrequency)
 
 
 def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequency=None, current_threshold=None,
