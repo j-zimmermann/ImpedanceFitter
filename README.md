@@ -24,7 +24,7 @@ Below is an example for the following data frame.
 
 ```python
 import pandas as pd
-from impedancefitter import get_equivalent_circuit_model, Fitter
+from impedancefitter import Fitter
 
 text = """\
 Freq,Im1,Re1,Im2,Re2
