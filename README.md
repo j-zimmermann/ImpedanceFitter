@@ -45,7 +45,7 @@ Freq,Im1,Re1,Im2,Re2
 df = pd.read_csv(pd.compat.StringIO(text))
 
 # Indicate which columns use for frequency, real and imaginary parts
-fitter = Fitter('DF Freq-Re1-Im1', df=df)
+fitter = Fitter(inputformat='DF Freq-Re1-Im1', df=df)
 
 # your code...
 ```
