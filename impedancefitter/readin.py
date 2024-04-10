@@ -23,26 +23,12 @@ from xlrd import XLRDError
 
 logger = logging.getLogger(__name__)
 
-
-def readin_Data_from_dataframe(df, format, minimumFrequency=None, maximumFrequency=None):
-    """
-    :param df: dataframe containing frequency, real and imaginary
-    :param format: list of column names to extract from the dataframe
-    :return: omega, zarray
-    """
-    df_freq = df[format[0]]
-    df_real = df[format[1]]
-    df_imag = df[format[2]]
-
-    EIS = pd.concat([df_freq, df_imag, df_real], axis=1)
-
-    print(EIS)
-
+def _readin_Data_from_formated_dataframe(formated_df, minimumFrequency=None, maximumFrequency=None):
     # sort frequencies to be on the safe side
-    tmp = EIS.values
+    tmp = formated_df.values
     values = tmp[tmp[:, 0].argsort()]
 
-    # filter values,  so that only  the ones in a certain range get taken.
+    # filter values, so that only the ones in a certain range get taken.
     filteredvalues = np.empty((0, values.shape[1]))
     if minimumFrequency is None:
         minimumFrequency = values[0, 0]
@@ -70,6 +56,22 @@ def readin_Data_from_dataframe(df, format, minimumFrequency=None, maximumFrequen
         zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
     return omega, zarray
 
+
+def readin_Data_from_dataframe(df, format, minimumFrequency=None, maximumFrequency=None):
+    """
+    :param df: dataframe containing frequency, real and imaginary
+    :param format: list of column names to extract from the dataframe
+    :return: omega, zarray
+    """
+    try:
+        df_freq = df[format[0]]
+        df_real = df[format[1]]
+        df_imag = df[format[2]]
+    except KeyError:
+        raise KeyError("The dataframe does not contain the required columns")
+
+    formated_df = pd.concat([df_freq, df_imag, df_real], axis=1)
+    _readin_Data_from_formated_dataframe(formated_df, minimumFrequency, maximumFrequency)
 
 
 def readin_Data_from_collection(filepath, fileformat, delimiter=None,
@@ -114,38 +116,7 @@ def readin_Data_from_collection(filepath, fileformat, delimiter=None,
         EIS = pd.read_csv(filepath, delimiter=delimiter, header=header)
     else:
         raise NotImplementedError("File type not known")
-
-    # sort frequencies to be on the safe side
-    tmp = EIS.values
-    values = tmp[tmp[:, 0].argsort()]
-
-    # filter values,  so that only  the ones in a certain range get taken.
-    filteredvalues = np.empty((0, values.shape[1]))
-    if minimumFrequency is None:
-        minimumFrequency = values[0, 0]
-    if maximumFrequency is None:
-        maximumFrequency = values[-1, 0]
-    logger.info("minimumFrequency is {}".format(minimumFrequency))
-    logger.info("maximumFrequency is {}".format(maximumFrequency))
-
-    for i in range(values.shape[0]):
-        if np.greater_equal(values[i, 0], minimumFrequency):
-            if np.less_equal(values[i, 0], maximumFrequency):
-                bufdict = values[i]
-                bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
-                filteredvalues = np.append(filteredvalues, bufdict, axis=0)
-            else:
-                break
-    values = filteredvalues
-
-    f = values[:, 0]
-    omega = 2. * np.pi * f
-    # construct complex-valued array from float data
-    zarray = np.zeros((np.int32((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
-
-    for i in range(np.int32((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
-        zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
-    return omega, zarray
+    _readin_Data_from_formated_dataframe(EIS, minimumFrequency, maximumFrequency)
 
 
 def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequency=None, current_threshold=None,

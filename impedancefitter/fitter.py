@@ -30,7 +30,8 @@ from .utils import set_parameters, get_equivalent_circuit_model, get_labels, _re
 from .readin import (readin_Data_from_TXT_file,
                      readin_Data_from_collection,
                      readin_Data_from_csv_E4980AL,
-                     readin_Data_from_dta)
+                     readin_Data_from_dta,
+                     readin_Data_from_dataframe)
 from .plotting import plot_impedance, plot_uncertainty, plot_bode, plot_resistance_capacitance
 from . import set_logger
 from .variance import weighting_residual, variance_estimate
@@ -138,7 +139,6 @@ class Fitter(object):
         """ initializes the Fitter object
         """
         self.df = df
-
         self.inputformat = inputformat
         self._parse_kwargs(kwargs)
 
@@ -160,7 +160,7 @@ class Fitter(object):
                 if read_data_sets == self.data_sets:
                     logger.debug("Reached maximum number of data sets.")
                     break
-            filename = os.fsdecode(filename)
+            filename = sorted(os.fsdecode(filename))
 
             if filename.endswith(self.excludeEnding):
                 logger.info("""Skipped file {}
@@ -180,6 +180,7 @@ class Fitter(object):
                 read_data_sets += 1
                 if self.df is not None:
                     return
+
 
     def _parse_kwargs(self, kwargs):
         """parses the different kwargs when the Fitter object
@@ -550,6 +551,11 @@ class Fitter(object):
                                                          current_threshold=self.current_threshold,
                                                          voltage_threshold=self.voltage_threshold,
                                                          tolerance=self.E4980AL_tolerance)
+        elif self.inputformat.startswith('DF') and self.df is not None:
+            omega, zarray = readin_Data_from_dataframe(df=self.df,
+                                                       format=self.inputformat.split(' ')[1].split('-'),
+                                                       minimumFrequency=self.minimumFrequency,
+                                                       maximumFrequency=self.maximumFrequency)
         else:
             return False, None, None
 
