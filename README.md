@@ -39,10 +39,6 @@ Freq,Im1,Re1,Im2,Re2
 """
 
 df = pd.read_csv(pd.compat.StringIO(text))
-
-model = 'ColeColeR_s1 + ColeColeR_s2'
-model_object = get_equivalent_circuit_model(model)
-
 fitter = Fitter('DF Freq-Re1-Im1', df=df)
 
 # your code...
