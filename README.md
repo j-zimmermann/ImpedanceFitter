@@ -41,7 +41,10 @@ Freq,Im1,Re1,Im2,Re2
 256,100,100,100,100
 """
 
+# Pass text to pandas data frame
 df = pd.read_csv(pd.compat.StringIO(text))
+
+# Indicate which columns use for frequency, real and imaginary parts
 fitter = Fitter('DF Freq-Re1-Im1', df=df)
 
 # your code...
