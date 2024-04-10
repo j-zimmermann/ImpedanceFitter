@@ -553,7 +553,7 @@ class Fitter(object):
                                                          tolerance=self.E4980AL_tolerance)
         elif self.inputformat.startswith('DF') and self.df is not None:
             omega, zarray = readin_Data_from_dataframe(df=self.df,
-                                                       format=self.inputformat.split(' ')[1].split('-'),
+                                                       format=self.inputformat,
                                                        minimumFrequency=self.minimumFrequency,
                                                        maximumFrequency=self.maximumFrequency)
         else:

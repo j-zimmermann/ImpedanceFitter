@@ -64,9 +64,18 @@ def readin_Data_from_dataframe(df, format, minimumFrequency=None, maximumFrequen
     :return: omega, zarray
     """
     try:
+        format = format.split(' ')[1].split('-')
+    except IndexError:
+        raise IndexError("The dataframe format is not respected as following : "
+                         "'DF [Freq_Column_Name]-[Real_Column_Name]-[Imag_Column_Name]'")
+
+    try:
         df_freq = df[format[0]]
         df_real = df[format[1]]
         df_imag = df[format[2]]
+    except IndexError:
+        raise IndexError("The dataframe format is not respected as following : "
+                         "'DF [Freq_Column_Name]-[Real_Column_Name]-[Imag_Column_Name]'")
     except KeyError:
         raise KeyError("The dataframe does not contain the required columns")
 
