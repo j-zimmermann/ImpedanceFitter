@@ -11,7 +11,10 @@ implementing pandas data frame as new input format for the impedance data.
 Data frame format must be indicated like this.
 
 ```python
-df_format = 'DF [Frequency_Column_Name]-[Real_Column_Name]-[Imaginary_Column_Name]'
+freq_name = ...
+real_name = ...
+imag_name = ...
+df_format = f'DF {freq_name}-{real_name}-{imag_name}'
 ```
 
 Below is an example for the following data frame.
