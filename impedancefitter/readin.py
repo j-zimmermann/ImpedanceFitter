@@ -79,7 +79,7 @@ def readin_Data_from_dataframe(df, format, minimumFrequency=None, maximumFrequen
     except KeyError:
         raise KeyError("The dataframe does not contain the required columns")
 
-    formated_df = pd.concat([df_freq, df_imag, df_real], axis=1)
+    formated_df = pd.concat([df_freq, df_real, df_imag], axis=1)
     return _readin_Data_from_formated_dataframe(formated_df, minimumFrequency, maximumFrequency)
 
 
