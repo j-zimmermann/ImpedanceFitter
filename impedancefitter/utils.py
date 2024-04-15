@@ -567,12 +567,29 @@ def available_file_format():
     For TXT files you can specify the number of rows to skip.
     Moreover, the file ending is not strictly enforced here.
 
+    **DF**:
+
+    The dataframe is structured like:
+    frequency, real part of impedance, imaginary part of impedance.
+    This is not a file format, so the workflow is different.
+    The 'directory' parameter must be set to None and the following
+    parameter must be added to **kwargs: 'df', 'df_freq_column',
+    'df_real_column' and 'df_imag_column'. The 'df' parameter
+    is the dataframe object, and the other parameters are the
+    column names of the dataframe to be read in.
+
+    .. note::
+
+        The dataframe can contain multiple impedance data sets.
+        While the dataframe object and the frequency, real and imaginary
+        columns are not None, the dataframe will be used instead of a file.
+
     See Also
     --------
     :class:`impedancefitter.fitter.Fitter`
     """
 
-    formats = ['XLSX', 'CSV', 'CSV_E4980AL', "TXT"]
+    formats = ['XLSX', 'CSV', 'CSV_E4980AL', 'TXT', 'DF']
     return formats
 
 
