@@ -135,12 +135,20 @@ class Fitter(object):
         Exists only when :meth:`run` was called.
     """
 
-    def __init__(self, inputformat, directory=None, df=None, **kwargs):
+    def __init__(self, inputformat, directory=None, **kwargs):
         """ initializes the Fitter object
         """
-        self.df = df
         self.inputformat = inputformat
         self._parse_kwargs(kwargs)
+
+        self.omega_dict = {}
+        self.z_dict = {}
+
+        if inputformat == 'DF':
+            omega, zarray = self._read_dataframe()
+            self.omega_dict['dataframe'] = omega
+            self.z_dict['dataframe'] = zarray
+            return
 
         if directory is None:
             directory = os.getcwd()
@@ -148,8 +156,6 @@ class Fitter(object):
 
         set_logger(self.LogLevel)
 
-        self.omega_dict = {}
-        self.z_dict = {}
         # read in all data and store it
         if self.fileList is None:
             self.fileList = sorted(os.listdir(self.directory))
@@ -178,8 +184,6 @@ class Fitter(object):
                 self.omega_dict[str(filename)] = omega
                 self.z_dict[str(filename)] = zarray
                 read_data_sets += 1
-                if self.df is not None:
-                    return
 
 
     def _parse_kwargs(self, kwargs):
@@ -224,6 +228,12 @@ class Fitter(object):
         self.skiprows_txt = 1  # header rows inside the *.txt files
         self.skiprows_trace = None  # line between traces blocks
 
+        # for dataframe
+        self.df = None
+        self.df_freq_column = None
+        self.df_real_column = None
+        self.df_imag_column = None
+
         # read in kwargs to update defaults
         if 'LogLevel' in kwargs:
             self.LogLevel = kwargs['LogLevel']
@@ -263,6 +273,15 @@ class Fitter(object):
             self.savefig = bool(kwargs['savefig'])
         if 'delimiter' in kwargs:
             self.delimiter = str(kwargs['delimiter'])
+        if 'df' in kwargs:
+            self.df = kwargs['df']
+        if 'df_freq_column' in kwargs:
+            self.df_freq_column = str(kwargs['df_freq_column'])
+        if 'df_real_column' in kwargs:
+            self.df_real_column = str(kwargs['df_real_column'])
+        if 'df_imag_column' in kwargs:
+            self.df_imag_column = str(kwargs['df_imag_column'])
+
 
     def visualize_data(self, savefig=False, Zlog=False,
                        allinone=False, plottype="impedance",
@@ -511,6 +530,29 @@ class Fitter(object):
         elif not hasattr(self, "fit_data"):
             logger.info("There was no file to process")
 
+
+    def _read_dataframe(self):
+        """Read in data from dataframe.
+            """
+        if (self.df is None
+                or self.df_freq_column is None
+                or self.df_real_column is None
+                or self.df_imag_column is None):
+            raise ValueError("You need to provide a dataframe and the columns"
+                               " for frequency, real and imaginary part.")
+
+        omega, zarray = readin_Data_from_dataframe(df=self.df,
+                                                   df_freq_column=self.df_freq_column,
+                                                   df_real_column=self.df_real_column,
+                                                   df_imag_column=self.df_imag_column,
+                                                   minimumFrequency=self.minimumFrequency,
+                                                   maximumFrequency=self.maximumFrequency)
+        if zarray.size == 0:
+            raise RuntimeError("In the dataframe an empty data set was provided.")
+
+        return omega, zarray
+
+
     def _read_data(self, filename):
         """Read in data from file.
 
@@ -551,11 +593,6 @@ class Fitter(object):
                                                          current_threshold=self.current_threshold,
                                                          voltage_threshold=self.voltage_threshold,
                                                          tolerance=self.E4980AL_tolerance)
-        elif self.inputformat.startswith('DF') and self.df is not None:
-            omega, zarray = readin_Data_from_dataframe(df=self.df,
-                                                       format=self.inputformat,
-                                                       minimumFrequency=self.minimumFrequency,
-                                                       maximumFrequency=self.maximumFrequency)
         else:
             return False, None, None
 
