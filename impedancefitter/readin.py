@@ -25,12 +25,40 @@ logger = logging.getLogger(__name__)
 
 def readin_Data_from_dataframe(df, df_freq_column, df_real_column, df_imag_column,
                                minimumFrequency=None, maximumFrequency=None):
-    """
-    :param df: dataframe containing frequency, real and imaginary
-    :param df_freq_column: name of the frequency column
-    :param df_real_column: name of the real part column
-    :param df_imag_column: name of the imaginary part column
-    :return: omega, zarray
+    """read in Pandas DataFrame.
+
+    The dataframe is structured like:
+    frequency, real part of impedance, imaginary part of impedance.
+    This is not a file format, so the workflow is different.
+    The 'directory' parameter must be set to None and the following
+    parameter must be added to **kwargs: 'df', 'df_freq_column',
+    'df_real_column' and 'df_imag_column'. The 'df' parameter
+    is the dataframe object, and the other parameters are the
+    column names of the dataframe to be read in.
+
+    Parameters
+    ----------
+
+    df: :class:`pandas.DataFrame`
+        Pandas DataFrame
+    df_freq_column: string
+        Provide the name of the frequency column
+    df_real_column: string
+        Provide the name of the real part of the impedance column
+    df_imag_column: string
+        Provide the name of the imaginary part of the impedance column
+    minimumFrequency: float, optional
+        Provide a minimum frequency. All values below this frequency will be ignored.
+    maximumFrequency: float, optional
+        Provide a maximum frequency. All values above this frequencies will be ignored.
+
+    Returns
+    -------
+
+    omega: :class:`numpy.ndarray`
+        frequency array
+    zarray:  :class:`numpy.ndarray`
+        Contains collection of impedance spectra. Has shape (unique spectra, number of frequencies).
     """
 
     try:
