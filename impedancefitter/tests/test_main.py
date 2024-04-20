@@ -60,6 +60,32 @@ def fitter():
     return fitter
 
 
+@pytest.fixture
+def fitter_df():
+    f = np.logspace(1, 8)
+    omega = 2. * np.pi * f
+
+    data = OrderedDict()
+    data['f'] = f
+
+    samples = 5
+
+    m = get_equivalent_circuit_model(model)
+    for i in range(samples):
+        Ri = 0.05 * R * np.random.randn() + R
+        Ci = 0.05 * C * np.random.randn() + C
+
+        Z = m.eval(omega=omega, R=Ri, C=Ci)
+        Z += np.random.randn(Z.size)
+
+        data['real' + str(i)] = Z.real
+        data['imag' + str(i)] = Z.imag
+
+    df = pd.DataFrame(data=data)
+    fitter = Fitter('DF', df=df, df_freq_column='f', df_real_column='real', df_imag_column='imag')
+    return fitter
+
+
 def test_run(fitter):
     parameters = {'R': {'value': R},
                   'C': {'value': C}}
@@ -95,4 +121,33 @@ def fitter2():
 
     fitter = Fitter('CSV', LogLevel='WARNING')
     os.remove('test.csv')
+    return fitter
+
+
+@pytest.fixture
+def fitter2_df():
+    f = np.logspace(1, 8)
+    omega = 2. * np.pi * f
+
+    data = OrderedDict()
+    data['f'] = f
+
+    samples = 5
+
+    m = get_equivalent_circuit_model(model2)
+    for i in range(samples):
+        km1 = 0.05 * km * np.random.randn() + km
+        em1 = 0.05 * em * np.random.randn() + em
+
+        Z = m.eval(omega=omega, Rc=Rc, dm=dm,
+                   km=km1, em=em1, ecp=ecp,
+                   kcp=kcp, kmed=kmed, emed=emed,
+                   p=p, c0=c0, k=k, alpha=alpha)
+        Z += np.random.randn(Z.size)
+
+        data['real' + str(i)] = Z.real
+        data['imag' + str(i)] = Z.imag
+
+    df = pd.DataFrame(data=data)
+    fitter = Fitter('DF', df=df, df_freq_column='f', df_real_column='real', df_imag_column='imag')
     return fitter

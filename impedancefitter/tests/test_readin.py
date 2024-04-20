@@ -4,7 +4,8 @@ import pandas as pd
 from impedancefitter.RC import RC_model
 from impedancefitter.readin import (readin_Data_from_collection,
                                     readin_Data_from_TXT_file,
-                                    readin_Data_from_csv_E4980AL)
+                                    readin_Data_from_csv_E4980AL,
+                                    readin_Data_from_dataframe)
 
 f = np.logspace(1, 8, num=20)
 omega = 2. * np.pi * f
@@ -51,4 +52,11 @@ def test_csv_E4980AL():
     data2.to_csv('test.csv', index=False)
     omega_read, Z_array_read = readin_Data_from_csv_E4980AL('test.csv', current_threshold=1e-5)
     os.remove("test.csv")
+    assert np.all(np.isclose(omega_read, omega)) and np.all(np.isclose(Z_array_read[0], Z))
+
+
+def test_df():
+    data2 = pd.DataFrame(data=data)
+    omega_read, Z_array_read = readin_Data_from_dataframe(data2, df_freq_column='freq',
+                                                          df_real_column='real', df_imag_column='imag')
     assert np.all(np.isclose(omega_read, omega)) and np.all(np.isclose(Z_array_read[0], Z))
