@@ -30,7 +30,8 @@ from .utils import set_parameters, get_equivalent_circuit_model, get_labels, _re
 from .readin import (readin_Data_from_TXT_file,
                      readin_Data_from_collection,
                      readin_Data_from_csv_E4980AL,
-                     readin_Data_from_dta)
+                     readin_Data_from_dta,
+                     readin_Data_from_dataframe)
 from .plotting import plot_impedance, plot_uncertainty, plot_bode, plot_resistance_capacitance
 from . import set_logger
 from .variance import weighting_residual, variance_estimate
@@ -137,9 +138,17 @@ class Fitter(object):
     def __init__(self, inputformat, directory=None, **kwargs):
         """ initializes the Fitter object
         """
-
         self.inputformat = inputformat
         self._parse_kwargs(kwargs)
+
+        self.omega_dict = {}
+        self.z_dict = {}
+
+        if inputformat == 'DF':
+            omega, zarray = self._read_dataframe()
+            self.omega_dict['dataframe'] = omega
+            self.z_dict['dataframe'] = zarray
+            return
 
         if directory is None:
             directory = os.getcwd()
@@ -147,22 +156,23 @@ class Fitter(object):
 
         set_logger(self.LogLevel)
 
-        self.omega_dict = {}
-        self.z_dict = {}
         # read in all data and store it
         if self.fileList is None:
             self.fileList = sorted(os.listdir(self.directory))
         read_data_sets = 0
+
         for filename in self.fileList:
             if self.data_sets:
                 if read_data_sets == self.data_sets:
                     logger.debug("Reached maximum number of data sets.")
                     break
             filename = os.fsdecode(filename)
+
             if filename.endswith(self.excludeEnding):
                 logger.info("""Skipped file {}
                              due to excluded ending.""".format(filename))
                 continue
+
             if self.excludeFilter in filename and self.excludeFilter != "":
                 logger.info("""Skipped file {}
                              due to excluded substring.""".format(filename))
@@ -174,6 +184,7 @@ class Fitter(object):
                 self.omega_dict[str(filename)] = omega
                 self.z_dict[str(filename)] = zarray
                 read_data_sets += 1
+
 
     def _parse_kwargs(self, kwargs):
         """parses the different kwargs when the Fitter object
@@ -217,6 +228,12 @@ class Fitter(object):
         self.skiprows_txt = 1  # header rows inside the *.txt files
         self.skiprows_trace = None  # line between traces blocks
 
+        # for dataframe
+        self.df = None
+        self.df_freq_column = None
+        self.df_real_column = None
+        self.df_imag_column = None
+
         # read in kwargs to update defaults
         if 'LogLevel' in kwargs:
             self.LogLevel = kwargs['LogLevel']
@@ -256,6 +273,15 @@ class Fitter(object):
             self.savefig = bool(kwargs['savefig'])
         if 'delimiter' in kwargs:
             self.delimiter = str(kwargs['delimiter'])
+        if 'df' in kwargs:
+            self.df = kwargs['df']
+        if 'df_freq_column' in kwargs:
+            self.df_freq_column = str(kwargs['df_freq_column'])
+        if 'df_real_column' in kwargs:
+            self.df_real_column = str(kwargs['df_real_column'])
+        if 'df_imag_column' in kwargs:
+            self.df_imag_column = str(kwargs['df_imag_column'])
+
 
     def visualize_data(self, savefig=False, Zlog=False,
                        allinone=False, plottype="impedance",
@@ -503,6 +529,29 @@ class Fitter(object):
             yaml.dump(self.fit_data, outfile)
         elif not hasattr(self, "fit_data"):
             logger.info("There was no file to process")
+
+
+    def _read_dataframe(self):
+        """Read in data from dataframe.
+            """
+        if (self.df is None
+                or self.df_freq_column is None
+                or self.df_real_column is None
+                or self.df_imag_column is None):
+            raise ValueError("You need to provide a dataframe and the columns"
+                               " for frequency, real and imaginary part.")
+
+        omega, zarray = readin_Data_from_dataframe(df=self.df,
+                                                   df_freq_column=self.df_freq_column,
+                                                   df_real_column=self.df_real_column,
+                                                   df_imag_column=self.df_imag_column,
+                                                   minimumFrequency=self.minimumFrequency,
+                                                   maximumFrequency=self.maximumFrequency)
+        if zarray.size == 0:
+            raise RuntimeError("In the dataframe an empty data set was provided.")
+
+        return omega, zarray
+
 
     def _read_data(self, filename):
         """Read in data from file.

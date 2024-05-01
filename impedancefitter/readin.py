@@ -23,6 +23,66 @@ from xlrd import XLRDError
 
 logger = logging.getLogger(__name__)
 
+def readin_Data_from_dataframe(df, df_freq_column, df_real_column, df_imag_column,
+                               minimumFrequency=None, maximumFrequency=None):
+    """read in Pandas DataFrame.
+
+    The dataframe is structured like:
+    frequency, real part of impedance, imaginary part of impedance.
+    This is not a file format, so the workflow is different.
+    The 'directory' parameter must be set to None and the following
+    parameter must be added to **kwargs: 'df', 'df_freq_column',
+    'df_real_column' and 'df_imag_column'. The 'df' parameter
+    is the dataframe object, and the other parameters are the
+    column names of the dataframe to be read in.
+
+    Parameters
+    ----------
+
+    df: :class:`pandas.DataFrame`
+        Pandas DataFrame
+    df_freq_column: string
+        Provide the name of the frequency column
+    df_real_column: string
+        Provide the name of the real part of the impedance column
+    df_imag_column: string
+        Provide the name of the imaginary part of the impedance column
+    minimumFrequency: float, optional
+        Provide a minimum frequency. All values below this frequency will be ignored.
+    maximumFrequency: float, optional
+        Provide a maximum frequency. All values above this frequencies will be ignored.
+
+    Returns
+    -------
+
+    omega: :class:`numpy.ndarray`
+        frequency array
+    zarray:  :class:`numpy.ndarray`
+        Contains collection of impedance spectra. Has shape (unique spectra, number of frequencies).
+    """
+
+    try:
+        df_freq = df[df_freq_column]
+        df_real = df[df_real_column]
+        df_imag = df[df_imag_column]
+    except KeyError:
+        raise KeyError("One of frequency, real or imaginary column does not exist in the dataframe.")
+
+    # Filter the dataframe based on frequency range
+    if minimumFrequency is not None:
+        df_freq = df_freq[df_freq >= minimumFrequency]
+        df_real = df_real[df_freq.index]
+        df_imag = df_imag[df_freq.index]
+
+    if maximumFrequency is not None:
+        df_freq = df_freq[df_freq <= maximumFrequency]
+        df_real = df_real[df_freq.index]
+        df_imag = df_imag[df_freq.index]
+
+    omega = np.array(2. * np.pi * df_freq)
+    zarray = np.array([df_real + 1j * df_imag])
+    return omega, zarray
+
 
 def readin_Data_from_collection(filepath, fileformat, delimiter=None,
                                 minimumFrequency=None, maximumFrequency=None, header=0):
@@ -71,7 +131,7 @@ def readin_Data_from_collection(filepath, fileformat, delimiter=None,
     tmp = EIS.values
     values = tmp[tmp[:, 0].argsort()]
 
-    # filter values,  so that only  the ones in a certain range get taken.
+    # filter values, so that only the ones in a certain range get taken.
     filteredvalues = np.empty((0, values.shape[1]))
     if minimumFrequency is None:
         minimumFrequency = values[0, 0]
