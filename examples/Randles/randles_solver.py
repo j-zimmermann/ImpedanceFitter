@@ -2,7 +2,7 @@
 #    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018 - 2024 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,35 +17,35 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import impedancefitter
-import numpy
 import os
+
+import numpy
 import pandas
 from matplotlib import rcParams
 
-rcParams['figure.figsize'] = [15, 10]
+import impedancefitter
+
+rcParams["figure.figsize"] = [15, 10]
 
 
 # parameters
 frequencies = numpy.logspace(0, 8, num=50)
-Rct = 100.
-Rs = 20.
-Aw = 300.
+Rct = 100.0
+Rs = 20.0
+Aw = 300.0
 C0 = 25e-6
 
 
 # generate model by user-defined circuit
-model = 'R_s + parallel(R_ct + W, C)'
+model = "R_s + parallel(R_ct + W, C)"
 lmfit_model = impedancefitter.get_equivalent_circuit_model(model)
 # generate data (without noise)
-Z = lmfit_model.eval(omega=2. * numpy.pi * frequencies,
-                     ct_R=Rct, s_R=Rs,
-                     C=C0, Aw=Aw)
+Z = lmfit_model.eval(omega=2.0 * numpy.pi * frequencies, ct_R=Rct, s_R=Rs, C=C0, Aw=Aw)
 
 
 # generate noise
 rnd = numpy.random.RandomState(42)
-noise = (1. + 1j) * rnd.randn(Z.size)
+noise = (1.0 + 1j) * rnd.randn(Z.size)
 
 # let's have 10 outliers at the last frequencies
 n_outliers = 10
@@ -54,22 +54,23 @@ Z[-n_outliers:] += 30
 # add noise
 Z += noise
 
-data = {'freq': frequencies, 'real': Z.real,
-        'imag': Z.imag}
+data = {"freq": frequencies, "real": Z.real, "imag": Z.imag}
 # write data to csv file
 df = pandas.DataFrame(data=data)
-df.to_csv('test.csv', index=False)
+df.to_csv("test.csv", index=False)
 
 # initialise fitter with verbose output
-fitter = impedancefitter.Fitter('CSV', LogLevel='DEBUG')
-os.remove('test.csv')
+fitter = impedancefitter.Fitter("CSV", LogLevel="DEBUG")
+os.remove("test.csv")
 
 # define model and initial guess
-model = 'Randles'
-parameters = {'Rct': {'value': 3. * Rct},
-              'Rs': {'value': 0.5 * Rs},
-              'C0': {'value': 0.1 * C0},
-              'Aw': {'value': 1.2 * Aw}}
+model = "Randles"
+parameters = {
+    "Rct": {"value": 3.0 * Rct},
+    "Rs": {"value": 0.5 * Rs},
+    "C0": {"value": 0.1 * C0},
+    "Aw": {"value": 1.2 * Aw},
+}
 
 # run fit without outlier correction
 fitter.run(model, parameters=parameters)
@@ -77,7 +78,5 @@ fitter.run(model, parameters=parameters)
 # customize solver to take care of outliers
 # see also: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html#scipy.optimize.least_squares
 solver = "least_squares"
-solver_kwargs = {'loss': 'soft_l1',
-                 'f_scale': 2.}
-fitter.run(model, parameters=parameters,
-           solver=solver, solver_kwargs=solver_kwargs)
+solver_kwargs = {"loss": "soft_l1", "f_scale": 2.0}
+fitter.run(model, parameters=parameters, solver=solver, solver_kwargs=solver_kwargs)
