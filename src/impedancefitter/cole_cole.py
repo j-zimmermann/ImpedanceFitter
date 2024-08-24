@@ -1,7 +1,9 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -16,8 +18,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from scipy.constants import epsilon_0 as e0
 import numpy as np
+from scipy.constants import epsilon_0 as e0
 
 
 def cole_cole_model(omega, c0, epsl, tau, a, sigma, epsinf):
@@ -28,8 +30,7 @@ def cole_cole_model(omega, c0, epsl, tau, a, sigma, epsinf):
     the dielectric properties of the Cole-Cole model.
 
     Parameters
-    -----------
-
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -53,7 +54,6 @@ def cole_cole_model(omega, c0, epsl, tau, a, sigma, epsinf):
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
@@ -63,7 +63,10 @@ def cole_cole_model(omega, c0, epsl, tau, a, sigma, epsinf):
 
     .. math::
 
-        \varepsilon^\ast = \varepsilon_\infty + \frac{\varepsilon_\mathrm{l}-\varepsilon_\infty}{1+(j \omega \tau)^a} - \frac{j \sigma_\mathrm{dc}}{\omega \varepsilon_\mathrm{0}}
+        \varepsilon^\ast = \varepsilon_\infty +
+                           \frac{\varepsilon_\mathrm{l}-\varepsilon_\infty}
+                           {1+(j \omega \tau)^a} -
+                           \frac{j \sigma_\mathrm{dc}}{\omega \varepsilon_\mathrm{0}}
 
     .. math::
 
@@ -73,15 +76,21 @@ def cole_cole_model(omega, c0, epsl, tau, a, sigma, epsinf):
     References
     ----------
     .. [Sabuncu2012] Sabuncu, A. C., Zhuang, J., Kolb, J. F., & Beskok, A. (2012).
-           Microfluidic impedance spectroscopy as a tool for quantitative biology and biotechnology.
-           Biomicrofluidics, 6(3). https://doi.org/10.1063/1.4737121
+                     Microfluidic impedance spectroscopy as a tool for
+                     quantitative biology and biotechnology.
+                     Biomicrofluidics, 6(3).
+                     https://doi.org/10.1063/1.4737121
 
     """
     tau *= 1e-9  # use ns as unit
     c0 *= 1e-12  # use pF as unit
-    es = epsinf + (epsl - epsinf) / (1. + np.power((1j * omega * tau), a)) - 1j * sigma / (omega * e0)
+    es = (
+        epsinf
+        + (epsl - epsinf) / (1.0 + np.power((1j * omega * tau), a))
+        - 1j * sigma / (omega * e0)
+    )
 
-    Z_fit = 1. / (1j * omega * c0 * es)
+    Z_fit = 1.0 / (1j * omega * c0 * es)
 
     return Z_fit
 
@@ -93,8 +102,7 @@ def cole_cole_R_model(omega, Rinf, R0, tau, a):
 
 
     Parameters
-    -----------
-
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     Rinf: double
@@ -114,7 +122,6 @@ def cole_cole_R_model(omega, Rinf, R0, tau, a):
 
     Notes
     -----
-
     Equation for calculations:
 
 
@@ -129,22 +136,40 @@ def cole_cole_R_model(omega, Rinf, R0, tau, a):
 
     References
     ----------
-    .. [Schwan1957] Schwan, H. P. (1957). Electrical properties of tissue and cell suspensions.
-           Advances in biological and medical physics (Vol. 5).
-           ACADEMIC PRESS INC. https://doi.org/10.1016/b978-1-4832-3111-2.50008-0
+    .. [Schwan1957] Schwan, H. P. (1957).
+                    Electrical properties of tissue and cell suspensions.
+                    Advances in biological and medical physics (Vol. 5).
+                    ACADEMIC PRESS INC.
+                    https://doi.org/10.1016/b978-1-4832-3111-2.50008-0
     """
     tau *= 1e-9  # use ns as unit
-    Z_fit = Rinf + (R0 - Rinf) / (1. + np.power(1j * omega * tau, a))
+    Z_fit = Rinf + (R0 - Rinf) / (1.0 + np.power(1j * omega * tau, a))
     return Z_fit
 
 
-def cole_cole_4_model(omega, c0, epsinf, deps1, deps2, deps3, deps4, tau1, tau2, tau3, tau4, a1, a2, a3, a4, sigma):
+def cole_cole_4_model(
+    omega,
+    c0,
+    epsinf,
+    deps1,
+    deps2,
+    deps3,
+    deps4,
+    tau1,
+    tau2,
+    tau3,
+    tau4,
+    a1,
+    a2,
+    a3,
+    a4,
+    sigma,
+):
     r"""Standard 4-Cole-Cole impedance model.
 
 
     Parameters
-    -----------
-
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -190,11 +215,11 @@ def cole_cole_4_model(omega, c0, epsinf, deps1, deps2, deps3, deps4, tau1, tau2,
     References
     ----------
     .. [Gabriel1996] Gabriel, S., Lau, R. W., & Gabriel, C. (1996).
-                    The dielectric properties of biological tissues: III. Parametric models for the dielectric spectrum of tissues.
+                    The dielectric properties of biological tissues:
+                    III. Parametric models for the dielectric spectrum of tissues.
                     Physics in Medicine and Biology, 41(11), 2271–2293.
                     https://doi.org/10.1088/0031-9155/41/11/003
     """
-
     c0 *= 1e-12
     tau1 *= 1e-12
     tau2 *= 1e-9
@@ -202,22 +227,23 @@ def cole_cole_4_model(omega, c0, epsinf, deps1, deps2, deps3, deps4, tau1, tau2,
     tau4 *= 1e-3
     epsc = epsinf - 1j * sigma / (omega * e0)
 
-    epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
-    epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
-    epsc += deps3 / (1. + np.power((1j * omega * tau3), a3))
-    epsc += deps4 / (1. + np.power((1j * omega * tau4), a4))
+    epsc += deps1 / (1.0 + np.power((1j * omega * tau1), a1))
+    epsc += deps2 / (1.0 + np.power((1j * omega * tau2), a2))
+    epsc += deps3 / (1.0 + np.power((1j * omega * tau3), a3))
+    epsc += deps4 / (1.0 + np.power((1j * omega * tau4), a4))
 
-    Z = 1. / (1j * omega * epsc * c0)
+    Z = 1.0 / (1j * omega * epsc * c0)
     return Z
 
 
-def cole_cole_3_model(omega, c0, epsinf, deps1, deps2, deps3, tau1, tau2, tau3, a1, a2, a3, sigma):
+def cole_cole_3_model(
+    omega, c0, epsinf, deps1, deps2, deps3, tau1, tau2, tau3, a1, a2, a3, sigma
+):
     r"""Standard 3-Cole-Cole impedance model.
 
 
     Parameters
-    -----------
-
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -256,18 +282,17 @@ def cole_cole_3_model(omega, c0, epsinf, deps1, deps2, deps3, tau1, tau2, tau3, 
     Here, three instead of four dispersions are used.
 
     """
-
     c0 *= 1e-12
     tau1 *= 1e-12
     tau2 *= 1e-9
     tau3 *= 1e-6
     epsc = epsinf - 1j * sigma / (omega * e0)
 
-    epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
-    epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
-    epsc += deps3 / (1. + np.power((1j * omega * tau3), a3))
+    epsc += deps1 / (1.0 + np.power((1j * omega * tau1), a1))
+    epsc += deps2 / (1.0 + np.power((1j * omega * tau2), a2))
+    epsc += deps3 / (1.0 + np.power((1j * omega * tau3), a3))
 
-    Z = 1. / (1j * omega * epsc * c0)
+    Z = 1.0 / (1j * omega * epsc * c0)
     return Z
 
 
@@ -276,8 +301,7 @@ def cole_cole_2_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2, sigma
 
 
     Parameters
-    -----------
-
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -312,16 +336,15 @@ def cole_cole_2_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2, sigma
     Here, two instead of four dispersions are used.
 
     """
-
     c0 *= 1e-12
     tau1 *= 1e-12
     tau2 *= 1e-9
     epsc = epsinf - 1j * sigma / (omega * e0)
 
-    epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
-    epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
+    epsc += deps1 / (1.0 + np.power((1j * omega * tau1), a1))
+    epsc += deps2 / (1.0 + np.power((1j * omega * tau2), a2))
 
-    Z = 1. / (1j * omega * epsc * c0)
+    Z = 1.0 / (1j * omega * epsc * c0)
     return Z
 
 
@@ -330,8 +353,7 @@ def cole_cole_2tissue_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2,
 
 
     Parameters
-    -----------
-
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -364,7 +386,6 @@ def cole_cole_2tissue_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2,
     Here, two instead of four dispersions are used.
 
     """
-
     c0 *= 1e-12
     tau1 *= 1e-6
     tau2 *= 1e-3
@@ -372,10 +393,10 @@ def cole_cole_2tissue_model(omega, c0, epsinf, deps1, deps2, tau1, tau2, a1, a2,
     deps2 *= 1e6
     epsc = epsinf - 1j * sigma / (omega * e0)
 
-    epsc += deps1 / (1. + np.power((1j * omega * tau1), a1))
-    epsc += deps2 / (1. + np.power((1j * omega * tau2), a2))
+    epsc += deps1 / (1.0 + np.power((1j * omega * tau1), a1))
+    epsc += deps2 / (1.0 + np.power((1j * omega * tau2), a2))
 
-    Z = 1. / (1j * omega * epsc * c0)
+    Z = 1.0 / (1j * omega * epsc * c0)
     return Z
 
 
@@ -383,8 +404,7 @@ def havriliak_negami(omega, c0, epsinf, deps, tau, a, beta, sigma):
     r"""Havriliak-Negami relaxation.
 
     Parameters
-    -----------
-
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -410,7 +430,6 @@ def havriliak_negami(omega, c0, epsinf, deps, tau, a, beta, sigma):
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
@@ -420,19 +439,26 @@ def havriliak_negami(omega, c0, epsinf, deps, tau, a, beta, sigma):
 
     .. math::
 
-        \varepsilon^\ast = \varepsilon_\infty + \frac{\Delta\varepsilon}{\left(1 + (j \omega \tau)^{a}\right)^\beta} - \frac{j\sigma_{\mathrm{DC}}}{\omega \varepsilon_0} \enspace ,
+        \varepsilon^\ast = \varepsilon_\infty +
+                           \frac{\Delta\varepsilon}
+                           {\left(1 + (j \omega \tau)^{a}\right)^\beta} -
+                           \frac{j\sigma_{\mathrm{DC}}}{\omega \varepsilon_0}
+                           \enspace ,
 
     .. math::
 
         Z = \frac{1}{j\varepsilon^\ast \omega c_\mathrm{0}}
 
     """
-
     c0 *= 1e-12
     tau *= 1e-9
-    epsc = epsinf + deps / np.power(1. + np.power(1j * omega * tau, a), beta) - 1j * sigma / (omega * e0)
+    epsc = (
+        epsinf
+        + deps / np.power(1.0 + np.power(1j * omega * tau, a), beta)
+        - 1j * sigma / (omega * e0)
+    )
 
-    Z = 1. / (1j * omega * epsc * c0)
+    Z = 1.0 / (1j * omega * epsc * c0)
     return Z
 
 
@@ -440,8 +466,7 @@ def havriliak_negamitissue(omega, c0, epsinf, deps, tau, a, beta, sigma):
     r"""Havriliak-Negami relaxation.
 
     Parameters
-    -----------
-
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -467,7 +492,6 @@ def havriliak_negamitissue(omega, c0, epsinf, deps, tau, a, beta, sigma):
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
@@ -477,7 +501,11 @@ def havriliak_negamitissue(omega, c0, epsinf, deps, tau, a, beta, sigma):
 
     .. math::
 
-        \varepsilon^\ast = \varepsilon_\infty + \frac{\Delta\varepsilon}{\left(1 + (j \omega \tau)^{a}\right)^\beta} - \frac{j\sigma_{\mathrm{DC}}}{\omega \varepsilon_0} \enspace ,
+        \varepsilon^\ast = \varepsilon_\infty +
+                           \frac{\Delta\varepsilon}
+                           {\left(1 + (j \omega \tau)^{a}\right)^\beta} -
+                           \frac{j\sigma_{\mathrm{DC}}}{\omega \varepsilon_0}
+                           \enspace ,
 
     .. math::
 
@@ -485,13 +513,16 @@ def havriliak_negamitissue(omega, c0, epsinf, deps, tau, a, beta, sigma):
 
 
     """
-
     c0 *= 1e-12
     tau *= 1e-6
     deps *= 1e3
-    epsc = epsinf + deps / np.power(1. + np.power(1j * omega * tau, a), beta) - 1j * sigma / (omega * e0)
+    epsc = (
+        epsinf
+        + deps / np.power(1.0 + np.power(1j * omega * tau, a), beta)
+        - 1j * sigma / (omega * e0)
+    )
 
-    Z = 1. / (1j * omega * epsc * c0)
+    Z = 1.0 / (1j * omega * epsc * c0)
     return Z
 
 
@@ -499,8 +530,7 @@ def raicu(omega, c0, epsinf, deps, tau, alpha, beta, gamma, sigma):
     r"""Raicu relaxation.
 
     Parameters
-    -----------
-
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -513,7 +543,7 @@ def raicu(omega, c0, epsinf, deps, tau, alpha, beta, gamma, sigma):
         value for :math:`\tau`, in :math:`\mu`\ s
     sigma: double
         value for :math:`\sigma_\mathrm{dc}`
-    a: double
+    alpha: double
         value for :math:`\alpha`
     beta: double
         value for :math:`\beta`
@@ -528,7 +558,6 @@ def raicu(omega, c0, epsinf, deps, tau, alpha, beta, gamma, sigma):
 
     Notes
     -----
-
     Model was described in [Raicu1999]_.
 
     .. warning::
@@ -540,7 +569,12 @@ def raicu(omega, c0, epsinf, deps, tau, alpha, beta, gamma, sigma):
 
     .. math::
 
-        \varepsilon^\ast = \varepsilon_\infty + \frac{\Delta\varepsilon}{\left[ (j \omega \tau)^\alpha + (j \omega \tau)^{1-\beta}\right])^\gamma} - \frac{j\sigma_{\mathrm{DC}}}{\omega \varepsilon_0} \enspace ,
+        \varepsilon^\ast = \varepsilon_\infty +
+                           \frac{\Delta\varepsilon}
+                           {\left[ (j \omega \tau)^\alpha +
+                           (j \omega \tau)^{1-\beta}\right])^\gamma} -
+                           \frac{j\sigma_{\mathrm{DC}}}{\omega \varepsilon_0}
+                           \enspace ,
 
     .. math::
 
@@ -552,19 +586,32 @@ def raicu(omega, c0, epsinf, deps, tau, alpha, beta, gamma, sigma):
     References
     ----------
     .. [Raicu1999] Raicu, V. (1999).
-                   Dielectric dispersion of biological matter: Model combining Debye-type and “universal” responses.
-                   Physical Review E - Statistical Physics, Plasmas, Fluids, and Related Interdisciplinary Topics, 60(4), 4677–4680.
+                   Dielectric dispersion of biological matter:
+                   Model combining Debye-type and `universal' responses.
+                   Physical Review E - Statistical Physics,
+                   Plasmas, Fluids, and Related Interdisciplinary Topics,
+                   60(4), 4677–4680.
                    https://doi.org/10.1103/PhysRevE.60.4677
-    .. [Stoneman2007] Stoneman, M. R., Kosempa, M., Gregory, W. D., Gregory, C. W., Marx, J. J., Mikkelson, W., … Raicu, V. (2007).
-                      Correction of electrode polarization contributions to the dielectric properties of normal and cancerous breast tissues at audio/radiofrequencies.
+    .. [Stoneman2007] Stoneman, M. R., Kosempa, M., Gregory, W. D., Gregory, C. W.,
+                      Marx, J. J., Mikkelson, W., … Raicu, V. (2007).
+                      Correction of electrode polarization contributions to the
+                      dielectric properties of normal and cancerous breast tissues
+                      at audio/radiofrequencies.
                       Physics in Medicine and Biology, 52(22), 6589–6604.
                       https://doi.org/10.1088/0031-9155/52/22/003
     """
-
     c0 *= 1e-12
     tau *= 1e-6
     deps *= 1e3
-    epsc = epsinf + deps / np.power(np.power(1j * omega * tau, alpha) + np.power(1j * omega * tau, 1. - beta), gamma) - 1j * sigma / (omega * e0)
+    epsc = (
+        epsinf
+        + deps
+        / np.power(
+            np.power(1j * omega * tau, alpha) + np.power(1j * omega * tau, 1.0 - beta),
+            gamma,
+        )
+        - 1j * sigma / (omega * e0)
+    )
 
-    Z = 1. / (1j * omega * epsc * c0)
+    Z = 1.0 / (1j * omega * epsc * c0)
     return Z
