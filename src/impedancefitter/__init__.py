@@ -1,7 +1,9 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -15,13 +17,15 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+"""ImpedanceFitter is a package to fit impedance spectra."""
 import logging
-logger = logging.getLogger('impedancefitter')
+
+logger = logging.getLogger("impedancefitter")
 logger.addHandler(logging.NullHandler())
 
 
 def set_logger(level=logging.INFO):
+    """Set logging level."""
     logger.setLevel(level)
     # to avoid multiple output in Jupyter notebooks
     if len(logger.handlers) == 1:
@@ -32,10 +36,3 @@ def set_logger(level=logging.INFO):
         for handler in logger.handlers:
             if type(handler) == logging.StreamHandler:
                 handler.setLevel(level)
-
-
-from .fitter import Fitter
-from .postprocess import PostProcess
-from .utils import get_labels, available_models, get_equivalent_circuit_model, draw_scheme, available_file_format, KK_integral_transform
-from .plotting import plot_compare_to_data, plot_impedance, plot_dielectric_properties, emcee_plot, plot_bode, plot_cole_cole, plot_complex_permittivity, plot_admittance, plot_dielectric_dispersion, plot_dielectric_modulus, plot_resistance_capacitance, plot_uncertainty, plot_comparison_dielectric_properties
-from .fra import bode_to_impedance, bode_csv_to_impedance, parallel, open_short_compensation, read_bode_csv
