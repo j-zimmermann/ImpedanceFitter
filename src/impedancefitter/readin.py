@@ -1,7 +1,9 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -16,16 +18,24 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import pandas as pd
-import numpy as np
 import logging
+
+import numpy as np
+import pandas as pd
 from xlrd import XLRDError
 
 logger = logging.getLogger(__name__)
 
-def readin_Data_from_dataframe(df, df_freq_column, df_real_column, df_imag_column,
-                               minimumFrequency=None, maximumFrequency=None):
-    """read in Pandas DataFrame.
+
+def readin_Data_from_dataframe(
+    df,
+    df_freq_column,
+    df_real_column,
+    df_imag_column,
+    minimumFrequency=None,
+    maximumFrequency=None,
+):
+    """Read in Pandas DataFrame.
 
     The dataframe is structured like:
     frequency, real part of impedance, imaginary part of impedance.
@@ -38,7 +48,6 @@ def readin_Data_from_dataframe(df, df_freq_column, df_real_column, df_imag_colum
 
     Parameters
     ----------
-
     df: :class:`pandas.DataFrame`
         Pandas DataFrame
     df_freq_column: string
@@ -54,19 +63,21 @@ def readin_Data_from_dataframe(df, df_freq_column, df_real_column, df_imag_colum
 
     Returns
     -------
-
     omega: :class:`numpy.ndarray`
         frequency array
     zarray:  :class:`numpy.ndarray`
-        Contains collection of impedance spectra. Has shape (unique spectra, number of frequencies).
+        Contains collection of impedance spectra.
+        Has shape (unique spectra, number of frequencies).
     """
-
     try:
         df_freq = df[df_freq_column]
         df_real = df[df_real_column]
         df_imag = df[df_imag_column]
     except KeyError:
-        raise KeyError("One of frequency, real or imaginary column does not exist in the dataframe.")
+        raise KeyError(
+            "One of frequency, real or imaginary column "
+            "does not exist in the dataframe."
+        )
 
     # Filter the dataframe based on frequency range
     if minimumFrequency is not None:
@@ -79,14 +90,21 @@ def readin_Data_from_dataframe(df, df_freq_column, df_real_column, df_imag_colum
         df_real = df_real[df_freq.index]
         df_imag = df_imag[df_freq.index]
 
-    omega = np.array(2. * np.pi * df_freq)
+    omega = np.array(2.0 * np.pi * df_freq)
     zarray = np.array([df_real + 1j * df_imag])
     return omega, zarray
 
 
-def readin_Data_from_collection(filepath, fileformat, delimiter=None,
-                                minimumFrequency=None, maximumFrequency=None, header=0):
-    """read in data collection from Excel or CSV file.
+# ruff: noqa: C901
+def readin_Data_from_collection(
+    filepath,
+    fileformat,
+    delimiter=None,
+    minimumFrequency=None,
+    maximumFrequency=None,
+    header=0,
+):
+    """Read in data collection from Excel or CSV file.
 
     The file is structured like:
     frequency, real part of impedance, imaginary part of impedance.
@@ -96,7 +114,6 @@ def readin_Data_from_collection(filepath, fileformat, delimiter=None,
 
     Parameters
     ----------
-
     filepath: string
         Provide the full filepath
     fileformat: string
@@ -105,24 +122,30 @@ def readin_Data_from_collection(filepath, fileformat, delimiter=None,
         Provide a minimum frequency. All values below this frequency will be ignored.
     maximumFrequency: float, optional
         Provide a maximum frequency. All values above this frequencies will be ignored.
+    delimiter: str, optional
+        Delimiter between fields, e.g., comma for CSV
+    header: int
+        Rows to skip as header
 
     Returns
     -------
-
     omega: :class:`numpy.ndarray`
         frequency array
     zarray:  :class:`numpy.ndarray`
-        Contains collection of impedance spectra. Has shape (number of spectra, number of frequencies).
+        Contains collection of impedance spectra.
+        Has shape (number of spectra, number of frequencies).
     """
-    logger.info('going to process file: ' + filepath)
-    if fileformat == 'XLSX':
+    logger.info("going to process file: " + filepath)
+    if fileformat == "XLSX":
         if delimiter is not None:
-            logger.warning("You provided a delimiter for an XLSX file but it has no effect.")
+            logger.warning(
+                "You provided a delimiter for an XLSX file but it has no effect."
+            )
         try:
             EIS = pd.read_excel(filepath)
         except XLRDError:
             EIS = pd.read_excel(filepath, engine="openpyxl")
-    elif fileformat == 'CSV':
+    elif fileformat == "CSV":
         EIS = pd.read_csv(filepath, delimiter=delimiter, header=header)
     else:
         raise NotImplementedError("File type not known")
@@ -137,31 +160,45 @@ def readin_Data_from_collection(filepath, fileformat, delimiter=None,
         minimumFrequency = values[0, 0]
     if maximumFrequency is None:
         maximumFrequency = values[-1, 0]
-    logger.info("minimumFrequency is {}".format(minimumFrequency))
-    logger.info("maximumFrequency is {}".format(maximumFrequency))
+    logger.info(f"minimumFrequency is {minimumFrequency}")
+    logger.info(f"maximumFrequency is {maximumFrequency}")
 
     for i in range(values.shape[0]):
         if np.greater_equal(values[i, 0], minimumFrequency):
             if np.less_equal(values[i, 0], maximumFrequency):
                 bufdict = values[i]
-                bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
+                bufdict.shape = (
+                    1,
+                    bufdict.shape[0],
+                )  # change shape so it can be appended
                 filteredvalues = np.append(filteredvalues, bufdict, axis=0)
             else:
                 break
     values = filteredvalues
 
     f = values[:, 0]
-    omega = 2. * np.pi * f
+    omega = 2.0 * np.pi * f
     # construct complex-valued array from float data
-    zarray = np.zeros((np.int32((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
+    zarray = np.zeros(
+        (np.int32((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128
+    )
 
-    for i in range(np.int32((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
+    for i in range(
+        np.int32((values.shape[1] - 1) / 2)
+    ):  # will always be an int(always real and imag part)
         zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
     return omega, zarray
 
 
-def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequency=None, current_threshold=None,
-                                 voltage_threshold=None, tolerance=1e-2):
+# ruff: noqa: C901
+def readin_Data_from_csv_E4980AL(
+    filepath,
+    minimumFrequency=None,
+    maximumFrequency=None,
+    current_threshold=None,
+    voltage_threshold=None,
+    tolerance=1e-2,
+):
     """Read in data from E4980AL-LCR meter.
 
     Read in data that is structured like:
@@ -172,7 +209,6 @@ def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequen
 
     Parameters
     ----------
-
     filepath: string
         Provide the full filepath
     minimumFrequency: float, optional
@@ -180,25 +216,26 @@ def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequen
     maximumFrequency: float, optional
         Provide a maximum frequency. All values above this frequencies will be ignored.
     current_threshold: float, optional
-        Provides a current that the device had to pass through the sample. This threshold has
+        Provides a current that the device had to pass through the sample.
+        This threshold has
         to be met with the accuracy given by `tolerance`.
     voltage_threshold: float, optional
         Provides a voltage that the device had to apply. This threshold has
         to be met with the accuracy given by `tolerance`.
     tolerance: float, optional
-        `tolerance` level for voltage and/or current. Default is 1e-2, which refers to 1% accuracy.
+        `tolerance` level for voltage and/or current.
+        Default is 1e-2, which refers to 1% accuracy.
 
 
     Returns
     -------
-
     omega: :class:`numpy.ndarray`
         frequency array
     zarray:  :class:`numpy.ndarray`
         Contains collection of impedance spectra. Has shape (1, number of frequencies).
 
     """
-    logger.info('going to process csv file: ' + filepath)
+    logger.info("going to process csv file: " + filepath)
     EIS = pd.read_csv(filepath)
     tmp = EIS.values
     values = tmp[tmp[:, 0].argsort()]  # need to sort frequencies
@@ -213,8 +250,12 @@ def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequen
         if np.greater_equal(values[i, 0], minimumFrequency):
             if np.less_equal(values[i, 0], maximumFrequency):
                 bufdict = values[i][:3:]
-                bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
-                # in current-driven mode we need to check if the device was able to deliver the current
+                bufdict.shape = (
+                    1,
+                    bufdict.shape[0],
+                )  # change shape so it can be appended
+                # in current-driven mode we need to check if the device
+                # was able to deliver the current
                 # we assume 1% as the threshold
                 if current_threshold is not None:
                     if not np.isclose(values[i][4], current_threshold, rtol=tolerance):
@@ -228,26 +269,27 @@ def readin_Data_from_csv_E4980AL(filepath, minimumFrequency=None, maximumFrequen
     values = filteredvalues
 
     f = values[:, 0]
-    omega = 2. * np.pi * f
+    omega = 2.0 * np.pi * f
 
     if f.size > 0:
-        logger.info("minimumFrequency is {}".format(f.min()))
-        logger.info("maximumFrequency is {}".format(f.max()))
+        logger.info(f"minimumFrequency is {f.min()}")
+        logger.info(f"maximumFrequency is {f.max()}")
 
     # construct complex-valued array from float data
-    zarray = np.zeros((np.int32((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
+    zarray = np.zeros(
+        (np.int32((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128
+    )
 
-    for i in range(np.int32((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
+    for i in range(
+        np.int32((values.shape[1] - 1) / 2)
+    ):  # will always be an int(always real and imag part)
         zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
 
     return omega, zarray
 
 
 def _get_max_rows(filepath, trace_b, skiprows_txt, skiprows_trace):
-    '''
-    determines the number of actual data rows in TXT files.
-    '''
-
+    """Determines the number of actual data rows in TXT files."""
     max_rows = -1
     txt_file = open(filepath)
     for num, line in enumerate(txt_file, 1):
@@ -256,21 +298,30 @@ def _get_max_rows(filepath, trace_b, skiprows_txt, skiprows_trace):
             break
     txt_file.close()
     if max_rows < 0:
-        raise RuntimeError("Could not process TXT file, second trace could not be found")
-    logger.debug('number of rows per trace is: ' + str(max_rows))
+        raise RuntimeError(
+            "Could not process TXT file, second trace could not be found"
+        )
+    logger.debug("number of rows per trace is: " + str(max_rows))
     return max_rows
 
 
-def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None,
-                              trace_b=None, delimiter="\t", minimumFrequency=None, maximumFrequency=None):
+def readin_Data_from_TXT_file(
+    filepath,
+    skiprows_txt,
+    skiprows_trace=None,
+    trace_b=None,
+    delimiter="\t",
+    minimumFrequency=None,
+    maximumFrequency=None,
+):
     """Read in data from TXT file.
 
-    Data from txt files get reads in, returns array with omega and complex-valued impedance Z.
+    Data from txt files get reads in, returns array with omega
+    and complex-valued impedance Z.
     The TXT files may contain two traces; only one of them is read in.
 
     Parameters
     ----------
-
     filepath: string
         Provide the full filepath
     skiprows_txt: int
@@ -288,41 +339,42 @@ def readin_Data_from_TXT_file(filepath, skiprows_txt, skiprows_trace=None,
 
     Returns
     -------
-
     omega: :class:`numpy.ndarray`
         frequency array
     zarray:  :class:`numpy.ndarray`
         Contains collection of impedance spectra. Has shape (1, number of frequencies).
 
     """
-    logger.info('going to process  text file: ' + filepath)
+    logger.info("going to process  text file: " + filepath)
     max_rows = None  # numpy default
     if trace_b is not None:
         max_rows = _get_max_rows(filepath, trace_b, skiprows_txt, skiprows_trace)
-    txt_file = open(filepath, 'r')
+    txt_file = open(filepath)
     try:
-        fileDataArray = np.loadtxt(txt_file, delimiter=delimiter,
-                                   skiprows=skiprows_txt, max_rows=max_rows)
+        fileDataArray = np.loadtxt(
+            txt_file, delimiter=delimiter, skiprows=skiprows_txt, max_rows=max_rows
+        )
     except ValueError as v:
-        logger.error('Error in file {}.\n {}'.format(filepath, v.args))
+        logger.error(f"Error in file {filepath}.\n {v.args}")
         raise
     filteredvalues = np.empty((0, fileDataArray.shape[1]))
     if minimumFrequency is None:
         minimumFrequency = fileDataArray[0, 0].astype(np.float64)
-        logger.info("minimumFrequency is {}".format(minimumFrequency))
+        logger.info(f"minimumFrequency is {minimumFrequency}")
     if maximumFrequency is None:
         maximumFrequency = fileDataArray[-1, 0].astype(np.float64)
-        logger.info("maximumFrequency is {}".format(maximumFrequency))
+        logger.info(f"maximumFrequency is {maximumFrequency}")
     for i in range(fileDataArray.shape[0]):
-        if (np.greater_equal(fileDataArray[i, 0], minimumFrequency)
-               and np.less_equal(fileDataArray[i, 0], maximumFrequency)):
+        if np.greater_equal(fileDataArray[i, 0], minimumFrequency) and np.less_equal(
+            fileDataArray[i, 0], maximumFrequency
+        ):
             bufdict = fileDataArray[i]
             bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
             filteredvalues = np.append(filteredvalues, bufdict, axis=0)
     fileDataArray = filteredvalues
 
     f = fileDataArray[:, 0].astype(np.float64)
-    omega = 2. * np.pi * f
+    omega = 2.0 * np.pi * f
     Z_real = fileDataArray[:, 1]
     Z_im = fileDataArray[:, 2]
     Z = Z_real + 1j * Z_im
@@ -337,7 +389,6 @@ def readin_Data_from_dta(filepath, minimumFrequency=None, maximumFrequency=None)
 
     Parameters
     ----------
-
     filepath: string
         Provide the full filepath
     minimumFrequency: float, optional
@@ -348,21 +399,20 @@ def readin_Data_from_dta(filepath, minimumFrequency=None, maximumFrequency=None)
 
     Returns
     -------
-
     omega: :class:`numpy.ndarray`
         frequency array
     zarray:  :class:`numpy.ndarray`
         Contains collection of impedance spectra. Has shape (1, number of frequencies).
 
     """
-    logger.info('going to process DTA file: ' + filepath)
-    with open(filepath, encoding='utf-8', errors='ignore') as w:
+    logger.info("going to process DTA file: " + filepath)
+    with open(filepath, encoding="utf-8", errors="ignore") as w:
         lines = w.readlines()
     index = lines.index("ZCURVE\tTABLE\n")
     freq = []
     Zreal = []
     Zimag = []
-    for line in lines[index + 3::]:
+    for line in lines[index + 3 : :]:
         data = line.split("\t")
         assert len(data) >= 12, "Line {} does not contain enough data!"
         freq.append(float(data[3].replace(",", ".")))
@@ -382,23 +432,30 @@ def readin_Data_from_dta(filepath, minimumFrequency=None, maximumFrequency=None)
         if np.greater_equal(values[i, 0], minimumFrequency):
             if np.less_equal(values[i, 0], maximumFrequency):
                 bufdict = values[i][:3:]
-                bufdict.shape = (1, bufdict.shape[0])  # change shape so it can be appended
+                bufdict.shape = (
+                    1,
+                    bufdict.shape[0],
+                )  # change shape so it can be appended
                 filteredvalues = np.append(filteredvalues, bufdict, axis=0)
             else:
                 break
     values = filteredvalues
 
     f = values[:, 0]
-    omega = 2. * np.pi * f
+    omega = 2.0 * np.pi * f
 
     if f.size > 0:
-        logger.info("minimumFrequency is {}".format(f.min()))
-        logger.info("maximumFrequency is {}".format(f.max()))
+        logger.info(f"minimumFrequency is {f.min()}")
+        logger.info(f"maximumFrequency is {f.max()}")
 
     # construct complex-valued array from float data
-    zarray = np.zeros((np.int32((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128)
+    zarray = np.zeros(
+        (np.int32((values.shape[1] - 1) / 2), values.shape[0]), dtype=np.complex128
+    )
 
-    for i in range(np.int32((values.shape[1] - 1) / 2)):  # will always be an int(always real and imag part)
+    for i in range(
+        np.int32((values.shape[1] - 1) / 2)
+    ):  # will always be an int(always real and imag part)
         zarray[i] = values[:, (i * 2) + 1] + 1j * values[:, (i * 2) + 2]
 
     return omega, zarray
