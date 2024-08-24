@@ -1,5 +1,4 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to
-#    equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
 #    Copyright (C) 2018, 2019 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
@@ -26,6 +25,7 @@ def RC_model(omega, Rd, Cd):
 
     Parameters
     ----------
+
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     Rd: double
@@ -35,7 +35,6 @@ def RC_model(omega, Rd, Cd):
 
     Notes
     -----
-    Pay attention to the units.
     .. warning::
 
         `Cd` is in pF!
@@ -46,7 +45,7 @@ def RC_model(omega, Rd, Cd):
         Impedance array
     """
     Cfit = Cd * 1e-12
-    Z_fit = Rd / (1.0 + 1j * omega * Cfit * Rd)
+    Z_fit = Rd / (1. + 1j * omega * Cfit * Rd)
     return Z_fit
 
 
@@ -54,7 +53,8 @@ def rc_model(omega, c0, kdc, eps):
     """Simple RC model of a lossy dielectric to obtain dielectric properties.
 
     Parameters
-    ----------
+    -----------
+
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -72,6 +72,7 @@ def rc_model(omega, c0, kdc, eps):
 
     Notes
     -----
+
     .. warning::
 
         C0 is in pF!
@@ -81,7 +82,7 @@ def rc_model(omega, c0, kdc, eps):
     Rd = e0 / (kdc * c0)
     # Cd = eps * c0
     factor = eps * e0 / kdc  # Cd * Rd
-    Z_fit = Rd / (1.0 + 1j * omega * factor)
+    Z_fit = Rd / (1. + 1j * omega * factor)
     return Z_fit
 
 
@@ -89,7 +90,8 @@ def drc_model(omega, RE, tauE, alpha, beta):
     """Distributed RC circuit.
 
     Parameters
-    ----------
+    -----------
+
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     RE: double
@@ -117,14 +119,14 @@ def drc_model(omega, RE, tauE, alpha, beta):
 
     References
     ----------
-    .. [Emmert2011] Emmert, S., Wolf, M., Gulich, R., Krohns, S.,
-                    Kastner, S., Lunkenheimer, P., & Loidl, A. (2011).
+
+    .. [Emmert2011] Emmert, S., Wolf, M., Gulich, R., Krohns, S., Kastner, S., Lunkenheimer, P., & Loidl, A. (2011).
                     Electrode polarization effects in broadband dielectric spectroscopy.
                     European Physical Journal B, 83(2), 157–165.
                     https://doi.org/10.1140/epjb/e2011-20439-8
     """
     tauE *= 1e-9
-    nom = power(1.0 + power(1j * omega * tauE, 1.0 - alpha), beta)
+    nom = power(1. + power(1j * omega * tauE, 1. - alpha), beta)
     return RE / nom
 
 
@@ -132,7 +134,8 @@ def rc_tau_model(omega, Rk, tauk):
     r"""Compute RC model without explicit capacitance.
 
     Parameters
-    ----------
+    -----------
+
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     Rk: double
@@ -140,6 +143,8 @@ def rc_tau_model(omega, Rk, tauk):
     tauk: double
         relaxation time
 
+    Notes
+    -----
     Returns
     -------
     :class:`numpy.ndarray`, complex
@@ -156,4 +161,5 @@ def rc_tau_model(omega, Rk, tauk):
         Z = \frac{R_\mathrm{k}}{1+ j \omega \tau_\mathrm{k}}
 
     """
-    return Rk / (1.0 + 1j * omega * tauk)
+
+    return Rk / (1. + 1j * omega * tauk)

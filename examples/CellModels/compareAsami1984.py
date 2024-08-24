@@ -1,36 +1,33 @@
 import numpy as np
+import impedancefitter as ifit
+from impedancefitter.suspensionmodels import bhcubic_eps_model, bh_eps_model, eps_sus_MW
+from impedancefitter.single_shell import eps_cell_single_shell
+from impedancefitter.double_shell import eps_cell_double_shell
 from scipy.constants import epsilon_0 as e0
 
-import impedancefitter as ifit
-from impedancefitter.double_shell import eps_cell_double_shell
-from impedancefitter.single_shell import eps_cell_single_shell
-from impedancefitter.suspensionmodels import bh_eps_model, bhcubic_eps_model, eps_sus_MW
-
-em = 10.0
+em = 10.
 Rc = 0.5e-6
 dm = 7e-9
 dn = 7e-9
 km = 1e-6
 kcp = 1.0
 ecp = 80
-kmed = 1.0
-emed = 80.0
+kmed = 1.
+emed = 80.
 c0 = 1e-12
 p = 0.3
 kne = 1e-6
-ene = 10.0
+ene = 10.
 knp = 1.0
-enp = 80.0
+enp = 80.
 doc = 0.0  # Rc
 Rn = Rc - dm - doc
 
 freq = np.logspace(4, 9, num=100)
-omega = 2.0 * np.pi * freq
+omega = 2. * np.pi * freq
 
 # cell permittivities
-epsDS_c = eps_cell_double_shell(
-    omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn
-)
+epsDS_c = eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn)
 eps_c = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
 epsi_med = emed - 1j * kmed / (e0 * omega)
 esus = eps_sus_MW(epsi_med, eps_c, p)
@@ -55,85 +52,28 @@ conductivityDS = -epscDS.imag * e0 * omega
 Zcubic = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductivity, c0)
 ZSS = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductivity, c0)
 Zint = ifit.utils.convert_diel_properties_to_impedance(omega, eps2_r, conductivity2, c0)
-ZDSH = ifit.utils.convert_diel_properties_to_impedance(
-    omega, epsDS_r, conductivityDS, c0
-)
-ifit.plot_dielectric_properties(
-    omega,
-    Zcubic,
-    c0,
-    Z_comp=Zint,
-    labels=["Cubic", "Integral"],
-    logscale=None,
-    limits=[(0, 600), (0.5, 1.1)],
-)
-ifit.plot_dielectric_properties(
-    omega,
-    Z_fit,
-    c0,
-    Z_comp=Zcubic,
-    labels=["Maxwell-Wagner", "Hanai"],
-    logscale=None,
-    limits=[(0, 600), (0.5, 1.1)],
-)
-ifit.plot_dielectric_properties(
-    omega,
-    ZDSH,
-    c0,
-    Z_comp=Zcubic,
-    labels=["Double shell", "Single shell"],
-    logscale=None,
-    limits=[(0, 600), (0.5, 1.1)],
-)
+ZDSH = ifit.utils.convert_diel_properties_to_impedance(omega, epsDS_r, conductivityDS, c0)
+ifit.plot_dielectric_properties(omega, Zcubic, c0, Z_comp=Zint, labels=["Cubic", "Integral"], logscale=None, limits=[(0, 600), (0.5, 1.1)])
+ifit.plot_dielectric_properties(omega, Z_fit, c0, Z_comp=Zcubic, labels=["Maxwell-Wagner", "Hanai"], logscale=None, limits=[(0, 600), (0.5, 1.1)])
+ifit.plot_dielectric_properties(omega, ZDSH, c0, Z_comp=Zcubic, labels=["Double shell", "Single shell"], logscale=None, limits=[(0, 600), (0.5, 1.1)])
 
-Zcubic = ifit.utils.convert_diel_properties_to_impedance(
-    omega, eps_r, conductivity - conductivity[0], c0
-)
+Zcubic = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductivity - conductivity[0], c0)
 epsMW_r = esus.real
 conductivityMW = -esus.imag * e0 * omega
-Z_fit = ifit.utils.convert_diel_properties_to_impedance(
-    omega, epsMW_r, conductivityMW - conductivityMW[0], c0
-)
-ifit.plot_cole_cole(
-    omega,
-    Z_fit,
-    c0,
-    Z_comp=Zcubic,
-    labels=["Maxwell-Wagner", "Hanai"],
-    limits=[(0, 600), (0, 600)],
-)
+Z_fit = ifit.utils.convert_diel_properties_to_impedance(omega, epsMW_r, conductivityMW - conductivityMW[0], c0)
+ifit.plot_cole_cole(omega, Z_fit, c0, Z_comp=Zcubic, labels=["Maxwell-Wagner", "Hanai"], limits=[(0, 600), (0, 600)])
 print("done")
 
 doclist = [0, 5e-9, 20e-9, 80e-9]
 
 for doc in doclist:
     Rn = Rc - dm - doc
-    epsDS_c = eps_cell_double_shell(
-        omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn
-    )
+    epsDS_c = eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn)
     epscDS = bhcubic_eps_model(epsi_med, epsDS_c, p)
     epsDS_r = epscDS.real
     conductivityDS = -epscDS.imag * e0 * omega
-    ZDSH = ifit.utils.convert_diel_properties_to_impedance(
-        omega, epsDS_r, conductivityDS, c0
-    )
-    label = f"{doc / 1e-9:.0f}"
-    ifit.plot_dielectric_properties(
-        omega,
-        ZDSH,
-        c0,
-        labels=[label, ""],
-        logscale=None,
-        limits=[(0, 600), (0.5, 1.1)],
-        append=True,
-        show=False,
-    )
+    ZDSH = ifit.utils.convert_diel_properties_to_impedance(omega, epsDS_r, conductivityDS, c0)
+    label = "{:.0f}".format(doc / 1e-9)
+    ifit.plot_dielectric_properties(omega, ZDSH, c0, labels=[label, ""], logscale=None, limits=[(0, 600), (0.5, 1.1)], append=True, show=False)
     if np.isclose(doc, doclist[-1]):
-        ifit.plot_dielectric_properties(
-            omega,
-            ZSS,
-            c0,
-            labels=["Single shell", ""],
-            logscale=None,
-            limits=[(0, 600), (0.5, 1.1)],
-        )
+        ifit.plot_dielectric_properties(omega, ZSS, c0, labels=["Single shell", ""], logscale=None, limits=[(0, 600), (0.5, 1.1)])

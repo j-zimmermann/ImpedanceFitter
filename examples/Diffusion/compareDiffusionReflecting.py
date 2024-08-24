@@ -1,5 +1,4 @@
 import numpy as np
-
 import impedancefitter as ifit
 
 Rw = 1.00
@@ -7,7 +6,7 @@ gamma = 0.8
 wd = 1
 
 freq = np.logspace(-0.75, 3, num=100)
-omega = 2.0 * np.pi * freq
+omega = 2. * np.pi * freq
 
 models = ["Wo", "ADIaR", "ADIbR", "ADIIR"]
 

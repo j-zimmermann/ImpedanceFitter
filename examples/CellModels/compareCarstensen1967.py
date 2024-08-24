@@ -1,22 +1,21 @@
 # Figure 3
 
 import numpy as np
-from scipy.constants import epsilon_0 as e0
-
 import impedancefitter as ifit
-from impedancefitter.single_shell_wall import eps_cell_single_shell_wall
 from impedancefitter.suspensionmodels import bhcubic_eps_model, eps_sus_MW
+from impedancefitter.single_shell_wall import eps_cell_single_shell_wall
+from scipy.constants import epsilon_0 as e0
 
 Cm = 0.01
 dm = 7e-9
 em = Cm * dm / e0
 print("Membrane permittivity: ", em)
-Rc = 0.64e-6
+Rc = .64e-6
 km = 0.0
 kcp = 0.3
 ecp = 60
 kmed = 0.3
-emed = 78.0
+emed = 78.
 c0 = 1e-12
 p = 0.4
 ew = 60
@@ -24,7 +23,7 @@ kw = 1.0 * kmed
 dw = (0.7 - 0.64) * 1e-6
 
 freq = np.logspace(5, 9, num=100)
-omega = 2.0 * np.pi * freq
+omega = 2. * np.pi * freq
 
 # cell permittivities
 eps_c = eps_cell_single_shell_wall(omega, km, em, kcp, ecp, kw, ew, dm, Rc, dw)
@@ -38,15 +37,7 @@ eps_r = epsc.real
 conductivity = -epsc.imag * e0 * omega
 Zcubic = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductivity, c0)
 
-ifit.plot_dielectric_properties(
-    omega,
-    Zcubic,
-    c0,
-    Z_comp=Z_fit,
-    labels=["Cubic", "MW"],
-    limits=[(20, 1000), (0.02, 1.0)],
-    logscale="both",
-)
+ifit.plot_dielectric_properties(omega, Zcubic, c0, Z_comp=Z_fit, labels=["Cubic", "MW"], limits=[(20, 1000), (0.02, 1.0)], logscale="both")
 
 kwlist = [1.0 * kmed, 0.25 * kmed, 0.1 * kmed]
 for kw in kwlist:
@@ -57,13 +48,11 @@ for kw in kwlist:
     conductivity = -epsc.imag * e0 * omega
 
     Z = ifit.utils.convert_diel_properties_to_impedance(omega, eps_r, conductivity, c0)
-    label = f"{kw / kmed:.2f}"
+    label = "{:.2f}".format(kw / kmed)
     if np.isclose(kw, kwlist[-1]):
         append = False
         show = True
     else:
         append = True
         show = False
-    ifit.plot_dielectric_properties(
-        omega, Z, c0, labels=[label, ""], append=append, show=show, logscale="both"
-    )
+    ifit.plot_dielectric_properties(omega, Z, c0, labels=[label, ""], append=append, show=show, logscale="both")
