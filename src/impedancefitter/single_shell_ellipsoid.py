@@ -1,6 +1,8 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
-#    Copyright (C) 2023 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2023 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,14 +19,15 @@
 
 
 from scipy.constants import epsilon_0 as e0
+
 from impedancefitter.suspensionmodels import Lk, eps_sus_ellipsoid_MW
 
 
 def eps_cell_single_shell_ellipsoid(omega, km, em, kcp, ecp, dm, Rcx, Rcy, Rcz):
-    r"""Complex permittivity of single shell model
+    r"""Complex permittivity of single shell model.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     em: double
@@ -43,6 +46,7 @@ def eps_cell_single_shell_ellipsoid(omega, km, em, kcp, ecp, dm, Rcx, Rcy, Rcz):
         cell radius for y-semiaxis, value for :math:`R_\mathrm{cy}`
     Rcz: double
         cell radius for z-semiaxis, value for :math:`R_\mathrm{cz}`
+
     Returns
     -------
     :class:`numpy.ndarray`, complex
@@ -52,7 +56,7 @@ def eps_cell_single_shell_ellipsoid(omega, km, em, kcp, ecp, dm, Rcx, Rcy, Rcz):
     Riy = Rcy - dm
     Riz = Rcz - dm
 
-    v = (Rix * Riy * Riz / (Rcx * Rcy * Rcz))
+    v = Rix * Riy * Riz / (Rcx * Rcy * Rcz)
 
     epsi_cp = ecp - 1j * kcp / (e0 * omega)
     epsi_m = em - 1j * km / (e0 * omega)
@@ -61,16 +65,21 @@ def eps_cell_single_shell_ellipsoid(omega, km, em, kcp, ecp, dm, Rcx, Rcy, Rcz):
     for i in range(3):
         Li_i = Lk(Rix, Riy, Riz, i)
         L_i = Lk(Rcx, Rcy, Rcz, i)
-        epsi_tmp = epsi_m * (1.0 + v * (epsi_cp - epsi_m) / (epsi_m + (epsi_cp - epsi_m) * (Li_i - v * L_i)))
+        epsi_tmp = epsi_m * (
+            1.0
+            + v * (epsi_cp - epsi_m) / (epsi_m + (epsi_cp - epsi_m) * (Li_i - v * L_i))
+        )
         epsi_cell.append(epsi_tmp)
     return epsi_cell
 
 
-def single_shell_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rcx, Rcy, Rcz):
-    r"""Impedance of single shell model
+def single_shell_ellipsoid_model(
+    omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rcx, Rcy, Rcz
+):
+    r"""Impedance of single shell model.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -105,7 +114,6 @@ def single_shell_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm,
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
@@ -116,10 +124,14 @@ def single_shell_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm,
     km *= 1e-6
 
     if dm < 1e-3:
-        raise RuntimeError("The membrane thickness is very small! It should be passed in um")
+        raise RuntimeError(
+            "The membrane thickness is very small! It should be passed in um"
+        )
 
     # cell model, contains three components
-    epsi_cell = eps_cell_single_shell_ellipsoid(omega, km, em, kcp, ecp, dm, Rcx, Rcy, Rcz)
+    epsi_cell = eps_cell_single_shell_ellipsoid(
+        omega, km, em, kcp, ecp, dm, Rcx, Rcy, Rcz
+    )
 
     epsi_med = emed - 1j * kmed / (e0 * omega)
     esus = eps_sus_ellipsoid_MW(epsi_med, *epsi_cell, p, Rcx, Rcy, Rcz)

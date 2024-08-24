@@ -1,6 +1,8 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
-#    Copyright (C) 2023 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2023 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,21 +19,27 @@
 
 
 from scipy.constants import epsilon_0 as e0
+
 from impedancefitter.suspensionmodels import Lk, eps_sus_ellipsoid_MW
 
 
 def f(epss, epsi, Lout_k, Lin_k, v):
-    """Helper function to compute multiple shells
+    """Helper function to compute multiple shells."""
+    return epss * (
+        1.0
+        + v
+        * (epsi - epss)
+        / (epss + (epsi - epss) * Lin_k - v * (epsi - epss) * Lout_k)
+    )
 
-    """
-    return epss * (1. + v * (epsi - epss) / (epss + (epsi - epss) * Lin_k - v * (epsi - epss) * Lout_k))
 
-
-def eps_cell_single_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kw, ew, dm, dw, Rcx, Rcy, Rcz):
-    r"""Complex permittivity of single shell model
+def eps_cell_single_shell_wall_ellipsoid(
+    omega, km, em, kcp, ecp, kw, ew, dm, dw, Rcx, Rcy, Rcz
+):
+    r"""Complex permittivity of single shell model.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     em: double
@@ -59,12 +67,10 @@ def eps_cell_single_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kw, ew, dm, dw
 
     Notes
     -----
-
     The approach is based on [Asami2002]_, section 3.3.
 
     Returns
     -------
-
     :class:`numpy.ndarray`, complex
         Complex permittivity array
 
@@ -77,8 +83,8 @@ def eps_cell_single_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kw, ew, dm, dw
     Rwy = Rcy + dw
     Rwz = Rcz + dw
 
-    v1 = (Rix * Riy * Riz / (Rcx * Rcy * Rcz))
-    v2 = (Rcx * Rcy * Rcz / (Rwx * Rwy * Rwz))
+    v1 = Rix * Riy * Riz / (Rcx * Rcy * Rcz)
+    v2 = Rcx * Rcy * Rcz / (Rwx * Rwy * Rwz)
 
     epsi_cp = ecp - 1j * kcp / (e0 * omega)
     epsi_m = em - 1j * km / (e0 * omega)
@@ -101,11 +107,13 @@ def eps_cell_single_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kw, ew, dm, dw
     return epsi_cell
 
 
-def single_shell_wall_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, kw, ew, p, c0, dm, dw, Rcx, Rcy, Rcz):
-    r"""Impedance of single shell model
+def single_shell_wall_ellipsoid_model(
+    omega, km, em, kcp, ecp, kmed, emed, kw, ew, p, c0, dm, dw, Rcx, Rcy, Rcz
+):
+    r"""Impedance of single shell model.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -146,7 +154,6 @@ def single_shell_wall_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, kw, e
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
@@ -161,7 +168,9 @@ def single_shell_wall_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, kw, e
     km *= 1e-6
 
     # cell model, contains three components
-    epsi_cell = eps_cell_single_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kw, ew, dm, dw, Rcx, Rcy, Rcz)
+    epsi_cell = eps_cell_single_shell_wall_ellipsoid(
+        omega, km, em, kcp, ecp, kw, ew, dm, dw, Rcx, Rcy, Rcz
+    )
 
     epsi_med = emed - 1j * kmed / (e0 * omega)
     esus = eps_sus_ellipsoid_MW(epsi_med, *epsi_cell, p, Rcx, Rcy, Rcz)
