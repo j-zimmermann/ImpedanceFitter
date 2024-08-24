@@ -1,7 +1,9 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,14 +20,15 @@
 
 
 from scipy.constants import epsilon_0 as e0
-from .suspensionmodels import eps_sus_MW, bhcubic_eps_model
+
+from .suspensionmodels import bhcubic_eps_model, eps_sus_MW
 
 
 def eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc):
-    r"""Complex permittivity of single shell model
+    r"""Complex permittivity of single shell model.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     em: double
@@ -46,21 +49,25 @@ def eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc):
     :class:`numpy.ndarray`, complex
         Complex permittivity array
     """
-    v1 = (1. - dm / Rc)**3
+    v1 = (1.0 - dm / Rc) ** 3
 
     epsi_cp = ecp - 1j * kcp / (e0 * omega)
     epsi_m = em - 1j * km / (e0 * omega)
     # model
     E1 = epsi_cp / epsi_m
-    epsi_cell = epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1) / ((2. + v1) + (1. - v1) * E1)
+    epsi_cell = (
+        epsi_m
+        * (2.0 * (1.0 - v1) + (1.0 + 2.0 * v1) * E1)
+        / ((2.0 + v1) + (1.0 - v1) * E1)
+    )
     return epsi_cell
 
 
 def single_shell_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
-    r"""Impedance of single shell model
+    r"""Impedance of single shell model.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -91,7 +98,6 @@ def single_shell_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
@@ -104,15 +110,19 @@ def single_shell_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
 
     .. math::
 
-        \varepsilon_\mathrm{m} = \varepsilon_\mathrm{m} - j \frac{\sigma_\mathrm{m}}{\varepsilon_0 \omega}
+        \varepsilon_\mathrm{m} = \varepsilon_\mathrm{m} -
+                                 j \frac{\sigma_\mathrm{m}}{\varepsilon_0 \omega}
 
     .. math::
 
-        \varepsilon_\mathrm{cp} = \varepsilon_\mathrm{cp} - j \frac{\sigma_\mathrm{cp}}{\varepsilon_0 \omega}
+        \varepsilon_\mathrm{cp} = \varepsilon_\mathrm{cp} -
+                                  j \frac{\sigma_\mathrm{cp}}{\varepsilon_0 \omega}
 
     .. math::
 
-        \varepsilon_\mathrm{cell}^\ast = \varepsilon_\mathrm{m}^\ast \frac{2 (1 - \nu_1) + (1 + 2 \nu_1) E_1}{(2 + \nu_1) + (1 - \nu_1) E_1}
+        \varepsilon_\mathrm{cell}^\ast = \varepsilon_\mathrm{m}^\ast
+                                         \frac{2 (1 - \nu_1) + (1 + 2 \nu_1) E_1}
+                                          {(2 + \nu_1) + (1 - \nu_1) E_1}
 
     .. math::
 
@@ -132,7 +142,6 @@ def single_shell_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
 
     References
     ----------
-
     .. [Feldman2003] Feldman, Y., Ermolina, I., & Hayashi, Y. (2003).
            Time domain dielectric spectroscopy study of biological systems.
            IEEE Transactions on Dielectrics and Electrical Insulation, 10, 728–753.
@@ -157,10 +166,10 @@ def single_shell_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
 
 
 def single_shell_bh_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
-    r"""Impedance of single shell model  using Bruggeman-Hanai approach
+    r"""Impedance of single shell model  using Bruggeman-Hanai approach.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -191,7 +200,6 @@ def single_shell_bh_model(omega, km, em, kcp, ecp, kmed, emed, p, c0, dm, Rc):
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
