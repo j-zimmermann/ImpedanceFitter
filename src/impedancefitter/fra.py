@@ -116,8 +116,7 @@ def parallel(val_list):
 
 
 def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
-    """
-    Bode diagram (Attenuation and phase) to Impedance calculator
+    r"""Bode diagram (Attenuation and phase) to Impedance calculator.
 
     Parameters
     ----------
@@ -140,16 +139,23 @@ def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
     Notes
     -----
     Given the expression for the magnitude of a voltage in dB is
-    .. math::
-        M_{db} = 20 log{\frac{V_1}{V_{ref}}}
 
-    we calculte the voltage ratio from the attenuation in dB as
     .. math::
-        ratio_{votlage} = 10^{M_{dB} / 20}
+        
+        M_{db} = 20 \log{\frac{V_1}{V_{ref}}}
+
+    we calculate the voltage ratio from the attenuation in dB as
+
+    .. math::
+
+        ratio_{voltage} = 10^{M_{dB} / 20}
 
     Then, the voltage divider rule results in the magnitude of the impedance as
+
     .. math::
+        
         Z_{dut} = ratio * R_{shunt} - R_{shunt}
+
     """
     vratio = 10**(attenuation / 20)
     Z_dut = vratio * R_device - R_device

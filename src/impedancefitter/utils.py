@@ -23,10 +23,10 @@ import pyparsing as pp
 import re
 import pandas as pd
 import schemdraw
-import schemdraw.elements.legacy as elm
+import schemdraw.elements as elm
 from schemdraw.util import Point
 
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from collections import Counter
 from scipy.constants import epsilon_0 as e0
 from .elements import Z_C, Z_stray, log, parallel, Z_R, Z_L, Z_w, Z_ws, Z_wo, eps, Z_ADIb_r, Z_ADIa_r, Z_ADII_r, Z_ADIb_a, Z_ADIa_a, Z_ADII_a
@@ -557,6 +557,7 @@ def available_file_format():
     frequency, real part, imaginary part of the impedance, voltage, current
 
     .. note::
+
         There is always only one data set in a file.
 
     **TXT**:
@@ -573,7 +574,7 @@ def available_file_format():
     frequency, real part of impedance, imaginary part of impedance.
     This is not a file format, so the workflow is different.
     The 'directory' parameter must be set to None and the following
-    parameter must be added to **kwargs: 'df', 'df_freq_column',
+    parameter must be added to `**kwargs`: 'df', 'df_freq_column',
     'df_real_column' and 'df_imag_column'. The 'df' parameter
     is the dataframe object, and the other parameters are the
     column names of the dataframe to be read in.
@@ -1038,17 +1039,17 @@ def _get_element(name):
         label += "_" + pre
 
     if par in resistors:
-        element = elm.RBOX
+        element = elm.ResistorIEC
     elif par in resistorlike:
-        element = elm.RES
+        element = elm.ResistorIEEE
     elif par in capacitors:
-        element = elm.CAP
+        element = elm.Capacitor
     elif par in capacitorlike:
-        element = elm.CAP2
+        element = elm.Capacitor2
     elif par in inductors:
-        element = elm.INDUCTOR
+        element = elm.Inductor
     elif par in inductorlike:
-        element = elm.INDUCTOR2
+        element = elm.Inductor2
     return element, label
 
 
@@ -1081,20 +1082,14 @@ def draw_scheme(modelname, show=True, save=False):
     _check_circuit(circuitstr.asList()[0], startpar=modelname.startswith("parallel"))
 
     # start drawing
+    # TODO check
     d = schemdraw.Drawing()
-    source = d.add(elm.DOT)
-    start = deepcopy(source.start)
+    d.set_anchor("start") 
     d, endpts = _cycle_circuit(circuitstr.asList()[0], d, endpts=(source.start, source.end), depth=0)
     # finalize drawing
     endpts = (Point((endpts[0][0], 0.0)), Point((endpts[1][0], 0.0)))
-    d.add(elm.DOT, endpts=endpts)
-    d.add(elm.LINE, d='up')
-    d.add(elm.SOURCE_SIN, d='left', label="Impedance analyzer", tox=start)
-    d.add(elm.LINE, d='down')
-    if version.parse(schemdraw.__version__) < version.parse("0.7.0"):
-        d.draw(showplot=show)
-    else:
-        d.draw(show=show)
+    d.add(elm.SourceSin, d='left', label="Impedance analyzer", tox=start)
+    d.draw(show=show)
     if save:
         d.save('scheme.svg')
 
@@ -1301,10 +1296,10 @@ def KK_integral_transform(omega, Z):
         imag = np.append(Z.imag[:i], Z.imag[i + 1:])
         # real part
         integrand = (x * imag - w * Z.imag[i]) / (x * x - w * w)
-        ZKK[i] = -2. / np.pi * simps(integrand, x=x)
+        ZKK[i] = -2. / np.pi * simpson(integrand, x=x)
         # imag part
         integrand = (real - Z.real[i]) / (x * x - w * w)
-        ZKK[i] += 1j * 2. * w / np.pi * simps(integrand, x=x)
+        ZKK[i] += 1j * 2. * w / np.pi * simpson(integrand, x=x)
     return ZKK
 
 
