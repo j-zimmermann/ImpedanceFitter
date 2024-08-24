@@ -1,7 +1,9 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,11 +19,12 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from scipy.constants import epsilon_0 as e0
-from .suspensionmodels import eps_sus_MW, bhcubic_eps_model
+
+from .suspensionmodels import bhcubic_eps_model, eps_sus_MW
 
 
 def eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn):
-    r"""Complex permittivity of double shell model
+    r"""Complex permittivity of double shell model.
 
     Parameters
     ----------
@@ -29,7 +32,7 @@ def eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, d
         list of frequencies
         value for :math:`c_0`, unit capacitance in pF
     em: double
-        membrane permittivity,membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
+        membrane permittivity, value for :math:`\varepsilon_\mathrm{m}`
     km: double
         membrane conductivity,  value for :math:`\sigma_\mathrm{m}` in :math:`\mu`\ S/m
     ecp: double
@@ -60,28 +63,38 @@ def eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, d
         Permittivity array
 
     """
-
-    v1 = (1. - dm / Rc)**3
-    v2 = (Rn / (Rc - dm))**3
-    v3 = (1. - dn / Rn)**3
+    v1 = (1.0 - dm / Rc) ** 3
+    v2 = (Rn / (Rc - dm)) ** 3
+    v3 = (1.0 - dn / Rn) ** 3
 
     epsi_m = em + km / (1j * omega * e0)
     epsi_cp = ecp + kcp / (1j * omega * e0)
     epsi_ne = ene + kne / (1j * omega * e0)
     epsi_np = enp + knp / (1j * omega * e0)
     E3 = epsi_np / epsi_ne
-    E2 = ((epsi_ne / epsi_cp) * (2. * (1. - v3) + (1. + 2. * v3) * E3)
-          / ((2. + v3) + (1. - v3) * E3))
-    E1 = ((epsi_cp / epsi_m) * (2. * (1. - v2) + (1. + 2. * v2) * E2)
-          / ((2. + v2) + (1. - v2) * E2))
+    E2 = (
+        (epsi_ne / epsi_cp)
+        * (2.0 * (1.0 - v3) + (1.0 + 2.0 * v3) * E3)
+        / ((2.0 + v3) + (1.0 - v3) * E3)
+    )
+    E1 = (
+        (epsi_cp / epsi_m)
+        * (2.0 * (1.0 - v2) + (1.0 + 2.0 * v2) * E2)
+        / ((2.0 + v2) + (1.0 - v2) * E2)
+    )
 
-    epsi_cell = (epsi_m * (2. * (1. - v1) + (1. + 2. * v1) * E1)
-                 / ((2. + v1) + (1. - v1) * E1))
+    epsi_cell = (
+        epsi_m
+        * (2.0 * (1.0 - v1) + (1.0 + 2.0 * v1) * E1)
+        / ((2.0 + v1) + (1.0 - v1) * E1)
+    )
     return epsi_cell
 
 
-def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, dm, Rc, dn, Rn):
-    r"""Impedance of double shell model
+def double_shell_model(
+    omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, dm, Rc, dn, Rn
+):
+    r"""Impedance of double shell model.
 
     Parameters
     ----------
@@ -90,7 +103,7 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
     c0: double
         value for :math:`c_0`, unit capacitance in pF
     em: double
-        membrane permittivity,membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
+        membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
     km: double
         membrane conductivity,  value for :math:`\sigma_\mathrm{m}` in :math:`\mu`\ S/m
     ecp: double
@@ -128,7 +141,6 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
@@ -149,42 +161,56 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
 
     .. math::
 
-            \varepsilon_\mathrm{c}^\ast = \varepsilon_\mathrm{m}^\ast\frac{2(1-\nu_\mathrm{1})+(1+2\nu_\mathrm{1})E_\mathrm{1}}{(2+\nu_\mathrm{1})+(1-\nu_\mathrm{1})E_\mathrm{1}}
+            \varepsilon_\mathrm{c}^\ast = \varepsilon_\mathrm{m}^\ast
+            \frac{2(1-\nu_\mathrm{1})+(1+2\nu_\mathrm{1})E_\mathrm{1}}
+            {(2+\nu_\mathrm{1})+(1-\nu_\mathrm{1})E_\mathrm{1}}
 
     .. math::
 
-            E_\mathrm{1}  = \frac{\varepsilon_\mathrm{cp}^\ast}{\varepsilon_\mathrm{m}^\ast} \frac{2(1-\nu_\mathrm{2})+(1+2\nu_\mathrm{2})E_\mathrm{2}}{(2+\nu_\mathrm{2})+(1-\nu_\mathrm{2})E_\mathrm{2}}
+            E_\mathrm{1}  = \frac{\varepsilon_\mathrm{cp}^\ast}
+            {\varepsilon_\mathrm{m}^\ast}
+            \frac{2(1-\nu_\mathrm{2})+(1+2\nu_\mathrm{2})E_\mathrm{2}}
+            {(2+\nu_\mathrm{2})+(1-\nu_\mathrm{2})E_\mathrm{2}}
 
     .. math::
 
-            E_\mathrm{2} = \frac{\varepsilon_\mathrm{ne}^\ast}{\varepsilon_\mathrm{cp}^\ast}\frac{2(1-\nu_\mathrm{3})+(1+2\nu_\mathrm{3})E_\mathrm{3}}{(2+\nu_\mathrm{3})+(1-\nu_\mathrm{3})E_\mathrm{3}}
+            E_\mathrm{2} = \frac{\varepsilon_\mathrm{ne}^\ast}
+            {\varepsilon_\mathrm{cp}^\ast}
+            \frac{2(1-\nu_\mathrm{3})+(1+2\nu_\mathrm{3})E_\mathrm{3}}
+            {(2+\nu_\mathrm{3})+(1-\nu_\mathrm{3})E_\mathrm{3}}
 
     .. math::
 
-            E_\mathrm{3} = \frac{\varepsilon_\mathrm{np}^\ast}{\varepsilon_\mathrm{ne}^\ast}
-
-
-    .. math::
-
-        \varepsilon_\mathrm{m} = \varepsilon_\mathrm{m} - j \frac{\sigma_\mathrm{m}}{\varepsilon_0 \omega}
-
-    .. math::
-
-        \varepsilon_\mathrm{cp} = \varepsilon_\mathrm{cp} - j \frac{\sigma_\mathrm{cp}}{\varepsilon_0 \omega}
-
-    .. math::
-
-        \varepsilon_\mathrm{ne} = \varepsilon_\mathrm{ne} - j \frac{\sigma_\mathrm{ne}}{\varepsilon_0 \omega}
+            E_\mathrm{3} = \frac{\varepsilon_\mathrm{np}^\ast}
+            {\varepsilon_\mathrm{ne}^\ast}
 
 
     .. math::
 
-        \varepsilon_\mathrm{np} = \varepsilon_\mathrm{np} - j \frac{\sigma_\mathrm{np}}{\varepsilon_0 \omega}
+        \varepsilon_\mathrm{m} = \varepsilon_\mathrm{m} -
+        j \frac{\sigma_\mathrm{m}}{\varepsilon_0 \omega}
+
+    .. math::
+
+        \varepsilon_\mathrm{cp} = \varepsilon_\mathrm{cp} -
+        j \frac{\sigma_\mathrm{cp}}{\varepsilon_0 \omega}
+
+    .. math::
+
+        \varepsilon_\mathrm{ne} = \varepsilon_\mathrm{ne} -
+        j \frac{\sigma_\mathrm{ne}}{\varepsilon_0 \omega}
 
 
     .. math::
 
-        \varepsilon_\mathrm{cell}^\ast = \varepsilon_\mathrm{m}^\ast \frac{2 (1 - \nu_1) + (1 + 2 \nu_1) E_1}{(2 + \nu_1) + (1 - \nu_1) E_1}
+        \varepsilon_\mathrm{np} = \varepsilon_\mathrm{np} -
+        j \frac{\sigma_\mathrm{np}}{\varepsilon_0 \omega}
+
+
+    .. math::
+
+        \varepsilon_\mathrm{cell}^\ast = \varepsilon_\mathrm{m}^\ast
+        \frac{2 (1 - \nu_1) + (1 + 2 \nu_1) E_1}{(2 + \nu_1) + (1 - \nu_1) E_1}
 
     .. math::
 
@@ -198,7 +224,8 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
 
         Z = \frac{1}{j \varepsilon_\mathrm{sus}^\ast \omega c_0}
 
-    In [Ermolina2000]_ , there have been reported upper/lower limits for certain parameters.
+    In [Ermolina2000]_ , there have been reported upper/lower limits
+    for certain parameters.
     They could act as a first guess for the bounds of the optimization method.
 
     +-----------------------------------+---------------+---------------+
@@ -229,28 +256,35 @@ def double_shell_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, 
     | :math:`d_\mathrm{n}`              | 2e-8          | 6e-8          |
     +-----------------------------------+---------------+---------------+
 
-    .. [Ermolina2000] Ermolina, I., Polevaya, Y., & Feldman, Y. (2000). Analysis of dielectric spectra of eukaryotic cells by computer modeling. European Biophysics Journal, 29(2), 141–145. https://doi.org/10.1007/s002490050259
+    .. [Ermolina2000] Ermolina, I., Polevaya, Y., & Feldman, Y. (2000).
+                      Analysis of dielectric spectra of eukaryotic cells
+                      by computer modeling.
+                      European Biophysics Journal, 29(2), 141–145.
+                      https://doi.org/10.1007/s002490050259
 
     See Also
     --------
     :meth:`impedancefitter.single_shell.single_shell_model`
     """
-
     c0 *= 1e-12
     km *= 1e-6
     kne *= 1e-3
 
     epsi_med = emed + kmed / (1j * omega * e0)
 
-    epsi_cell = eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn)
+    epsi_cell = eps_cell_double_shell(
+        omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn
+    )
     esus = eps_sus_MW(epsi_med, epsi_cell, p)
     Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
     Z_fit = 1 / Ys
     return Z_fit
 
 
-def double_shell_bh_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, dm, Rc, dn, Rn):
-    r"""Impedance of double shell model
+def double_shell_bh_model(
+    omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, emed, p, c0, dm, Rc, dn, Rn
+):
+    r"""Impedance of double shell model.
 
     Parameters
     ----------
@@ -259,7 +293,7 @@ def double_shell_bh_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, eme
     c0: double
         value for :math:`c_0`, unit capacitance in pF
     em: double
-        membrane permittivity,membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
+        membrane permittivity,  value for :math:`\varepsilon_\mathrm{m}`
     km: double
         membrane conductivity,  value for :math:`\sigma_\mathrm{m}` in :math:`\mu`\ S/m
     ecp: double
@@ -297,7 +331,6 @@ def double_shell_bh_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, eme
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
@@ -308,14 +341,15 @@ def double_shell_bh_model(omega, km, em, kcp, ecp, ene, kne, knp, enp, kmed, eme
     --------
     :meth:`impedancefitter.double_shell.double_shell_model`
     """
-
     c0 *= 1e-12
     km *= 1e-6
     kne *= 1e-3
 
     epsi_med = emed + kmed / (1j * omega * e0)
 
-    epsi_cell = eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn)
+    epsi_cell = eps_cell_double_shell(
+        omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn
+    )
     esus = bhcubic_eps_model(epsi_med, epsi_cell, p)
     Ys = 1j * esus * omega * c0  # cell suspension admittance spectrum
     Z_fit = 1 / Ys
