@@ -26,8 +26,7 @@ classifiers = [
 dependencies = [
 "pyyaml==6.0.1",
 "xlrd==2.0.1",
-"openpyxl==3.0.7",
-"pandas>=1.0.1",
+"pandas[excel]>=1.0.1",
 "openturns>=1.17",
 "numpy==1.24.4",
 "lmfit==1.0.3",
@@ -40,7 +39,7 @@ dependencies = [
 "packaging"]
 
 [project.optional-dependencies]
-dev = ["black", "ruff", "pre-commit"]
+dev = ["black", "ruff", "pre-commit", "pytest"]
 
 doc = ["sphinx",
 "jupyter_sphinx",
