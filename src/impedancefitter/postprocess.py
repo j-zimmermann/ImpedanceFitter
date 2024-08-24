@@ -1,7 +1,9 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -16,24 +18,25 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
+from math import ceil
+
 import matplotlib.pyplot as plt
 import numpy as np
-from math import ceil
 import openturns as ot
-from openturns.viewer import View
 import yaml
+from openturns.viewer import View
+
 from .utils import get_labels
-import logging
 
 logger = logging.getLogger(__name__)
 
 
-class PostProcess(object):
-    """This class provides the possibility to statistically analyse the fitted data.
+class PostProcess:
+    """Class for statistical analysis of the fitted data.
 
     Parameters
     ----------
-
     fitresult: dict
         Result of the fit.
     yamlfile: bool
@@ -42,21 +45,21 @@ class PostProcess(object):
 
     Notes
     -----
-
     Provide either `fitresult` or `yamlfile`.
 
     """
-    def __init__(self, fitresult=None, yamlfile=False):
 
+    def __init__(self, fitresult=None, yamlfile=False):
         if fitresult is not None and yamlfile is False:
             self.data = fitresult
         elif yamlfile is not None and fitresult is None:
-            with open(yamlfile, 'r') as fitfile:
+            with open(yamlfile) as fitfile:
                 self.data = yaml.safe_load(fitfile)
         else:
             raise RuntimeError("Provide either yamlfile or fitresult.")
-        assert isinstance(self.data, dict),\
-            "The fit result to be analysed needs to be a dictionary."
+        assert isinstance(
+            self.data, dict
+        ), "The fit result to be analysed needs to be a dictionary."
 
         random_key = next(iter(self.data))
         self.parameters = list(self.data[random_key].keys())
@@ -69,10 +72,15 @@ class PostProcess(object):
                 try:
                     plist.append([values[p]])
                 except KeyError:
-                    print("""There must be all parameters present
-                             over the entire data set you want to analyse.""")
+                    print(
+                        """There must be all parameters present
+                             over the entire data set you want to analyse."""
+                    )
             if np.all(np.isclose(plist, plist[0])):
-                logger.info("All values for parameter {} are equal. Parameter will be neglected since it was kept constant.".format(p))
+                logger.info(
+                    f"All values for parameter {p} are equal. "
+                    "Parameter will be neglected since it was kept constant."
+                )
                 continue
             self.sampledict[p] = ot.Sample(np.array(plist))
         self.parameters = list(self.sampledict.keys())
@@ -82,14 +90,13 @@ class PostProcess(object):
 
         Parameters
         ----------
-
         savefig: bool, optional
             Set to True if you want to save the figure `histograms.pdf`.
         show: bool, optional
             Switch on or off if figures is shown.
+
         Notes
         -----
-
         Fails if values are too close to each other, i.e.
         the variance is very small.
         """
@@ -108,10 +115,12 @@ class PostProcess(object):
             graph.setTitle("Histogram for variables")
             graph.setXTitle(self.labels[key])
             if nrows == 1:
-                View(graph, axes=[ax[c]], plot_kwargs={'label': "hist", 'c': 'black'})
+                View(graph, axes=[ax[c]], plot_kwargs={"label": "hist", "c": "black"})
                 ymin, ymax = ax[c].get_ylim()
             else:
-                View(graph, axes=[ax[r, c]], plot_kwargs={'label': "hist", 'c': 'black'})
+                View(
+                    graph, axes=[ax[r, c]], plot_kwargs={"label": "hist", "c": "black"}
+                )
                 ymin, ymax = ax[r, c].get_ylim()
             kernel = ot.KernelSmoothing()
             graph_k = kernel.build(self.sampledict[key])
@@ -119,20 +128,20 @@ class PostProcess(object):
             graph_k.setTitle("Histogram for variables")
             graph_k.setXTitle(key)
             if nrows == 1:
-                View(graph_k, axes=[ax[c]], plot_kwargs={'label': "smooth"})
+                View(graph_k, axes=[ax[c]], plot_kwargs={"label": "smooth"})
                 ymin1, ymax1 = ax[c].get_ylim()
                 if ymax1 < ymax:
                     ax[c].set_ylim(ymin1, ymax)
 
             else:
-                View(graph_k, axes=[ax[r, c]], plot_kwargs={'label': "smooth"})
+                View(graph_k, axes=[ax[r, c]], plot_kwargs={"label": "smooth"})
                 ymin1, ymax1 = ax[r, c].get_ylim()
                 if ymax1 < ymax:
                     ax[r, c].set_ylim(ymin1, ymax)
 
             # jump to next ax object or next row
             c += 1
-            if(c == 3):
+            if c == 3:
                 c = 0
                 r += 1
         plt.tight_layout()
@@ -171,6 +180,8 @@ class PostProcess(object):
         ----------
         parameter: string
             Parameter, whose distribution is to be found.
+        showQQ: bool
+            Show QQ plot
 
         Returns
         -------
@@ -190,12 +201,13 @@ class PostProcess(object):
 
         Parameters
         ----------
-
         parameter: string
             Parameter, whose distribution is to be found.
         distributions: list
             List with strings describing valid OpenTURNS distributions
             such as `['Normal', 'Uniform']`
+        showQQ: bool
+            Show QQ plot
 
         Returns
         -------
@@ -211,7 +223,9 @@ class PostProcess(object):
         tested_distributions = []
         for dist in distributions:
             tested_distributions.append(eval("ot." + dist + "()"))
-        best_model, best_result = ot.FittingTest.BestModelKolmogorov(sample, tested_distributions)
+        best_model, best_result = ot.FittingTest.BestModelKolmogorov(
+            sample, tested_distributions
+        )
         logger.debug("Best model:")
         logger.debug(best_model)
         logger.debug("P-value:")
@@ -224,16 +238,18 @@ class PostProcess(object):
 
     def best_model_bic(self, parameter, distributions, showQQ=False):
         """
-        Test, which distribution models your data best based on the Bayesian information criterion.
+        Test, which distribution models your data best based on the
+        Bayesian information criterion.
 
         Parameters
         ----------
-
         parameter: string
             Parameter, whose distribution is to be found.
         distributions: list
             List with strings describing valid OpenTURNS distributions
             such as `['Normal', 'Uniform']`
+        showQQ: bool
+            Show QQ plot
 
         See Also
         --------
@@ -249,7 +265,9 @@ class PostProcess(object):
         tested_distributions = []
         for dist in distributions:
             tested_distributions.append(eval("ot." + dist + "Factory()"))
-        best_model, best_result = ot.FittingTest.BestModelBIC(sample, tested_distributions)
+        best_model, best_result = ot.FittingTest.BestModelBIC(
+            sample, tested_distributions
+        )
         logger.debug("Best model:")
         logger.debug(best_model)
         logger.debug("Bayesian information criterion:")
@@ -265,12 +283,13 @@ class PostProcess(object):
 
         Parameters
         ----------
-
         parameter: string
             Parameter, whose distribution is to be found.
         distributions: list
             List with strings describing valid OpenTURNS distributions
             such as `['Normal', 'Uniform']`
+        showQQ: bool
+            Show QQ plot
 
         See Also
         --------
@@ -281,12 +300,13 @@ class PostProcess(object):
             :class:`openturns.Distribution`
             :class:`openturns.TestResult`
         """
-
         sample = self.sampledict[parameter]
         tested_distributions = []
         for dist in distributions:
             tested_distributions.append(eval("ot." + dist + "Factory()"))
-        best_model, best_result = ot.FittingTest.BestModelChiSquared(sample, tested_distributions)
+        best_model, best_result = ot.FittingTest.BestModelChiSquared(
+            sample, tested_distributions
+        )
         logger.debug("Best model:")
         logger.debug(best_model)
         logger.debug("P-value:")
@@ -302,12 +322,13 @@ class PostProcess(object):
 
         Parameters
         ----------
-
         parameter: string
             Parameter, whose distribution is to be found.
         distributions: list
             List with strings describing valid OpenTURNS distributions
             such as `['Normal', 'Uniform']`
+        showQQ: bool
+            Show QQ plot
 
         Returns
         -------
@@ -323,7 +344,9 @@ class PostProcess(object):
         tested_distributions = []
         for dist in distributions:
             tested_distributions.append(eval("ot." + dist + "Factory()"))
-        best_model, best_result = ot.FittingTest.BestModelLilliefors(sample, tested_distributions)
+        best_model, best_result = ot.FittingTest.BestModelLilliefors(
+            sample, tested_distributions
+        )
         logger.debug("Best model:")
         logger.debug(best_model)
         logger.debug("P-value:")
