@@ -1,6 +1,8 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
-#    Copyright (C) 2023 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2023 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,15 +19,37 @@
 
 
 from scipy.constants import epsilon_0 as e0
-from impedancefitter.suspensionmodels import Lk, eps_sus_ellipsoid_MW
+
 from impedancefitter.single_shell_wall_ellipsoid import f
+from impedancefitter.suspensionmodels import Lk, eps_sus_ellipsoid_MW
 
 
-def eps_cell_double_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kne, ene, knp, enp, kw, ew, dm, dn, dw, Rcx, Rcy, Rcz, Rnx, Rny, Rnz):
-    r"""Complex permittivity of double shell wall model for ellipsoids
+def eps_cell_double_shell_wall_ellipsoid(
+    omega,
+    km,
+    em,
+    kcp,
+    ecp,
+    kne,
+    ene,
+    knp,
+    enp,
+    kw,
+    ew,
+    dm,
+    dn,
+    dw,
+    Rcx,
+    Rcy,
+    Rcz,
+    Rnx,
+    Rny,
+    Rnz,
+):
+    r"""Complex permittivity of double shell wall model for ellipsoids.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     em: double
@@ -40,10 +64,20 @@ def eps_cell_double_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kne, ene, knp,
         cell wall permittivity, value for :math:`\varepsilon_\mathrm{w}`
     kw: double
         cell wall conductivity, value for :math:`\sigma_\mathrm{w}`
+    ene: double
+        nuclear envelope permittivity,  value for :math:`\varepsilon_\mathrm{ne}`
+    kne: double
+        nuclear envelope conductivity,  value for :math:`\sigma_\mathrm{ne}` in mS/m
+    enp: double
+        nucleoplasm permittivity,  value for :math:`\varepsilon_\mathrm{np}`
+    knp: double
+        nucleoplasm conductivity,  value for :math:`\sigma_\mathrm{np}`
     dm: double
         membrane thickness, value for :math:`d_\mathrm{m}`
     dn: double
         cell nucleus membrane thickness, value for :math:`R_\mathrm{n}`
+    dw: double
+        wall thickness, value for :math:`d_\mathrm{w}`
     Rcx: double
         cell radius for x-semiaxis, value for :math:`R_\mathrm{cx}`
     Rcy: double
@@ -59,12 +93,10 @@ def eps_cell_double_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kne, ene, knp,
 
     Notes
     -----
-
     The approach is based on [Asami2002]_, section 3.3.
 
     Returns
     -------
-
     :class:`numpy.ndarray`, complex
         Complex permittivity array
 
@@ -81,10 +113,10 @@ def eps_cell_double_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kne, ene, knp,
     Rwy = Rcy + dw
     Rwz = Rcz + dw
 
-    v1 = (Rnex * Rney * Rnez / (Rnx * Rny * Rnz))
-    v2 = (Rnx * Rny * Rnz / (Rix * Riy * Riz))
-    v3 = (Rix * Riy * Riz / (Rcx * Rcy * Rcz))
-    v4 = (Rcx * Rcy * Rcz / (Rwx * Rwy * Rwz))
+    v1 = Rnex * Rney * Rnez / (Rnx * Rny * Rnz)
+    v2 = Rnx * Rny * Rnz / (Rix * Riy * Riz)
+    v3 = Rix * Riy * Riz / (Rcx * Rcy * Rcz)
+    v4 = Rcx * Rcy * Rcz / (Rwx * Rwy * Rwz)
 
     epsi_cp = ecp - 1j * kcp / (e0 * omega)
     epsi_m = em - 1j * km / (e0 * omega)
@@ -119,11 +151,36 @@ def eps_cell_double_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kne, ene, knp,
     return epsi_cell
 
 
-def double_shell_wall_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, kne, ene, knp, enp, kw, ew, p, c0, dm, dn, dw, Rcx, Rcy, Rcz, Rnx, Rny, Rnz):
-    r"""Impedance of single shell model
+def double_shell_wall_ellipsoid_model(
+    omega,
+    km,
+    em,
+    kcp,
+    ecp,
+    kmed,
+    emed,
+    kne,
+    ene,
+    knp,
+    enp,
+    kw,
+    ew,
+    p,
+    c0,
+    dm,
+    dn,
+    dw,
+    Rcx,
+    Rcy,
+    Rcz,
+    Rnx,
+    Rny,
+    Rnz,
+):
+    r"""Impedance of single shell model.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -136,6 +193,14 @@ def double_shell_wall_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, kne, 
         cytoplasm permittivity, value for :math:`\varepsilon_\mathrm{cp}`
     kcp: double
         cytoplasm conductivity, value for :math:`\sigma_\mathrm{cp}`
+    ene: double
+        nuclear envelope permittivity,  value for :math:`\varepsilon_\mathrm{ne}`
+    kne: double
+        nuclear envelope conductivity,  value for :math:`\sigma_\mathrm{ne}` in mS/m
+    enp: double
+        nucleoplasm permittivity,  value for :math:`\varepsilon_\mathrm{np}`
+    knp: double
+        nucleoplasm conductivity,  value for :math:`\sigma_\mathrm{np}`
     ew: double
         cell wall permittivity, value for :math:`\varepsilon_\mathrm{w}`
     kw: double
@@ -148,6 +213,8 @@ def double_shell_wall_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, kne, 
         volume fraction
     dm: double
         membrane thickness, value for :math:`d_\mathrm{m}`
+    dn: double
+        nuclear membrane thickness, value for :math:`d_\mathrm{n}`
     dw: double
         cell wall thickness, value for :math:`R_\mathrm{c}`
     Rcx: double
@@ -156,6 +223,13 @@ def double_shell_wall_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, kne, 
         cell radius for y-semiaxis, value for :math:`R_\mathrm{cy}`
     Rcz: double
         cell radius for z-semiaxis, value for :math:`R_\mathrm{cz}`
+    Rnx: double
+        nucleus radius for x-semiaxis, value for :math:`R_\mathrm{nx}`
+    Rny: double
+        nucleus radius for y-semiaxis, value for :math:`R_\mathrm{ny}`
+    Rnz: double
+        nucleus radius for z-semiaxis, value for :math:`R_\mathrm{nz}`
+
 
     Returns
     -------
@@ -164,7 +238,6 @@ def double_shell_wall_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, kne, 
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
@@ -180,7 +253,28 @@ def double_shell_wall_ellipsoid_model(omega, km, em, kcp, ecp, kmed, emed, kne, 
     kne *= 1e-3
 
     # cell model, contains three components
-    epsi_cell = eps_cell_double_shell_wall_ellipsoid(omega, km, em, kcp, ecp, kne, ene, knp, enp, kw, ew, dm, dn, dw, Rcx, Rcy, Rcz, Rnx, Rny, Rnz)
+    epsi_cell = eps_cell_double_shell_wall_ellipsoid(
+        omega,
+        km,
+        em,
+        kcp,
+        ecp,
+        kne,
+        ene,
+        knp,
+        enp,
+        kw,
+        ew,
+        dm,
+        dn,
+        dw,
+        Rcx,
+        Rcy,
+        Rcz,
+        Rnx,
+        Rny,
+        Rnz,
+    )
 
     epsi_med = emed - 1j * kmed / (e0 * omega)
     esus = eps_sus_ellipsoid_MW(epsi_med, *epsi_cell, p, Rcx, Rcy, Rcz)
