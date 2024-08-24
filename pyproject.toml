@@ -42,7 +42,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["black", "ruff", "pre-commit"]
 
-doc = ["sphinx==3.0.3",
+doc = ["sphinx",
 "jupyter_sphinx",
 "sphinx-rtd-theme"]
 
@@ -77,4 +77,13 @@ extend-ignore = [
     "D401", # First line should be in imperative mood
     "D413", # Missing blank line after last section
     "D416", # Section name should end with a colon
+]
+
+# Files that should not be in the release
+[tool.check-manifest]
+ignore = [
+    ".pre-commit-config.yaml",
+    ".ruff_cache/**/*",
+    "setup.py",
+    "tests/**/*",
 ]
