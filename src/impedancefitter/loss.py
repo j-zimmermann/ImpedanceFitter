@@ -1,7 +1,9 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -40,15 +42,14 @@ def Z_loss(omega, L, C, R):
 
     Notes
     -----
-
     As mentioned in [Kordzadeh2016]_, the unit of the
     capacitance is pF and the unit of the inductance
     is nH.
     """
     L *= 1e-9
     C *= 1e-12
-    Y = 1. / R + 1. / (1j * omega * L) + 1j * omega * C
-    Z = 1. / Y
+    Y = 1.0 / R + 1.0 / (1j * omega * L) + 1j * omega * C
+    Z = 1.0 / Y
     return Z
 
 
@@ -81,7 +82,6 @@ def Z_in(omega, L, R):
 
     Notes
     -----
-
     As mentioned in [Kordzadeh2016]_, the unit of the
     inductance is nH.
 
@@ -113,12 +113,14 @@ def Z_skin(omega, L, Rb, gamma):
     References
     ----------
     .. [Levitskaya2000] Levitskaya, T. M., & Sternberg, B. K. (2000).
-                        Laboratory measurement of material electrical properties: extending the application of lumped-circuit equivalent models to 1 GHz.
+                        Laboratory measurement of material electrical properties:
+                        extending the application of lumped-circuit
+                        equivalent models to 1 GHz.
                         Radio Science, 35(2), 371–383.
                         https://doi.org/10.1029/1999RS002186
+
     Notes
     -----
-
     Described for instance in [Levitskaya2000]_.
     The idea is to take frequency-dependent resistance.
 
@@ -136,4 +138,4 @@ def Z_skin(omega, L, Rb, gamma):
     """
     L *= 1e-9
     Rb *= 1e-3
-    return Rb * (omega / 1e6)**gamma + 1j * omega * L
+    return Rb * (omega / 1e6) ** gamma + 1j * omega * L
