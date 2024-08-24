@@ -2,7 +2,8 @@
 #    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,23 +18,24 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import numpy as np
 import os
-import pandas as pd
 from collections import OrderedDict
-from impedancefitter import get_equivalent_circuit_model, PostProcess, Fitter
+
+import numpy as np
+import pandas as pd
+from impedancefitter import Fitter, PostProcess, get_equivalent_circuit_model
 from matplotlib import rcParams
 
-rcParams['figure.figsize'] = [20, 10]
+rcParams["figure.figsize"] = [20, 10]
 
 # parameters
 f = np.logspace(1, 8)
-omega = 2. * np.pi * f
-R = 1000.
+omega = 2.0 * np.pi * f
+R = 1000.0
 C = 1e-6
 
 data = OrderedDict()
-data['f'] = f
+data["f"] = f
 
 samples = 1000
 
@@ -48,21 +50,20 @@ for i in range(samples):
     # add some noise
     Z += np.random.randn(Z.size)
 
-    data['real' + str(i)] = Z.real
-    data['imag' + str(i)] = Z.imag
+    data["real" + str(i)] = Z.real
+    data["imag" + str(i)] = Z.imag
 
 # save data to file
-pd.DataFrame(data=data).to_csv('test.csv', index=False)
+pd.DataFrame(data=data).to_csv("test.csv", index=False)
 
 # initialize fitter
 # LogLevel should be WARNING; otherwise there
 # will be a lot of output
 
 
-fitter = Fitter('CSV', LogLevel='WARNING')
-os.remove('test.csv')
-parameters = {'R': {'value': R},
-              'C': {'value': C}}
+fitter = Fitter("CSV", LogLevel="WARNING")
+os.remove("test.csv")
+parameters = {"R": {"value": R}, "C": {"value": C}}
 fitter.run(model, parameters=parameters)
 
 postp = PostProcess(fitter.fit_data)
@@ -70,12 +71,19 @@ postp = PostProcess(fitter.fit_data)
 postp.plot_histograms()
 
 # compare different algorithms to find matching model
-print("BIC best model for R:",
-      postp.best_model_bic('R', ['Normal', 'Beta', 'Gamma'])[0])
-print("Chisquared best model for R:",
-      postp.best_model_chisquared('R', ['Normal', 'Beta', 'Gamma'])[0])
-print("Kolmogorov best model for R:",
-      postp.best_model_kolmogorov('R', ['Normal', 'Beta', 'Gamma'])[0])
-print("Lilliefors best model for R:",
-      postp.best_model_lilliefors("R", ['Normal', 'Beta', 'Gamma'])[0])
-print("Expected result:\nNormal(mu = {}, sigma = {})".format(R, 0.05 * R))
+print(
+    "BIC best model for R:", postp.best_model_bic("R", ["Normal", "Beta", "Gamma"])[0]
+)
+print(
+    "Chisquared best model for R:",
+    postp.best_model_chisquared("R", ["Normal", "Beta", "Gamma"])[0],
+)
+print(
+    "Kolmogorov best model for R:",
+    postp.best_model_kolmogorov("R", ["Normal", "Beta", "Gamma"])[0],
+)
+print(
+    "Lilliefors best model for R:",
+    postp.best_model_lilliefors("R", ["Normal", "Beta", "Gamma"])[0],
+)
+print(f"Expected result:\nNormal(mu = {R}, sigma = {0.05 * R})")
