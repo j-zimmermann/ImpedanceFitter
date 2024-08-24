@@ -1,7 +1,9 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,6 +20,7 @@
 
 
 import numpy as np
+
 from .elements import Z_CPE, parallel
 
 
@@ -25,9 +28,8 @@ def Z_randles(omega, Rct, Rs, Aw, C0):
     r"""Randles circuit.
 
     Parameters
-    -----------
-
-    omega: :class:`numpy.ndarray`, double 
+    ----------
+    omega: :class:`numpy.ndarray`, double
         list of frequencies
     Rct: double
         Resistance in series with Warburg element, e.g.
@@ -47,7 +49,8 @@ def Z_randles(omega, Rct, Rs, Aw, C0):
 
     Notes
     -----
-    Function holding the Randles equation with capacitor in parallel to resistor in series with Warburg element
+    Function holding the Randles equation with capacitor
+    in parallel to resistor in series with Warburg element
     and another resistor in series.
 
     Equations for calculations:
@@ -69,8 +72,8 @@ def Z_randles(omega, Rct, Rs, Aw, C0):
         Z_\mathrm{fit} = R_s + \frac{Z_C Z_\mathrm{RW}}{Z_C + Z_\mathrm{RW}}
 
     """
-    Z_RW = Rct + Aw * (1. - 1j) / np.sqrt(omega)
-    Z_C = 1. / (1j * omega * C0)
+    Z_RW = Rct + Aw * (1.0 - 1j) / np.sqrt(omega)
+    Z_C = 1.0 / (1j * omega * C0)
     Z_par = parallel(Z_RW, Z_C)
     Z_fit = Rs + Z_par
     return Z_fit
@@ -80,8 +83,7 @@ def Z_randles_CPE(omega, Rct, Rs, Aw, k, alpha):
     """Randles circuit with CPE instead of capacitor.
 
     Parameters
-    -----------
-
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     Rct: double
@@ -101,13 +103,13 @@ def Z_randles_CPE(omega, Rct, Rs, Aw, k, alpha):
     :class:`numpy.ndarray`, complex
         Impedance array
 
-    See also
+    See Also
     --------
     :func:`Z_randles`
     :func:`impedancefitter.elements.Z_CPE`
 
     """
-    Z_RW = Rct + Aw * (1. - 1j) / np.sqrt(omega)
+    Z_RW = Rct + Aw * (1.0 - 1j) / np.sqrt(omega)
     Z_cpe = Z_CPE(omega, k, alpha)
     Z_par = parallel(Z_RW, Z_cpe)
     Z_fit = Rs + Z_par
