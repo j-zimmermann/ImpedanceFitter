@@ -1,12 +1,12 @@
 import os
-import pytest
+from collections import OrderedDict
+
 import numpy as np
 import pandas as pd
-from collections import OrderedDict
+import pytest
 from impedancefitter import Fitter, get_equivalent_circuit_model
 
-
-R = 1000.
+R = 1000.0
 C = 1e-6
 model = "parallel(R, C)"
 
@@ -26,20 +26,21 @@ k = 1e-7
 alpha = 0.9
 el = 1e3
 tau = 1
-a = .95
+a = 0.95
 sigma = kmed
 eh = 80
-model1 = 'ColeCole + CPE'
-model2 = 'SingleShell + CPE'
+model1 = "ColeCole + CPE"
+model2 = "SingleShell + CPE"
 
 
 @pytest.fixture
 def fitter():
+    """Initialising fitter from CSV."""
     f = np.logspace(1, 8)
-    omega = 2. * np.pi * f
+    omega = 2.0 * np.pi * f
 
     data = OrderedDict()
-    data['f'] = f
+    data["f"] = f
 
     samples = 5
 
@@ -51,22 +52,23 @@ def fitter():
         Z = m.eval(omega=omega, R=Ri, C=Ci)
         Z += np.random.randn(Z.size)
 
-        data['real' + str(i)] = Z.real
-        data['imag' + str(i)] = Z.imag
-    pd.DataFrame(data=data).to_csv('test.csv', index=False)
+        data["real" + str(i)] = Z.real
+        data["imag" + str(i)] = Z.imag
+    pd.DataFrame(data=data).to_csv("test.csv", index=False)
 
-    fitter = Fitter('CSV', LogLevel='WARNING')
-    os.remove('test.csv')
+    fitter = Fitter("CSV", LogLevel="WARNING")
+    os.remove("test.csv")
     return fitter
 
 
 @pytest.fixture
 def fitter_df():
+    """Initialising fitter from DataFrame."""
     f = np.logspace(1, 8)
-    omega = 2. * np.pi * f
+    omega = 2.0 * np.pi * f
 
     data = OrderedDict()
-    data['f'] = f
+    data["f"] = f
 
     samples = 5
 
@@ -78,17 +80,19 @@ def fitter_df():
         Z = m.eval(omega=omega, R=Ri, C=Ci)
         Z += np.random.randn(Z.size)
 
-        data['real' + str(i)] = Z.real
-        data['imag' + str(i)] = Z.imag
+        data["real" + str(i)] = Z.real
+        data["imag" + str(i)] = Z.imag
 
     df = pd.DataFrame(data=data)
-    fitter = Fitter('DF', df=df, df_freq_column='f', df_real_column='real', df_imag_column='imag')
+    fitter = Fitter(
+        "DF", df=df, df_freq_column="f", df_real_column="real", df_imag_column="imag"
+    )
     return fitter
 
 
 def test_run(fitter):
-    parameters = {'R': {'value': R},
-                  'C': {'value': C}}
+    """Example run of main fitting routine."""
+    parameters = {"R": {"value": R}, "C": {"value": C}}
 
     fitter.run(model, parameters=parameters)
     assert hasattr(fitter, "fit_data")
@@ -96,11 +100,12 @@ def test_run(fitter):
 
 @pytest.fixture
 def fitter2():
+    """Initialising fitter from CSV data."""
     f = np.logspace(1, 8)
-    omega = 2. * np.pi * f
+    omega = 2.0 * np.pi * f
 
     data = OrderedDict()
-    data['f'] = f
+    data["f"] = f
 
     samples = 5
 
@@ -109,28 +114,40 @@ def fitter2():
         km1 = 0.05 * km * np.random.randn() + km
         em1 = 0.05 * em * np.random.randn() + em
 
-        Z = m.eval(omega=omega, Rc=Rc, dm=dm,
-                   km=km1, em=em1, ecp=ecp,
-                   kcp=kcp, kmed=kmed, emed=emed,
-                   p=p, c0=c0, k=k, alpha=alpha)
+        Z = m.eval(
+            omega=omega,
+            Rc=Rc,
+            dm=dm,
+            km=km1,
+            em=em1,
+            ecp=ecp,
+            kcp=kcp,
+            kmed=kmed,
+            emed=emed,
+            p=p,
+            c0=c0,
+            k=k,
+            alpha=alpha,
+        )
         Z += np.random.randn(Z.size)
 
-        data['real' + str(i)] = Z.real
-        data['imag' + str(i)] = Z.imag
-    pd.DataFrame(data=data).to_csv('test.csv', index=False)
+        data["real" + str(i)] = Z.real
+        data["imag" + str(i)] = Z.imag
+    pd.DataFrame(data=data).to_csv("test.csv", index=False)
 
-    fitter = Fitter('CSV', LogLevel='WARNING')
-    os.remove('test.csv')
+    fitter = Fitter("CSV", LogLevel="WARNING")
+    os.remove("test.csv")
     return fitter
 
 
 @pytest.fixture
 def fitter2_df():
+    """Initialising fitter from DataFrame."""
     f = np.logspace(1, 8)
-    omega = 2. * np.pi * f
+    omega = 2.0 * np.pi * f
 
     data = OrderedDict()
-    data['f'] = f
+    data["f"] = f
 
     samples = 5
 
@@ -139,15 +156,28 @@ def fitter2_df():
         km1 = 0.05 * km * np.random.randn() + km
         em1 = 0.05 * em * np.random.randn() + em
 
-        Z = m.eval(omega=omega, Rc=Rc, dm=dm,
-                   km=km1, em=em1, ecp=ecp,
-                   kcp=kcp, kmed=kmed, emed=emed,
-                   p=p, c0=c0, k=k, alpha=alpha)
+        Z = m.eval(
+            omega=omega,
+            Rc=Rc,
+            dm=dm,
+            km=km1,
+            em=em1,
+            ecp=ecp,
+            kcp=kcp,
+            kmed=kmed,
+            emed=emed,
+            p=p,
+            c0=c0,
+            k=k,
+            alpha=alpha,
+        )
         Z += np.random.randn(Z.size)
 
-        data['real' + str(i)] = Z.real
-        data['imag' + str(i)] = Z.imag
+        data["real" + str(i)] = Z.real
+        data["imag" + str(i)] = Z.imag
 
     df = pd.DataFrame(data=data)
-    fitter = Fitter('DF', df=df, df_freq_column='f', df_real_column='real', df_imag_column='imag')
+    fitter = Fitter(
+        "DF", df=df, df_freq_column="f", df_real_column="real", df_imag_column="imag"
+    )
     return fitter

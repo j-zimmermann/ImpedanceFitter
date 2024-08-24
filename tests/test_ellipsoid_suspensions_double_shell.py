@@ -1,18 +1,20 @@
 import numpy as np
-from impedancefitter.double_shell_ellipsoid import double_shell_ellipsoid_model, eps_cell_double_shell_ellipsoid
 from impedancefitter.double_shell import double_shell_model, eps_cell_double_shell
-
+from impedancefitter.double_shell_ellipsoid import (
+    double_shell_ellipsoid_model,
+    eps_cell_double_shell_ellipsoid,
+)
 
 # for double_shell_model
-c0 = 1.
+c0 = 1.0
 
-em = 10.
+em = 10.0
 km = 1e-6
 
 kcp = 0.5
 ecp = 60
 
-kmed = .1
+kmed = 0.1
 emed = 80
 
 
@@ -29,21 +31,63 @@ Rny = 0.8 * Rcy
 Rnz = 0.8 * Rcz
 ene = 15.0
 kne = 1e-6
-knp = .5
+knp = 0.5
 enp = 120.0
 dn = 40e-9
 
 
-omega = 2. * np.pi * np.logspace(0, 12, num=30)
+omega = 2.0 * np.pi * np.logspace(0, 12, num=30)
 
 
 def test_double_shell_ellipsoid_impedance():
-    Z = double_shell_ellipsoid_model(omega, km * 1e6, em, kcp, ecp, kmed, emed, kne * 1e3, ene, knp, enp, p, c0, dm * 1e6, dn * 1e6, Rcx, Rcy, Rcz, Rnx, Rny, Rnz)
+    """Test return type."""
+    Z = double_shell_ellipsoid_model(
+        omega,
+        km * 1e6,
+        em,
+        kcp,
+        ecp,
+        kmed,
+        emed,
+        kne * 1e3,
+        ene,
+        knp,
+        enp,
+        p,
+        c0,
+        dm * 1e6,
+        dn * 1e6,
+        Rcx,
+        Rcy,
+        Rcz,
+        Rnx,
+        Rny,
+        Rnz,
+    )
     assert isinstance(Z, np.ndarray)
 
 
 def test_double_shell_ellipsoid_permittivity():
-    eps = eps_cell_double_shell_ellipsoid(omega, km, em, kcp, ecp, kne * 1e3, ene, knp, enp, dm, dn, Rcx, Rcy, Rcz, Rnx, Rny, Rnz)
+    """Test return type."""
+    eps = eps_cell_double_shell_ellipsoid(
+        omega,
+        km,
+        em,
+        kcp,
+        ecp,
+        kne * 1e3,
+        ene,
+        knp,
+        enp,
+        dm,
+        dn,
+        Rcx,
+        Rcy,
+        Rcz,
+        Rnx,
+        Rny,
+        Rnz,
+    )
     checks = []
     for i in range(3):
         checks.append(isinstance(eps[i], np.ndarray))
@@ -51,23 +95,89 @@ def test_double_shell_ellipsoid_permittivity():
 
 
 def test_equivalence_sphere_ellipsoid_impedance():
+    """Check that code for sphere and ellipsoid yield
+    same result.
+    """
     Rc = 5.0e-6
     Rn = 0.8 * Rc
     Rcx = Rcy = Rcz = 5.0
     Rnx = Rny = Rnz = 0.8 * Rcx
     # account for unit of km
-    Z_sphere = double_shell_model(omega, km * 1e6, em, kcp, ecp, ene, kne * 1e3, knp, enp, kmed, emed, p, c0, dm, Rc, dn, Rn)
-    Z_ellipsoid = double_shell_ellipsoid_model(omega, km * 1e6, em, kcp, ecp, kmed, emed, kne * 1e3, ene, knp, enp, p, c0, dm * 1e6, dn * 1e6, Rcx, Rcy, Rcz, Rnx, Rny, Rnz)
+    Z_sphere = double_shell_model(
+        omega,
+        km * 1e6,
+        em,
+        kcp,
+        ecp,
+        ene,
+        kne * 1e3,
+        knp,
+        enp,
+        kmed,
+        emed,
+        p,
+        c0,
+        dm,
+        Rc,
+        dn,
+        Rn,
+    )
+    Z_ellipsoid = double_shell_ellipsoid_model(
+        omega,
+        km * 1e6,
+        em,
+        kcp,
+        ecp,
+        kmed,
+        emed,
+        kne * 1e3,
+        ene,
+        knp,
+        enp,
+        p,
+        c0,
+        dm * 1e6,
+        dn * 1e6,
+        Rcx,
+        Rcy,
+        Rcz,
+        Rnx,
+        Rny,
+        Rnz,
+    )
     assert np.all(np.isclose(Z_sphere, Z_ellipsoid))
 
 
 def test_equivalence_sphere_ellipsoid_permittivity():
+    """Check that code for sphere and ellipsoid yield
+    same result.
+    """
     Rc = 5.0e-6
     Rn = 0.8 * Rc
     Rcx = Rcy = Rcz = 5.0
     Rnx = Rny = Rnz = 0.8 * Rcx
-    eps_sphere = eps_cell_double_shell(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn)
-    eps_ellipsoid = eps_cell_double_shell_ellipsoid(omega, km, em, kcp, ecp, kne, ene, knp, enp, dm * 1e6, dn * 1e6, Rcx, Rcy, Rcz, Rnx, Rny, Rnz)
+    eps_sphere = eps_cell_double_shell(
+        omega, km, em, kcp, ecp, kne, ene, knp, enp, dm, Rc, dn, Rn
+    )
+    eps_ellipsoid = eps_cell_double_shell_ellipsoid(
+        omega,
+        km,
+        em,
+        kcp,
+        ecp,
+        kne,
+        ene,
+        knp,
+        enp,
+        dm * 1e6,
+        dn * 1e6,
+        Rcx,
+        Rcy,
+        Rcz,
+        Rnx,
+        Rny,
+        Rnz,
+    )
     checks = []
     for i in range(3):
         checks.append(np.all(np.isclose(eps_sphere, eps_ellipsoid[i])))
@@ -75,6 +185,7 @@ def test_equivalence_sphere_ellipsoid_permittivity():
 
 
 def test_equivalence_ellipsoid_ellipsoid_impedance():
+    """Check that impedance is same if axis are flipped."""
     Rcx = 5.0
     Rcy = 10.0
     Rcz = 2.0
@@ -82,12 +193,56 @@ def test_equivalence_ellipsoid_ellipsoid_impedance():
     Rny = 0.8 * Rcy
     Rny = 0.8 * Rcy
     # account for unit of km
-    Z_ellipsoid1 = double_shell_ellipsoid_model(omega, km * 1e6, em, kcp, ecp, kmed, emed, kne * 1e3, ene, knp, enp, p, c0, dm * 1e6, dn * 1e6, Rcx, Rcy, Rcz, Rnx, Rny, Rnz)
+    Z_ellipsoid1 = double_shell_ellipsoid_model(
+        omega,
+        km * 1e6,
+        em,
+        kcp,
+        ecp,
+        kmed,
+        emed,
+        kne * 1e3,
+        ene,
+        knp,
+        enp,
+        p,
+        c0,
+        dm * 1e6,
+        dn * 1e6,
+        Rcx,
+        Rcy,
+        Rcz,
+        Rnx,
+        Rny,
+        Rnz,
+    )
     Rcx = 10.0
     Rcy = 5.0
     Rcz = 2.0
     Rnx = 0.8 * Rcx
     Rny = 0.8 * Rcy
     Rny = 0.8 * Rcy
-    Z_ellipsoid2 = double_shell_ellipsoid_model(omega, km * 1e6, em, kcp, ecp, kmed, emed, kne * 1e3, ene, knp, enp, p, c0, dm * 1e6, dn * 1e6, Rcx, Rcy, Rcz, Rnx, Rny, Rnz)
+    Z_ellipsoid2 = double_shell_ellipsoid_model(
+        omega,
+        km * 1e6,
+        em,
+        kcp,
+        ecp,
+        kmed,
+        emed,
+        kne * 1e3,
+        ene,
+        knp,
+        enp,
+        p,
+        c0,
+        dm * 1e6,
+        dn * 1e6,
+        Rcx,
+        Rcy,
+        Rcz,
+        Rnx,
+        Rny,
+        Rnz,
+    )
     assert np.all(np.isclose(Z_ellipsoid1, Z_ellipsoid2))
