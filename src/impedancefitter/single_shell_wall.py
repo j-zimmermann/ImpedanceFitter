@@ -1,6 +1,8 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
-#    Copyright (C) 2021 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2021 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,15 +19,16 @@
 
 
 from scipy.constants import epsilon_0 as e0
+
 from .single_shell import eps_cell_single_shell
-from .suspensionmodels import eps_sus_MW, bhcubic_eps_model
+from .suspensionmodels import bhcubic_eps_model, eps_sus_MW
 
 
 def eps_cell_single_shell_wall(omega, km, em, kcp, ecp, kw, ew, dm, Rc, dw):
-    r"""Single shell model with cell wall
+    r"""Single shell model with cell wall.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     em: double
@@ -55,24 +58,31 @@ def eps_cell_single_shell_wall(omega, km, em, kcp, ecp, kw, ew, dm, Rc, dw):
     Note
     ----
 
-    Asami, K. (2002). Characterization of biological cells by dielectric spectroscopy. Journal of Non-Crystalline Solids, 305(1–3), 268–277. https://doi.org/10.1016/S0022-3093(02)01110-9
+    Asami, K. (2002).
+    Characterization of biological cells by dielectric spectroscopy.
+    Journal of Non-Crystalline Solids, 305(1–3), 268–277.
+    https://doi.org/10.1016/S0022-3093(02)01110-9
 
     """
-    w = (1. - dw / (Rc + dw))**3
+    w = (1.0 - dw / (Rc + dw)) ** 3
 
     epsi_w = ew - 1j * kw / (e0 * omega)
     epsi_p = eps_cell_single_shell(omega, km, em, kcp, ecp, dm, Rc)
     # model
-    epsi_cell = epsi_w * ((2. * epsi_w + epsi_p - 2. * w * (epsi_w - epsi_p))
-                          / (2. * epsi_w + epsi_p + w * (epsi_w - epsi_p)))
+    epsi_cell = epsi_w * (
+        (2.0 * epsi_w + epsi_p - 2.0 * w * (epsi_w - epsi_p))
+        / (2.0 * epsi_w + epsi_p + w * (epsi_w - epsi_p))
+    )
     return epsi_cell
 
 
-def single_shell_wall_model(omega, km, em, kcp, ecp, kw, ew, kmed, emed, p, c0, dm, Rc, dw):
-    r"""Impedance of single shell model
+def single_shell_wall_model(
+    omega, km, em, kcp, ecp, kw, ew, kmed, emed, p, c0, dm, Rc, dw
+):
+    r"""Impedance of single shell model.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -109,7 +119,6 @@ def single_shell_wall_model(omega, km, em, kcp, ecp, kw, ew, kmed, emed, p, c0, 
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
@@ -133,11 +142,13 @@ def single_shell_wall_model(omega, km, em, kcp, ecp, kw, ew, kmed, emed, p, c0, 
     return Z_fit
 
 
-def single_shell_wall_bh_model(omega, km, em, kcp, ecp, kw, ew, kmed, emed, p, c0, dm, Rc, dw):
-    r"""Impedance of single shell model using Bruggeman-Hanai approach
+def single_shell_wall_bh_model(
+    omega, km, em, kcp, ecp, kw, ew, kmed, emed, p, c0, dm, Rc, dw
+):
+    r"""Impedance of single shell model using Bruggeman-Hanai approach.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -174,7 +185,6 @@ def single_shell_wall_bh_model(omega, km, em, kcp, ecp, kw, ew, kmed, emed, p, c
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
