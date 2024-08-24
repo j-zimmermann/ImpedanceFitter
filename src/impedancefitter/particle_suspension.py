@@ -1,6 +1,8 @@
-#    The ImpedanceFitter is a package to fit impedance spectra to equivalent-circuit models using open-source software.
+#    The ImpedanceFitter is a package to fit impedance spectra to
+#    equivalent-circuit models using open-source software.
 #
-#    Copyright (C) 2021 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2021 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,14 +19,15 @@
 
 
 from scipy.constants import epsilon_0 as e0
-from .suspensionmodels import eps_sus_MW, bhcubic_eps_model
+
+from .suspensionmodels import bhcubic_eps_model, eps_sus_MW
 
 
 def particle_model(omega, ep, kp, kmed, emed, p, c0):
-    r"""Single particle in suspension model
+    r"""Single particle in suspension model.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -47,14 +50,12 @@ def particle_model(omega, ep, kp, kmed, emed, p, c0):
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
         The particle conductivity is in uF/m!
 
     """
-
     c0 *= 1e-12  # use pF as unit
     kp *= 1e-6
 
@@ -68,10 +69,10 @@ def particle_model(omega, ep, kp, kmed, emed, p, c0):
 
 
 def particle_bh_model(omega, ep, kp, kmed, emed, p, c0):
-    r"""Single particle in Bruggeman-Hanai suspension model
+    r"""Single particle in Bruggeman-Hanai suspension model.
 
     Parameters
-    -----------
+    ----------
     omega: :class:`numpy.ndarray`, double
         list of frequencies
     c0: double
@@ -94,13 +95,11 @@ def particle_bh_model(omega, ep, kp, kmed, emed, p, c0):
 
     Notes
     -----
-
     .. warning::
 
         The unit capacitance is in pF!
         The particle conductivity is in uF/m!
     """
-
     c0 *= 1e-12  # use pF as unit
     kp *= 1e-6
 
