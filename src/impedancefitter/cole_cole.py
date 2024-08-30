@@ -569,12 +569,9 @@ def raicu(omega, c0, epsinf, deps, tau, alpha, beta, gamma, sigma):
 
     .. math::
 
-        \varepsilon^\ast = \varepsilon_\infty +
-                           \frac{\Delta\varepsilon}
-                           {\left[ (j \omega \tau)^\alpha +
-                           (j \omega \tau)^{1-\beta}\right])^\gamma} -
-                           \frac{j\sigma_{\mathrm{DC}}}{\omega \varepsilon_0}
-                           \enspace ,
+        \varepsilon^\ast = \varepsilon_\infty + \frac{\Delta\varepsilon}
+        {\left[ (j \omega \tau)^\alpha + (j \omega \tau)^{1-\beta}\right]^\gamma}
+        - \frac{j\sigma_{\mathrm{DC}}}{\omega \varepsilon_0} \enspace ,
 
     .. math::
 
@@ -592,6 +589,7 @@ def raicu(omega, c0, epsinf, deps, tau, alpha, beta, gamma, sigma):
                    Plasmas, Fluids, and Related Interdisciplinary Topics,
                    60(4), 4677–4680.
                    https://doi.org/10.1103/PhysRevE.60.4677
+
     .. [Stoneman2007] Stoneman, M. R., Kosempa, M., Gregory, W. D., Gregory, C. W.,
                       Marx, J. J., Mikkelson, W., … Raicu, V. (2007).
                       Correction of electrode polarization contributions to the
