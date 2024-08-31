@@ -36,7 +36,8 @@ author: Henning Bathel
 """
 
 logger = logging.getLogger(__name__)
-package_directory = os.path.dirname(os.path.abspath(__file__))
+PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+SUPPORTED_DEVICES = ["R&S", "MokuGo"]
 
 
 class fra_device:
@@ -51,10 +52,11 @@ class fra_device:
             Provide name of device or devicefile.
 
         """
-        if devicefile in ["R&S", "MokuGo"]:
-            devicefile = os.path.join(
-                package_directory, "devices", f"{devicefile}.json"
+        if devicefile not in SUPPORTED_DEVICES:
+            raise ValueError(
+                f"Only the following devices are supported: {SUPPORTED_DEVICES}"
             )
+        devicefile = os.path.join(PACKAGE_DIR, "devices", f"{devicefile}.json")
         with open(devicefile) as dev_file:
             device = json.load(dev_file)
 
@@ -184,7 +186,7 @@ def wrap_phase(phase):
     return phase
 
 
-def read_bode_csv_dev(filename, device):
+def read_bode_csv_dev(filename, devicesettings):
     """
     special funtion to generate appr. format from provided device csv-files.
 
@@ -192,7 +194,7 @@ def read_bode_csv_dev(filename, device):
     ----------
     filename: string
         relative path to csv file
-    device: dict
+    devicesettings: dict
         information about device
 
     Returns
@@ -204,21 +206,21 @@ def read_bode_csv_dev(filename, device):
     :class:`numpy.ndarray`
         Phase
     """
-    data = pandas.read_csv(filename, header=device["header"])
+    data = pandas.read_csv(filename, header=devicesettings["header"])
 
-    Frequency = np.array(data[device["frequency"]])
+    Frequency = np.array(data[devicesettings["frequency"]])
     try:
-        Attenuation = np.array(data[device["magnitude"]])
+        Attenuation = np.array(data[devicesettings["magnitude"]])
     except KeyError:
         logger.warning("Could not determine magnitude key. Tries magnitude-alt next.")
         try:
-            Attenuation = np.array(data[device["magnitude_alt"]])
+            Attenuation = np.array(data[devicesettings["magnitude_alt"]])
         except KeyError:
             logger.error("Could not determine the right key for magnitude.")
 
-    Phase = np.array(data[device["phase"]])
+    Phase = np.array(data[devicesettings["phase"]])
 
-    if device["is_gain"]:
+    if devicesettings["is_gain"]:
         Attenuation = -1.0 * Attenuation
         Phase = -1.0 * Phase
 
@@ -245,17 +247,15 @@ def read_bode_csv(filename, devicename):
     This function was tested for a MokuGo (Liquid Instruments)
     and an Rohde & Schwarz oscilloscope RTB2004
     """
-    try:
-        if devicename in ["R&S", "MokuGo"]:
-            devicename = os.path.join(
-                package_directory, "devices", f"{devicename}.json"
-            )
-        with open(devicename) as dev_file:
-            device = json.load(dev_file)
-        return read_bode_csv_dev(filename, device)
-    except Exception as e:
-        logger.error(f"Could not find the file: {e}")
-        return 0, 0, 0
+    if devicename not in SUPPORTED_DEVICES:
+        raise ValueError(
+            f"Only the following devices are supported: {SUPPORTED_DEVICES}"
+        )
+    device_info = os.path.join(PACKAGE_DIR, "devices", f"{devicename}.json")
+    print("Device info: ", device_info)
+    with open(device_info) as dev_file:
+        devicesettings = json.load(dev_file)
+    return read_bode_csv_dev(filename, devicesettings)
 
 
 def bode_csv_to_impedance(filename, devicename, R_device=1e6):
