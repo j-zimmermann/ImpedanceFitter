@@ -50,10 +50,10 @@ from .utils import (
 )
 from .variance import variance_estimate, weighting_residual
 
-logger = logging.getLogger(__name__)
+# use logger for entire module
+logger = logging.getLogger("impedancefitter")
 
 
-# TODO fix this part
 def set_logger(level=logging.INFO):
     """Set logging level."""
     logger.setLevel(level)
