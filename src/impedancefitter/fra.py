@@ -52,8 +52,10 @@ class fra_device:
 
         """
         if devicefile in ["R&S", "MokuGo"]:
-            devicefile = f"{package_directory}/devices/{devicefile}.json"
-        with open(f"{devicefile}") as dev_file:
+            devicefile = os.path.join(
+                package_directory, "devices", f"{devicefile}.json"
+            )
+        with open(devicefile) as dev_file:
             device = json.load(dev_file)
 
         # populate fra with settings
@@ -245,8 +247,10 @@ def read_bode_csv(filename, devicename):
     """
     try:
         if devicename in ["R&S", "MokuGo"]:
-            devicename = f"{package_directory}/devices/{devicename}"
-        with open(f"{devicename}.json") as dev_file:
+            devicename = os.path.join(
+                package_directory, "devices", f"{devicename}.json"
+            )
+        with open(devicename) as dev_file:
             device = json.load(dev_file)
         return read_bode_csv_dev(filename, device)
     except Exception as e:
