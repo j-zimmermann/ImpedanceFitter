@@ -207,6 +207,16 @@ def read_bode_csv_dev(filename, devicesettings):
         Phase
     """
     data = pandas.read_csv(filename, header=devicesettings["header"])
+    try:
+        Phase = np.array(data[devicesettings["phase"]])
+    except KeyError:
+        logger.warning(
+            "File is not UTF-8 encoded, try to read with ISO-8859-1 encoding."
+        )
+        data = pandas.read_csv(
+            filename, header=devicesettings["header"], encoding="ISO-8859-1"
+        )
+        Phase = np.array(data[devicesettings["phase"]])
 
     Frequency = np.array(data[devicesettings["frequency"]])
     try:
@@ -217,8 +227,6 @@ def read_bode_csv_dev(filename, devicesettings):
             Attenuation = np.array(data[devicesettings["magnitude_alt"]])
         except KeyError:
             logger.error("Could not determine the right key for magnitude.")
-
-    Phase = np.array(data[devicesettings["phase"]])
 
     if devicesettings["is_gain"]:
         Attenuation = -1.0 * Attenuation
