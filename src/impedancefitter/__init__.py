@@ -18,9 +18,10 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """ImpedanceFitter is a package to fit impedance spectra."""
+
 import logging
 
-from .fitter import Fitter
+from .fitter import Fitter, set_logger
 from .fra import (
     bode_csv_to_impedance,
     bode_to_impedance,
@@ -55,21 +56,6 @@ from .utils import (
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
-
-def set_logger(level=logging.INFO):
-    """Set logging level."""
-    logger.setLevel(level)
-    # to avoid multiple output in Jupyter notebooks
-    if len(logger.handlers) == 1:
-        ch = logging.StreamHandler()
-        ch.setLevel(level)
-        logger.addHandler(ch)
-    else:
-        for handler in logger.handlers:
-            if type(handler) == logging.StreamHandler:
-                handler.setLevel(level)
-
-
 __all__ = (
     "Fitter",
     "PostProcess",
@@ -96,4 +82,5 @@ __all__ = (
     "bode_csv_to_impedance",
     "open_short_compensation",
     "read_bode_csv",
+    "set_logger",
 )
