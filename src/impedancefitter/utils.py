@@ -460,9 +460,10 @@ def _clean_parameters(params, names):
         if p not in names:
             del params[p]
 
-    assert Counter(names) == Counter(
-        params.keys()
-    ), "You need to provide the following parameters (maybe with prefixes)" + str(names)
+    assert Counter(names) == Counter(params.keys()), (
+        "You need to provide the following parameters (maybe with prefixes)"
+        + str(names)
+    )
     return params
 
 
@@ -1109,7 +1110,8 @@ def draw_scheme(modelname, show=True, save=False):
         Save scheme to file. File is called `scheme.svg`.
     """
     # read and check circuit
-    assert isinstance(modelname, str), "Pass the model as a string"
+    if not isinstance(modelname, str):
+        raise ValueError("Pass the model as a string")
     str2parse = modelname.replace("parallel", "")
     circuit_elements = pp.Word(pp.srange("[a-zA-Z_0-9]"))
     plusop = pp.Literal("+")
@@ -1126,18 +1128,19 @@ def draw_scheme(modelname, show=True, save=False):
     # start drawing
     # TODO check
     d = schemdraw.Drawing()
-    """
     d.set_anchor("start")
+    start = d.here
     d, endpts = _cycle_circuit(
-        circuitstr.asList()[0], d, endpts=(source.start, source.end), depth=0
+        circuitstr.asList()[0], d, endpts=(d.here, d.here), depth=0
     )
     # finalize drawing
     endpts = (Point((endpts[0][0], 0.0)), Point((endpts[1][0], 0.0)))
-    d.add(elm.SourceSin, d="left", label="Impedance analyzer", tox=start)
-    """
-    d.draw(show=show)
+    d.add(elm.Line(d="up"))
+    d.add(elm.SourceSin(d="left", label="Impedance analyzer", tox=start))
+    d.add(elm.Line(d="down"))
     if save:
         d.save("scheme.svg")
+    d.draw(show=show)
 
 
 def _cycle_circuit(circuit, d, endpts, step=3.0, depth=0):
@@ -1202,7 +1205,7 @@ def _draw_element(c, d, endpts, step=3.0, depth=0):
     if isinstance(c, str):
         element, label = _get_element(c)
         endpts = (endpts[0], [endpts[0][0] + step, endpts[1][1]])
-        e = d.add(element, d="right", label=label, endpts=endpts)
+        e = d.add(element(d="right", label=label, endpts=endpts))
         # increment position
         endpts = (e.end, e.end)
     elif isinstance(c, list):
@@ -1260,7 +1263,7 @@ def _add_parallel_drawing(circuit, d, endpts, depth=0):
     # add second element
     endpts = ([anchorx1, anchory1], [anchorx1, anchory2 - 3.0])
 
-    d.add(elm.LINE, d="down", endpts=endpts)
+    d.add(elm.Line(d="down", endpts=endpts))
 
     endpts = ([anchorx1, anchory2 - 3.0], [anchorx2, anchory2 - 3.0])
 
@@ -1268,7 +1271,7 @@ def _add_parallel_drawing(circuit, d, endpts, depth=0):
 
     anchory2 = deepcopy(endpts[1][1])
     endpts = ([endpts[1][0], endpts[1][1]], [endpts[1][0], anchory1])
-    d.add(elm.LINE, d="up", endpts=endpts)
+    d.add(elm.Line(d="up", endpts=endpts))
     endpts = ([anchorx2, anchory2], [anchorx2, anchory2])
 
     return d, endpts
