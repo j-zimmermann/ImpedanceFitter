@@ -1,9 +1,9 @@
-recursive-include doc *.bat
-recursive-include doc *.pdf
-recursive-include doc *.png
-recursive-include doc *.py
-recursive-include doc *.rst
-recursive-include doc Makefile
+recursive-include docs *.bat
+recursive-include docs *.pdf
+recursive-include docs *.png
+recursive-include docs *.py
+recursive-include docs *.rst
+recursive-include docs Makefile
 recursive-include src *.json
 recursive-include examples *.csv
 recursive-include examples *.py

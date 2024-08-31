@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "impedancefitter"
-version = "2.0.9"
+version = "2.0.11"
 description = "Library for fitting impedance data to equivalent circuit models."
 readme = "README.md"
 license = { text = "GPL-3.0-only" }
@@ -42,11 +42,11 @@ test = ["pytest", "pytest-cov"]
 
 dev = ["ruff", "pre-commit"]
 
-doc = ["sphinx",
+docs = ["sphinx",
 "jupyter_sphinx",
 "sphinx-rtd-theme"]
 
-all = ["impedancefitter[test, dev, doc]"]
+all = ["impedancefitter[test, dev, docs]"]
 
 [project.urls]
 homepage = "https://impedancefitter.readthedocs.io/en/latest/"
