@@ -38,7 +38,7 @@ dependencies = [
 "packaging"]
 
 [project.optional-dependencies]
-test = ["pytest"]
+test = ["pytest", "pytest-cov"]
 
 dev = ["ruff", "pre-commit"]
 
