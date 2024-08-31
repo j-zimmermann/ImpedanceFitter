@@ -38,13 +38,15 @@ dependencies = [
 "packaging"]
 
 [project.optional-dependencies]
-dev = ["ruff", "pre-commit", "pytest"]
+test = ["pytest"]
+
+dev = ["ruff", "pre-commit"]
 
 doc = ["sphinx",
 "jupyter_sphinx",
 "sphinx-rtd-theme"]
 
-all = ["impedancefitter[dev, doc]"]
+all = ["impedancefitter[test, dev, doc]"]
 
 [project.urls]
 homepage = "https://impedancefitter.readthedocs.io/en/latest/"
