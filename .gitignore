@@ -16,3 +16,5 @@ outfile.yaml
 impedancefitter.egg-info/
 __pycache__/
 .ipynb_checkpoints/
+
+examples/SchemDraw/*.svg

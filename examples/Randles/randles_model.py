@@ -2,7 +2,8 @@
 #    equivalent-circuit models using open-source software.
 #
 #    Copyright (C) 2018, 2019 Leonard Thiele, leonard.thiele[AT]uni-rostock.de
-#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann, julius.zimmermann[AT]uni-rostock.de
+#    Copyright (C) 2018, 2019, 2020 Julius Zimmermann,
+#                                   julius.zimmermann[AT]uni-rostock.de
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -22,26 +23,22 @@ import numpy
 
 # parameters
 frequencies = numpy.logspace(0, 8)
-Rct = 100.
-Rs = 20.
-Aw = 300.
+Rct = 100.0
+Rs = 20.0
+Aw = 300.0
 C0 = 25e-6
 
 
 # generate model by user-defined circuit
-model = 'R_s + parallel(R_ct + W, C)'
+model = "R_s + parallel(R_ct + W, C)"
 lmfit_model = impedancefitter.get_equivalent_circuit_model(model)
-Z = lmfit_model.eval(omega=2. * numpy.pi * frequencies,
-                     ct_R=Rct, s_R=Rs,
-                     C=C0, Aw=Aw)
-impedancefitter.plot_impedance(2. * numpy.pi * frequencies, Z)
+Z = lmfit_model.eval(omega=2.0 * numpy.pi * frequencies, ct_R=Rct, s_R=Rs, C=C0, Aw=Aw)
+impedancefitter.plot_impedance(2.0 * numpy.pi * frequencies, Z)
 
 # use pre-implemented circuit
-model = 'Randles'
+model = "Randles"
 lmfit_model = impedancefitter.get_equivalent_circuit_model(model)
-Z2 = lmfit_model.eval(omega=2. * numpy.pi * frequencies,
-                      Rct=Rct, Rs=Rs,
-                      C0=C0, Aw=Aw)
+Z2 = lmfit_model.eval(omega=2.0 * numpy.pi * frequencies, Rct=Rct, Rs=Rs, C0=C0, Aw=Aw)
 
 # check that both are equal
 if numpy.all(numpy.isclose(Z, Z2)):
