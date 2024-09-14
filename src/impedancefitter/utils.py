@@ -283,11 +283,8 @@ def check_parameters(bufdict):
             continue
 
         if par in capacitancespF:
-            assert not np.isclose(
-                bufdict[p].value, 0.0, atol=1e-5
-            ), f"""{p} is used in pF, do you really want it to be that small?
-                   It will be ignored in the analysis"""
-
+            if np.isclose(bufdict[p].value, 0.0, atol=1e-5):
+                raise ValueError(f"{p} is used in pF, the value is too small.")
         if par in zerotoones:
             if not (0 <= bufdict[p].value <= 1.0):
                 raise ValueError(
@@ -311,16 +308,18 @@ def check_parameters(bufdict):
             continue
 
         if par in taus:
-            assert not np.isclose(
-                bufdict[p].value, 0.0, atol=1e-7
-            ), "tau is used in ns, do you really want it to be that small?"
+            if np.isclose(bufdict[p].value, 0.0, atol=1e-7):
+                raise ValueError(
+                    "tau is used in ns, do you really want it to be that small?"
+                )
 
         # check permittivities
         if par in permittivities:
-            assert (
-                bufdict[p].value >= 1.0
-            ), f"""The permittivity {p} needs to be greater than
-                   or equal to 1. Change the initial value."""
+            if not bufdict[p].value >= 1.0:
+                raise ValueError(
+                    f"The permittivity {p} needs to be greater than "
+                    "or equal to 1. Change the initial value."
+                )
             if bufdict[p].vary:
                 if bufdict[p].min < 1.0:
                     logger.debug(
@@ -451,10 +450,11 @@ def _clean_parameters(params, names):
         if p not in names:
             del params[p]
 
-    assert Counter(names) == Counter(params.keys()), (
-        "You need to provide the following parameters (maybe with prefixes)"
-        + str(names)
-    )
+    if Counter(names) != Counter(params.keys()):
+        raise ValueError(
+            "You need to provide the following parameters (maybe with prefixes)"
+            + str(names)
+        )
     return params
 
 
@@ -734,7 +734,8 @@ def _process_parallel(model):
     :py:class:`lmfit.model.CompositeModel`
         The CompositeModel of the parallel circuit.
     """
-    assert len(model) == 3, "The model must be [model1, ',' , model2]"
+    if len(model) != 3:
+        raise ValueError("The model must be [model1, ',' , model2]")
     first_model = model[0]
     second_model = model[2]
     first = _process_element(first_model)
@@ -907,7 +908,8 @@ def get_equivalent_circuit_model(modelname, logscale=False, diel=False):
     Thus, keep the circuit simple.
     """
     circuit = []
-    assert isinstance(modelname, str), "Pass the model as a string"
+    if not isinstance(modelname, str):
+        raise ValueError("Pass the model as a string")
     str2parse = modelname.replace("parallel", "")
     circuit_elements = pp.Word(pp.srange("[a-zA-Z_0-9]"))
     plusop = pp.Literal("+")
@@ -1216,7 +1218,8 @@ def _add_series_drawing(circuit, d, endpts, step=3.0, depth=0):
 
 
 def _add_parallel_drawing(circuit, d, endpts, depth=0):
-    assert len(circuit) == 3, "The model must be [model1, ',' , model2]"
+    if len(circuit) != 3:
+        raise ValueError("The model must be [model1, ',' , model2]")
 
     first_element = circuit[0]
     second_element = circuit[2]
@@ -1238,7 +1241,8 @@ def _add_parallel_drawing(circuit, d, endpts, depth=0):
     anchory2 = deepcopy(endpts[1][1])
 
     distance = anchorx2 - anchorx1
-    assert distance > 0, "There is something wrong with your circuit."
+    if distance <= 0:
+        raise ValueError("There is something wrong with your circuit.")
     # find longest series in 2nd element
     longest = _determine_longest_length(second_element)
     if not np.less_equal(longest * 3.0, distance):
@@ -1365,7 +1369,8 @@ def save_impedance(omega, impedance, format="CSV", filename="impedance"):
         specify a filename (without ending!).
         The default is impedance.csv or impedance.xlsx
     """
-    assert isinstance(filename, str), "You need to provide a str as filename!"
+    if not isinstance(filename, str):
+        raise ValueError("You need to provide a str as filename!")
     outdict = {
         "freq": omega / (2.0 * np.pi),
         "real": impedance.real,
