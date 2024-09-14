@@ -29,7 +29,6 @@ import pandas as pd
 import pyparsing as pp
 import schemdraw
 import schemdraw.elements as elm
-import yaml
 from lmfit import CompositeModel, Model
 from schemdraw.util import Point
 from scipy.constants import epsilon_0 as e0
@@ -374,22 +373,14 @@ def set_parameters(model, parameterdict=None, emcee=False, weighting_model=False
     params: :py:class:`lmfit.parameter.Parameters`
         LMFIT Parameters object.
     """
-    if parameterdict is None:
-        try:
-            infile = open("input.yaml")
-            bufdict = yaml.safe_load(infile)
-        except OSError:
-            logger.error("Please provide a yaml-input file.")
-            raise
-    else:
-        try:
-            bufdict = parameterdict.copy()
-        except KeyError:
-            logger.error(
-                "Your parameterdict lacks an entry for the model."
-                f" Required are: {model.param_names}"
-            )
-            raise
+    try:
+        bufdict = parameterdict.copy()
+    except KeyError:
+        logger.error(
+            "Your parameterdict lacks an entry for the model."
+            f" Required are: {model.param_names}"
+        )
+        raise
 
     bufdict = _clean_parameters(bufdict, model.param_names)
     logger.debug(f"Setting values for parameters {model.param_names}")
