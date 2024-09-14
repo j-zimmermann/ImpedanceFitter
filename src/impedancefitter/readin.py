@@ -414,7 +414,8 @@ def readin_Data_from_dta(filepath, minimumFrequency=None, maximumFrequency=None)
     Zimag = []
     for line in lines[index + 3 : :]:
         data = line.split("\t")
-        assert len(data) >= 12, "Line {} does not contain enough data!"
+        if not len(data) >= 12:
+            raise RuntimeError("Line {} does not contain enough data!")
         freq.append(float(data[3].replace(",", ".")))
         Zreal.append(float(data[4].replace(",", ".")))
         Zimag.append(float(data[5].replace(",", ".")))

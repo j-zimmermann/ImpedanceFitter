@@ -615,9 +615,8 @@ class Fitter:
         # initialize model parameters
         if parameters is not None:
             logger.debug("Using provided parameter dictionary.")
-            assert isinstance(
-                parameters, dict
-            ), "You need to provide an input dictionary!"
+            if not isinstance(parameters, dict):
+                raise ValueError("You need to provide an input dictionary!")
         self.parameters = deepcopy(parameters)
 
         self.model_parameters = self._initialize_parameters(
@@ -1123,79 +1122,75 @@ class Fitter:
             discovery in radial velocity data. Astrophysical Journal, 745(2).
             https://doi.org/10.1088/0004-637X/745/2/198
         """
-        assert hasattr(
-            self, "model_results"
-        ), "You need to have saved the LMFIT model results."
+        if not hasattr(self, "model_results"):
+            raise ValueError("You need to have saved the LMFIT model results.")
         if not self.emcee_tag:
-            print(
-                """You need to have run emcee
-                     as a solver to use this function"""
+            raise ValueError(
+                "You need to have run emcee " "as a solver to use this function"
             )
-            return
-        else:
-            for fits in self.model_results:
-                res = self.model_results[fits]
-                lnprob = np.swapaxes(res.lnprob, 0, 1)
-                chain = np.swapaxes(res.chain, 0, 1)
-                walker_prob = []
-                for i in range(lnprob.shape[0]):
-                    walker_prob.append(-np.mean(lnprob[i]))
-                if show:
-                    plt.title("walkers sorted by probability")
-                    plt.xlabel("walker")
-                    plt.ylabel("negative mean ln probability")
-                    plt.plot(np.sort(walker_prob))
-                    plt.show()
-                sorted_indices = np.argsort(walker_prob)
-                sorted_fields = np.sort(walker_prob)
-                l0 = sorted_fields[0]
-                differences = np.diff(sorted_fields)
-                if show:
-                    plt.title("difference between adjacent walkers")
-                    plt.xlabel("walker")
-                    plt.ylabel("difference")
-                    plt.plot(differences)
-                    plt.show()
-                # numerator with j + 1 since enumerate starts from 0
-                average_differences = [
-                    (x - l0) / (j + 1) for j, x in enumerate(sorted_fields[1::])
-                ]
-                if show:
-                    plt.title("average difference between current and first walker")
-                    plt.ylabel("average difference")
-                    plt.xlabel("walker")
-                    plt.plot(average_differences)
-                    plt.show()
+        for fits in self.model_results:
+            res = self.model_results[fits]
+            lnprob = np.swapaxes(res.lnprob, 0, 1)
+            chain = np.swapaxes(res.chain, 0, 1)
+            walker_prob = []
+            for i in range(lnprob.shape[0]):
+                walker_prob.append(-np.mean(lnprob[i]))
+            if show:
+                plt.title("walkers sorted by probability")
+                plt.xlabel("walker")
+                plt.ylabel("negative mean ln probability")
+                plt.plot(np.sort(walker_prob))
+                plt.show()
+            sorted_indices = np.argsort(walker_prob)
+            sorted_fields = np.sort(walker_prob)
+            l0 = sorted_fields[0]
+            differences = np.diff(sorted_fields)
+            if show:
+                plt.title("difference between adjacent walkers")
+                plt.xlabel("walker")
+                plt.ylabel("difference")
+                plt.plot(differences)
+                plt.show()
+            # numerator with j + 1 since enumerate starts from 0
+            average_differences = [
+                (x - l0) / (j + 1) for j, x in enumerate(sorted_fields[1::])
+            ]
+            if show:
+                plt.title("average difference between current and first walker")
+                plt.ylabel("average difference")
+                plt.xlabel("walker")
+                plt.plot(average_differences)
+                plt.show()
 
-                # set cut to the maximum number of walkers
-                cut = len(walker_prob)
-                for i in range(differences.size):
-                    if differences[i] > constant * average_differences[i]:
-                        cut = i
-                        logger.debug(f"Cut off at walker {cut}")
-                        break
-                if show:
-                    plt.title("Acceptance fractions after clustering")
-                    plt.xlabel("walker")
-                    plt.ylabel("acceptance fraction")
-                    plt.plot(
-                        np.take(res.acceptance_fraction, sorted_indices[::]),
-                        label="initial",
-                    )
-                    plt.plot(
-                        np.take(res.acceptance_fraction, sorted_indices[:cut:]),
-                        label="clustered",
-                    )
-                    plt.legend()
-                    plt.show()
-                setattr(res, "new_chain", np.take(chain, sorted_indices[:cut:], axis=0))
-                setattr(
-                    res,
-                    "new_flatchain",
-                    pd.DataFrame(
-                        res.new_chain.reshape((-1, res.nvarys)), columns=res.var_names
-                    ),
+            # set cut to the maximum number of walkers
+            cut = len(walker_prob)
+            for i in range(differences.size):
+                if differences[i] > constant * average_differences[i]:
+                    cut = i
+                    logger.debug(f"Cut off at walker {cut}")
+                    break
+            if show:
+                plt.title("Acceptance fractions after clustering")
+                plt.xlabel("walker")
+                plt.ylabel("acceptance fraction")
+                plt.plot(
+                    np.take(res.acceptance_fraction, sorted_indices[::]),
+                    label="initial",
                 )
+                plt.plot(
+                    np.take(res.acceptance_fraction, sorted_indices[:cut:]),
+                    label="clustered",
+                )
+                plt.legend()
+                plt.show()
+            setattr(res, "new_chain", np.take(chain, sorted_indices[:cut:], axis=0))
+            setattr(
+                res,
+                "new_flatchain",
+                pd.DataFrame(
+                    res.new_chain.reshape((-1, res.nvarys)), columns=res.var_names
+                ),
+            )
 
     def emcee_report(self):
         """Reports acceptance fraction and autocorrelation times."""
@@ -1206,9 +1201,8 @@ class Fitter:
             )
             return
 
-        assert hasattr(
-            self, "model_results"
-        ), "You need to have saved the LMFIT model results."
+        if not hasattr(self, "model_results"):
+            raise ValueError("You need to have saved the LMFIT model results.")
         for fits in self.model_results:
             fittedValues = self.model_results[fits]
             if hasattr(fittedValues, "acor"):
@@ -1281,14 +1275,12 @@ class Fitter:
             Choose sigma for confidence interval.
 
         """
-        assert isinstance(
-            sigma, int
-        ), "Sigma needs to be integer and range between 1 and 3."
-        assert sigma >= 1, "Sigma needs to be integer and range between 1 and 3."
-        assert sigma <= 3, "Sigma needs to be integer and range between 1 and 3."
-        assert hasattr(
-            self, "model_results"
-        ), "You need to have saved the LMFIT model results."
+        if not isinstance(sigma, int):
+            raise ValueError("Sigma needs to be integer and range between 1 and 3.")
+        if not 1 <= sigma <= 3:
+            raise ValueError("Sigma needs to be integer and range between 1 and 3.")
+        if not hasattr(self, "model_results"):
+            raise ValueError("You need to have saved the LMFIT model results.")
 
         for d in self.fit_data:
             iters = 1
