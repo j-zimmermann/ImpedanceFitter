@@ -381,11 +381,17 @@ def set_parameters(model, parameterdict=None, emcee=False, weighting_model=False
         )
         raise
 
-    bufdict = _clean_parameters(bufdict, model.param_names)
+    expr_strings = []
+    for key, value in bufdict.items():
+        if "expr" in value:
+            expr_strings.append(value["expr"])
+            logger.debug(f"Found variable with expressions: {key}")
+
+    bufdict = _clean_parameters(bufdict, model.param_names, expr_strings)
     logger.debug(f"Setting values for parameters {model.param_names}")
     logger.debug(f"Parameters: {bufdict}")
-    for key in model.param_names:
-        model.set_param_hint(key, **bufdict[key])
+    for key, value in bufdict.items():
+        model.set_param_hint(key, **value)
     parameters = model.make_params()
     parameters = check_parameters(parameters)
     if emcee and "__lnsigma" not in parameterdict:
@@ -432,7 +438,7 @@ def set_parameters(model, parameterdict=None, emcee=False, weighting_model=False
     return parameters
 
 
-def _clean_parameters(params, names):
+def _clean_parameters(params, names, expr_strings=[]):
     """
     clean parameter dicts that are passed to the fitter.
     get rid of parameters that are not needed.
@@ -441,16 +447,20 @@ def _clean_parameters(params, names):
     ----------
     params: dict
         input dictionary
-    modelName: string
-        name of model corresponding to the ones listed
     names: list of strings
         names of model parameters
+    expr_strings: list of strings
+        expression constraints, used to identify parameters to be kept
     """
+    param_names = []
+    expr_string = " ".join(expr_strings)
     for p in list(params.keys()):
-        if p not in names:
+        if p not in names and p not in expr_string:
             del params[p]
+        else:
+            param_names.append(p)
 
-    if Counter(names) != Counter(params.keys()):
+    if Counter(param_names) != Counter(params.keys()):
         raise ValueError(
             "You need to provide the following parameters (maybe with prefixes)"
             + str(names)
