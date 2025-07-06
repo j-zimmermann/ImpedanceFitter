@@ -1,4 +1,5 @@
 import numpy as np
+
 from impedancefitter.cpe import cpe_ct_model, cpe_ct_w_model
 from impedancefitter.utils import get_equivalent_circuit_model
 

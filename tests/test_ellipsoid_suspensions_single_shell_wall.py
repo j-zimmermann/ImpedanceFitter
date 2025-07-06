@@ -1,4 +1,5 @@
 import numpy as np
+
 from impedancefitter.single_shell_wall import (
     eps_cell_single_shell_wall,
     single_shell_wall_model,

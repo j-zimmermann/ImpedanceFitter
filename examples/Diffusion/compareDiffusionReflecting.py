@@ -1,5 +1,6 @@
-import impedancefitter as ifit
 import numpy as np
+
+import impedancefitter as ifit
 
 Rw = 1.00
 gamma = 0.8

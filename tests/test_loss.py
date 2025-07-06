@@ -1,4 +1,5 @@
 import numpy as np
+
 from impedancefitter import get_equivalent_circuit_model
 from impedancefitter.loss import Z_in, Z_loss
 

@@ -1,4 +1,5 @@
 import numpy as np
+
 from impedancefitter.cpe import cpe_ct_model, cpe_ct_w_model, cpe_model
 
 omega = 2.0 * np.pi * np.logspace(1, 8, num=20)

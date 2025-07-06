@@ -4,6 +4,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import pytest
+
 from impedancefitter import Fitter, get_equivalent_circuit_model
 
 R = 1000.0

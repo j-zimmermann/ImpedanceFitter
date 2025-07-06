@@ -20,10 +20,11 @@
 
 import os
 
-import impedancefitter
 import numpy
 import pandas
 from matplotlib import rcParams
+
+import impedancefitter
 
 rcParams["figure.figsize"] = [15, 10]
 

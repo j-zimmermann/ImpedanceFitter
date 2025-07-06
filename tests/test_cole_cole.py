@@ -1,4 +1,5 @@
 import numpy as np
+
 from impedancefitter.cole_cole import cole_cole_model, cole_cole_R_model, raicu
 from impedancefitter.utils import return_diel_properties
 
