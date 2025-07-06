@@ -1,10 +1,11 @@
 # Figure 3
 
-import impedancefitter as ifit
 import numpy as np
+from scipy.constants import epsilon_0 as e0
+
+import impedancefitter as ifit
 from impedancefitter.single_shell_wall import eps_cell_single_shell_wall
 from impedancefitter.suspensionmodels import bhcubic_eps_model, eps_sus_MW
-from scipy.constants import epsilon_0 as e0
 
 Cm = 0.01
 dm = 7e-9

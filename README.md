@@ -1,5 +1,5 @@
 [![DOI](https://zenodo.org/badge/297969672.svg)](https://zenodo.org/badge/latestdoi/297969672)
-
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/j-zimmermann/ImpedanceFitter/master.svg)](https://results.pre-commit.ci/latest/github/j-zimmermann/ImpedanceFitter/master)
 
 ImpedanceFitter
 ===============

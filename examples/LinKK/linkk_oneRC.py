@@ -1,8 +1,9 @@
 import os
 
-import impedancefitter
 import numpy
 import pandas
+
+import impedancefitter
 
 frequencies = numpy.logspace(2, 7, num=50)
 R = 100.0

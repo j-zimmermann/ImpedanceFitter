@@ -1,7 +1,8 @@
 import numpy as np
+from scipy.constants import epsilon_0 as e0
+
 from impedancefitter.cole_cole import cole_cole_R_model
 from impedancefitter.RC import RC_model, drc_model, rc_model, rc_tau_model
-from scipy.constants import epsilon_0 as e0
 
 omega = 2.0 * np.pi * np.logspace(1, 8, num=20)
 

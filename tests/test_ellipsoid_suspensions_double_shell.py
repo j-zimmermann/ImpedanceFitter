@@ -1,4 +1,5 @@
 import numpy as np
+
 from impedancefitter.double_shell import double_shell_model, eps_cell_double_shell
 from impedancefitter.double_shell_ellipsoid import (
     double_shell_ellipsoid_model,

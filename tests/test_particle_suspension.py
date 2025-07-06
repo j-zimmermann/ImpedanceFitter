@@ -1,4 +1,5 @@
 import numpy as np
+
 from impedancefitter.particle_suspension import particle_bh_model, particle_model
 from impedancefitter.single_shell import single_shell_bh_model, single_shell_model
 
