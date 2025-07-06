@@ -1,4 +1,5 @@
 import numpy as np
+
 from impedancefitter.double_shell import double_shell_model
 from impedancefitter.single_shell import single_shell_model
 

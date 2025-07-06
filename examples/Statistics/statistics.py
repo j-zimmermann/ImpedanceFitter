@@ -23,8 +23,9 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
-from impedancefitter import Fitter, PostProcess, get_equivalent_circuit_model
 from matplotlib import rcParams
+
+from impedancefitter import Fitter, PostProcess, get_equivalent_circuit_model
 
 rcParams["figure.figsize"] = [20, 10]
 

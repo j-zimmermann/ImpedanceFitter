@@ -1,7 +1,8 @@
 import numpy as np
+from scipy.constants import epsilon_0 as e0
+
 from impedancefitter.single_shell import eps_cell_single_shell
 from impedancefitter.single_shell_wall import eps_cell_single_shell_wall
-from scipy.constants import epsilon_0 as e0
 
 omega = 2.0 * np.pi * np.logspace(0, 12, num=30)
 

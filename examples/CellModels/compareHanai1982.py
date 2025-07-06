@@ -2,10 +2,11 @@
 # from Analysis of dielectric relaxations of w/o emulsions
 # in the light of theories of interfacial polarization
 # by T. Hanai, T. Imakita, and N. Koizumi
-import impedancefitter as ifit
 import numpy as np
-from impedancefitter.suspensionmodels import bhcubic_eps_model, eps_sus_MW
 from scipy.constants import epsilon_0 as e0
+
+import impedancefitter as ifit
+from impedancefitter.suspensionmodels import bhcubic_eps_model, eps_sus_MW
 
 freq = np.logspace(1, 7)
 omega = 2.0 * np.pi * freq

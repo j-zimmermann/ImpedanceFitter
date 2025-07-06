@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.constants import epsilon_0 as e0
+
 from impedancefitter import get_equivalent_circuit_model
 from impedancefitter.single_shell import (
     eps_cell_single_shell,
@@ -6,7 +8,6 @@ from impedancefitter.single_shell import (
     single_shell_model,
 )
 from impedancefitter.suspensionmodels import bhcubic_eps_model, eps_sus_MW
-from scipy.constants import epsilon_0 as e0
 
 omega = 2.0 * np.pi * np.logspace(0, 12, num=30)
 

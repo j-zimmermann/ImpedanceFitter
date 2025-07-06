@@ -1,10 +1,11 @@
 # Figure 2
 
-import impedancefitter as ifit
 import numpy as np
+from scipy.constants import epsilon_0 as e0
+
+import impedancefitter as ifit
 from impedancefitter.double_shell_wall import eps_cell_double_shell_wall
 from impedancefitter.suspensionmodels import bhcubic_eps_model, eps_sus_MW
-from scipy.constants import epsilon_0 as e0
 
 em = 5.0
 R0 = 2.75e-6

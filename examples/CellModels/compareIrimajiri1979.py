@@ -1,8 +1,9 @@
-import impedancefitter as ifit
 import numpy as np
+from scipy.constants import epsilon_0 as e0
+
+import impedancefitter as ifit
 from impedancefitter.double_shell import eps_cell_double_shell
 from impedancefitter.suspensionmodels import bhcubic_eps_model, eps_sus_MW
-from scipy.constants import epsilon_0 as e0
 
 em = 9
 Rc = 6.5e-6

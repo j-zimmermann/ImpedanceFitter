@@ -1,4 +1,5 @@
 import numpy as np
+
 from impedancefitter import get_equivalent_circuit_model
 from impedancefitter.randles import Z_randles, Z_randles_CPE
 

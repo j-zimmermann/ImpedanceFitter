@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
-from impedancefitter.utils import get_equivalent_circuit_model
 from lmfit import CompositeModel, Model
+
+from impedancefitter.utils import get_equivalent_circuit_model
 
 
 def test_single():

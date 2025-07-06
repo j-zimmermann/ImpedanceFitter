@@ -4,8 +4,9 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import pytest
-from impedancefitter import Fitter, PostProcess, get_equivalent_circuit_model
 from openturns import Distribution, TestResult
+
+from impedancefitter import Fitter, PostProcess, get_equivalent_circuit_model
 
 
 @pytest.fixture
