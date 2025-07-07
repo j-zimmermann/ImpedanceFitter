@@ -50,7 +50,7 @@ def Z_ECIS_Lo_Ferrier(omega, aecis, Lecis, Wecis, Rb, Cm, Rm, Zn=None):
     Zm = 1.0 / (1.0 / Rm - 1j * omega * Cm)
     if not Zm.shape == Zn.shape:
         raise ValueError(
-            "Provided normalisation impedance " "does not match expected shape."
+            "Provided normalisation impedance does not match expected shape."
         )
     # helper
     E = Lecis * Wecis + np.pi * Wecis**2 / 4.0

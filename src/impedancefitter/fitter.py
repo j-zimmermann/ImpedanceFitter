@@ -615,9 +615,9 @@ class Fitter:
         # initialize model parameters
         if parameters is not None:
             logger.debug("Using provided parameter dictionary.")
-            assert isinstance(
-                parameters, dict
-            ), "You need to provide an input dictionary!"
+            assert isinstance(parameters, dict), (
+                "You need to provide an input dictionary!"
+            )
         self.parameters = deepcopy(parameters)
 
         self.model_parameters = self._initialize_parameters(
@@ -1123,9 +1123,9 @@ class Fitter:
             discovery in radial velocity data. Astrophysical Journal, 745(2).
             https://doi.org/10.1088/0004-637X/745/2/198
         """
-        assert hasattr(
-            self, "model_results"
-        ), "You need to have saved the LMFIT model results."
+        assert hasattr(self, "model_results"), (
+            "You need to have saved the LMFIT model results."
+        )
         if not self.emcee_tag:
             print(
                 """You need to have run emcee
@@ -1206,9 +1206,9 @@ class Fitter:
             )
             return
 
-        assert hasattr(
-            self, "model_results"
-        ), "You need to have saved the LMFIT model results."
+        assert hasattr(self, "model_results"), (
+            "You need to have saved the LMFIT model results."
+        )
         for fits in self.model_results:
             fittedValues = self.model_results[fits]
             if hasattr(fittedValues, "acor"):
@@ -1281,14 +1281,14 @@ class Fitter:
             Choose sigma for confidence interval.
 
         """
-        assert isinstance(
-            sigma, int
-        ), "Sigma needs to be integer and range between 1 and 3."
+        assert isinstance(sigma, int), (
+            "Sigma needs to be integer and range between 1 and 3."
+        )
         assert sigma >= 1, "Sigma needs to be integer and range between 1 and 3."
         assert sigma <= 3, "Sigma needs to be integer and range between 1 and 3."
-        assert hasattr(
-            self, "model_results"
-        ), "You need to have saved the LMFIT model results."
+        assert hasattr(self, "model_results"), (
+            "You need to have saved the LMFIT model results."
+        )
 
         for d in self.fit_data:
             iters = 1
