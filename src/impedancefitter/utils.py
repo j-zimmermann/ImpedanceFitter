@@ -312,9 +312,9 @@ def check_parameters(bufdict):
             continue
 
         if par in taus:
-            assert not np.isclose(
-                bufdict[p].value, 0.0, atol=1e-7
-            ), "tau is used in ns, do you really want it to be that small?"
+            assert not np.isclose(bufdict[p].value, 0.0, atol=1e-7), (
+                "tau is used in ns, do you really want it to be that small?"
+            )
 
         # check permittivities
         if par in permittivities:
@@ -444,7 +444,7 @@ def set_parameters(model, parameterdict=None, emcee=False, weighting_model=False
 
 def _clean_parameters(params, names):
     """
-    clean parameter dicts that are passed to the fitter.
+    Clean parameter dicts that are passed to the fitter.
     get rid of parameters that are not needed.
 
     Parameters
@@ -469,7 +469,7 @@ def _clean_parameters(params, names):
 
 def get_labels(params):
     """
-    return the labels for every parameter in LaTex code.
+    Return the labels for every parameter in LaTex code.
 
     Parameters
     ----------

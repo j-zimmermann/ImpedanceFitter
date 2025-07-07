@@ -77,9 +77,9 @@ def plot_complex_permittivity(
     eps_r, cond_fit = return_diel_properties(omega, Z, c0)
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
-    assert (
-        len(labels) == 2
-    ), "You need to provide lables as a list containing 2 strings!"
+    assert len(labels) == 2, (
+        "You need to provide lables as a list containing 2 strings!"
+    )
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
     plt.figure()
@@ -160,9 +160,9 @@ def plot_dielectric_modulus(
     ReM, ImM = return_dielectric_modulus(omega, Z, c0)
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
-    assert (
-        len(labels) == 2
-    ), "You need to provide lables as a list containing 2 strings!"
+    assert len(labels) == 2, (
+        "You need to provide lables as a list containing 2 strings!"
+    )
     if Z_comp is not None:
         ReM2, ImM2 = return_dielectric_modulus(omega, Z_comp, c0)
     plt.figure()
@@ -266,9 +266,9 @@ def plot_dielectric_properties(
 
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
-    assert (
-        len(labels) == 2
-    ), "You need to provide lables as a list containing 2 strings!"
+    assert len(labels) == 2, (
+        "You need to provide lables as a list containing 2 strings!"
+    )
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
     plt.title("Relative permittivity")
@@ -404,7 +404,7 @@ def plot_comparison_dielectric_properties(
         ylabel = r"Absolute Difference"
     else:
         raise RuntimeError(
-            "residual must be either `relative` or `absolute`" f" but not {residual}"
+            f"residual must be either `relative` or `absolute` but not {residual}"
         )
 
     axes = []
@@ -518,9 +518,9 @@ def plot_cole_cole(
     epsc_fit = eps_r - 1j * cond_fit / (e0 * omega)
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
-    assert (
-        len(labels) == 2
-    ), "You need to provide lables as a list containing 2 strings!"
+    assert len(labels) == 2, (
+        "You need to provide lables as a list containing 2 strings!"
+    )
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
         epsc_fit2 = eps_r2 - 1j * cond_fit2 / (e0 * omega)
@@ -1116,7 +1116,7 @@ def plot_compare_to_data(
     **plotkwargs,
 ):
     """
-    plots the difference of the fitted function to the data.
+    Plots the difference of the fitted function to the data.
 
     Parameters
     ----------
@@ -1626,9 +1626,9 @@ def plot_dielectric_dispersion(
 
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
-    assert (
-        len(labels) == 2
-    ), "You need to provide lables as a list containing 2 strings!"
+    assert len(labels) == 2, (
+        "You need to provide lables as a list containing 2 strings!"
+    )
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
     ax1.set_ylabel(r"Relative permittivity")
