@@ -41,6 +41,7 @@ from .plotting import (
     plot_dielectric_properties,
     plot_impedance,
     plot_resistance_capacitance,
+    plot_time_domain_signals_with_impedance,
     plot_uncertainty,
 )
 from .postprocess import PostProcess
@@ -77,6 +78,7 @@ __all__ = (
     "plot_comparison_dielectric_properties",
     "plot_uncertainty",
     "plot_resistance_capacitance",
+    "plot_time_domain_signals_with_impedance",
     "emcee_plot",
     "bode_to_impedance",
     "bode_csv_to_impedance",

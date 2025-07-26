@@ -401,7 +401,7 @@ def plot_comparison_dielectric_properties(
         ylabel = r"Absolute Difference"
     else:
         raise RuntimeError(
-            "residual must be either `relative` or `absolute`" f" but not {residual}"
+            f"residual must be either `relative` or `absolute` but not {residual}"
         )
 
     axes = []
@@ -1112,7 +1112,7 @@ def plot_compare_to_data(
     **plotkwargs,
 ):
     """
-    plots the difference of the fitted function to the data.
+    Plots the difference of the fitted function to the data.
 
     Parameters
     ----------
@@ -1653,3 +1653,62 @@ def plot_dielectric_dispersion(
         plt.show()
     else:
         plt.close()
+
+
+def plot_time_domain_signals_with_impedance(
+    t,
+    frequencies,
+    voltage,
+    current,
+    impedance,
+    save_file="impedance_time_domain.pdf",
+    t_zoom_range=(0.05, 0.25),
+    current_scale=50,
+):
+    """Plot impedance with original time domain signals."""
+    # TODO more documentation
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
+
+    # Plot high-frequency input signals (zoomed to pulse region)
+    t_zoom = t[(t >= t_zoom_range[0]) & (t <= t_zoom_range[1])]
+    v_zoom = voltage[(t >= t_zoom_range[0]) & (t <= t_zoom_range[1])]
+    i_zoom = current[(t >= t_zoom_range[0]) & (t <= t_zoom_range[1])]
+
+    ax1.plot(t_zoom * 1000, v_zoom, "b-", label="Voltage", linewidth=2)
+    ax1.plot(
+        t_zoom * 1000,
+        i_zoom * current_scale,
+        "r-",
+        label=f"Current x{current_scale}",
+        linewidth=2,
+    )
+    ax1.set_xlabel("Time / ms")
+    ax1.set_ylabel("Amplitude")
+    ax1.legend()
+    ax1.grid(True)
+
+    # Plot full signal overview
+    ax2.plot(t, voltage, "b-", label="Voltage", alpha=0.7)
+    ax2.plot(
+        t, current * current_scale, "r-", label=f"Current x{current_scale}", alpha=0.7
+    )
+    ax2.set_xlabel("Time / s")
+    ax2.set_ylabel("Amplitude")
+    ax2.legend()
+    ax2.grid(True)
+
+    # Plot impedance magnitude
+    ax3.loglog(frequencies, np.abs(impedance), "bo-", markersize=4)
+    ax3.set_xlabel("Frequency / Hz")
+    ax3.set_ylabel(r"|Z| / $\Omega$")
+    ax3.grid(True)
+
+    # Plot impedance phase
+    ax4.semilogx(frequencies, np.angle(impedance) * 180 / np.pi, "ro-", markersize=4)
+    ax4.set_xlabel("Frequency / Hz")
+    ax4.set_ylabel(r"Phase  / °")
+    ax4.grid(True)
+
+    plt.tight_layout()
+    plt.savefig(save_file)
+    plt.close()
