@@ -1661,6 +1661,7 @@ def plot_time_domain_signals_with_impedance(
     voltage,
     current,
     impedance,
+    impedance_expected=None,
     save_file="impedance_time_domain.pdf",
     t_zoom_range=(0.05, 0.25),
     current_scale=50,
@@ -1698,13 +1699,27 @@ def plot_time_domain_signals_with_impedance(
     ax2.grid(True)
 
     # Plot impedance magnitude
-    ax3.loglog(frequencies, np.abs(impedance), "bo-", markersize=4)
+    if impedance_expected is not None:
+        ax3.loglog(
+            frequencies, np.abs(impedance_expected), "blue", lw=3, label="Reconstructed"
+        )
+    ax3.loglog(frequencies, np.abs(impedance), "ro-", markersize=6, label="Fitted")
     ax3.set_xlabel("Frequency / Hz")
     ax3.set_ylabel(r"|Z| / $\Omega$")
     ax3.grid(True)
 
     # Plot impedance phase
-    ax4.semilogx(frequencies, np.angle(impedance) * 180 / np.pi, "ro-", markersize=4)
+    if impedance_expected is not None:
+        ax4.semilogx(
+            frequencies,
+            np.angle(impedance_expected, deg=True),
+            "blue",
+            lw=3,
+            label="Expected",
+        )
+    ax4.semilogx(
+        frequencies, np.angle(impedance, deg=True), "ro-", markersize=6, label="Fitted"
+    )
     ax4.set_xlabel("Frequency / Hz")
     ax4.set_ylabel(r"Phase  / °")
     ax4.grid(True)

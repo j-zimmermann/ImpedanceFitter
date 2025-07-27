@@ -8,6 +8,7 @@ def rectangle(
     pulse_width: float,
     interpulse_gap: float,
     frequency: float,
+    biphasic: bool = False,
 ):
     """Rectangular pulse."""
     if timestep > 1.0 / (10.0 * frequency):
@@ -20,8 +21,13 @@ def rectangle(
     signal = np.zeros(n_steps)
     for idx in range(n_steps):
         time = idx * timestep
-        if 0 < time < pulse_width:
+        if start_gap < time < start_gap + pulse_width:
             signal[idx] = amplitude
-        elif pulse_width + interpulse_gap < time < 2.0 * pulse_width + interpulse_gap:
-            signal[idx] = -amplitude
+        elif (
+            start_gap + pulse_width + interpulse_gap
+            < time
+            < start_gap + 2.0 * pulse_width + interpulse_gap
+        ):
+            if biphasic:
+                signal[idx] = -amplitude
     return signal

@@ -54,7 +54,7 @@ def cwt_morlet(dt, signal, f_min, f_max, nb=35, f0=1.0):
                       Cham: Springer International Publishing.
     """
     # Prepare signal
-    signal = signal - np.mean(signal)
+    # signal = signal - np.mean(signal)
     if len(signal) % 2 != 0:
         signal = signal[:-1]
     # Calculate scales
@@ -92,12 +92,12 @@ def cwt_morlet(dt, signal, f_min, f_max, nb=35, f0=1.0):
         cwtcfs[i, :border_idx] = np.nan
         cwtcfs[i, -border_idx:] = np.nan
     # Calculate frequencies
-    frequencies = f0_rad / (2 * np.pi) / scales
+    frequencies = f0 / scales
     return frequencies, cwtcfs
 
 
 def calculate_impedance_spectrum_using_cwt(
-    dt, voltage, current, f_min=0.1, f_max=1000, nb=35
+    dt, voltage, current, f_min=0.1, f_max=1000, nb=35, f0=1.0
 ):
     """
     Calculate impedance spectrum from voltage and current signals using CWT.
@@ -116,6 +116,8 @@ def calculate_impedance_spectrum_using_cwt(
         Maximum frequency in Hz
     nb : int
         Number of frequency points
+    f0: float
+        Morlet wavelet central frequency
 
     Returns
     -------
@@ -123,18 +125,26 @@ def calculate_impedance_spectrum_using_cwt(
         Frequency points in Hz
     impedance : numpy.array (complex)
         Complex impedance values
+
+    Notes
+    -----
+    Note that this an experimental, unoptimized implementation
+    based on the code presented in [Nusev2021]_ and the theory
+    described in [Boskoski2017]_.
+    Please cite them accordingly.
+
     """
     # Calculate CWT for both signals
-    frequencies, u_cof = cwt_morlet(dt, voltage, f_min, f_max, nb)
-    _, i_cof = cwt_morlet(dt, current, f_min, f_max, nb)
-
-    # Calculate power spectral densities
-    s_i = np.nanmean(
-        np.multiply(i_cof, np.conj(i_cof)), axis=1
-    )  # Current auto-correlation
-    s_u = np.nanmean(np.multiply(u_cof, np.conj(i_cof)), axis=1)  # Cross-correlation
+    frequencies, u_cof = cwt_morlet(dt, voltage, f_min, f_max, nb, f0)
+    _, i_cof = cwt_morlet(dt, current, f_min, f_max, nb, f0)
 
     # Calculate impedance Z = U/I
-    impedance = np.divide(s_u, s_i)
+    s11 = np.nanmean(np.multiply(u_cof, np.conj(u_cof)), axis=1)
+    s12 = np.nanmean(np.multiply(i_cof, np.conj(u_cof)), axis=1)
+    s22 = np.nanmean(np.multiply(i_cof, np.conj(i_cof)), axis=1)
+    rho = np.divide(np.divide(s12, np.sqrt(s11)), np.sqrt(s22))
+    s1 = np.sqrt(s11)
+    s2 = np.sqrt(s22)
+    impedance = np.divide(np.multiply(np.conj(rho), s1), s2)
 
     return frequencies, impedance

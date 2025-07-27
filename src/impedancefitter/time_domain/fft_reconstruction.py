@@ -59,26 +59,38 @@ def calculate_impedance_spectrum_using_fft(
     ignore_indices = np.abs(fft_current) < (
         current_threshold * np.max(np.abs(fft_current))
     )
-    omega = 2.0 * np.pi * fft_freqs
     Z = fft_voltage / fft_current
     Z[ignore_indices] = np.nan + 1j * np.nan
 
-    return omega, Z
+    return fft_freqs, Z
 
 
-def predict_time_domain(
-    omega: np.ndarray,
+def predict_time_domain_signal(
+    timestep: float,
     excitation_signal: np.ndarray,
     ecm: lmfit.Model,
     ecm_parameters: dict,
+    mode: str = "VC",
     offset: float = 0.0,
 ):
     """TODO."""
+    if mode not in ["VC", "CC"]:
+        raise ValueError(f"Mode has to be either VC or CC, not {mode}")
     Is = np.fft.rfft(excitation_signal)
+    omega = 2.0 * np.pi * np.fft.rfftfreq(n=len(excitation_signal), d=timestep)
     Z = ecm.eval(omega=omega, **ecm_parameters)
-    Z[0] = 0j
 
-    measured_signal = np.fft.irfft(Z * Is, n=len(excitation_signal))
+    if mode == "VC":
+        Is /= Z
+        # take away the DC component if NaN or zero
+        if np.isnan(Is[0]) or np.isclose(Is[0], 0.0):
+            Is[0] = 0j
+        measured_signal = np.fft.irfft(Is, n=len(excitation_signal))
+    elif mode == "CC":
+        # take away the DC component if NaN
+        if np.isnan(Z[0]):
+            Z[0] = 0j
+        measured_signal = np.fft.irfft(Z * Is, n=len(excitation_signal))
     return measured_signal - offset
 
 
@@ -88,8 +100,11 @@ def fit_impedance_from_time_domain(
     dt: float,
     excitation_signal: np.ndarray,
     measured_signal: np.ndarray,
+    mode: str = "VC",
 ):
     """TODO."""
+    if mode not in ["VC", "CC"]:
+        raise ValueError(f"Mode has to be either VC or CC, not {mode}")
     freqs = np.fft.rfftfreq(excitation_signal.size, d=dt)
     fft_excitation_signal = np.fft.rfft(excitation_signal)
     ecm = get_equivalent_circuit_model(ecm_model)
@@ -107,15 +122,26 @@ def fit_impedance_from_time_domain(
         # offset to shift curve
         offset = parvals["offset"]
         Z = ecm.eval(omega=x, **parvals)
-        # zero frequency yields NaN, overwrite by 0
-        Z[0] = 0j
         # predict voltage
-        predicted_voltage = np.fft.irfft(
-            Z * fft_excitation_signal, n=len(excitation_signal)
-        )
-        return predicted_voltage - offset - measured_signal
+        if mode == "CC":
+            # take away the DC component if NaN
+            if np.isnan(Z[0]):
+                Z[0] = 0j
+
+            predicted_signal = np.fft.irfft(
+                Z * fft_excitation_signal, n=len(excitation_signal)
+            )
+        elif mode == "VC":
+            Is = fft_excitation_signal / Z
+            # take away the DC component if NaN or zero
+            if np.isnan(Is[0]) or np.isclose(Is[0], 0.0):
+                Is[0] = 0j
+
+            predicted_signal = np.fft.irfft(Is, n=len(excitation_signal))
+
+        return predicted_signal - offset - measured_signal
 
     fit_result = lmfit.minimize(
-        _time_domain_residual, fit_params, args=(2.0 * np.pi * freqs, ecm)
+        _time_domain_residual, fit_params, args=(2.0 * np.pi * freqs,)
     )
     return fit_result
