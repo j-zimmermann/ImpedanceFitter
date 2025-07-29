@@ -32,6 +32,7 @@ def rectangle(
                 signal[idx] = -amplitude
     return signal
 
+
 def biphasic_with_time_shift(
     timestep,
     amplitude,
@@ -66,15 +67,18 @@ def biphasic_with_time_shift(
         # First phase
         first_start = pulse_start_time
         first_end = first_start + pulse_width
-        signal[(t_shifted >= first_start) & (t_shifted < first_end)] = amplitude * phase_signs[0]
+        signal[(t_shifted >= first_start) & (t_shifted < first_end)] = (
+            amplitude * phase_signs[0]
+        )
 
         if biphasic:
             # Second phase
             second_start = first_end + interpulse_gap
             second_end = second_start + pulse_width
-            signal[(t_shifted >= second_start) & (t_shifted < second_end)] = amplitude * phase_signs[1]
+            signal[(t_shifted >= second_start) & (t_shifted < second_end)] = (
+                amplitude * phase_signs[1]
+            )
 
         pulse_start_time += period
 
     return signal
-    
