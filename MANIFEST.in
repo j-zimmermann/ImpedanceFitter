@@ -7,4 +7,5 @@ recursive-include docs Makefile
 recursive-include src *.json
 recursive-include examples *.csv
 recursive-include examples *.py
+recursive-include examples *.zip
 include .readthedocs.yaml
