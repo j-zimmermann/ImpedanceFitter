@@ -440,7 +440,7 @@ def set_parameters(model, parameterdict=None, emcee=False, weighting_model=False
 
 def _clean_parameters(params, names, expr_strings=[]):
     """
-    clean parameter dicts that are passed to the fitter.
+    Clean parameter dicts that are passed to the fitter.
     get rid of parameters that are not needed.
 
     Parameters
@@ -470,7 +470,7 @@ def _clean_parameters(params, names, expr_strings=[]):
 
 def get_labels(params):
     """
-    return the labels for every parameter in LaTex code.
+    Return the labels for every parameter in LaTex code.
 
     Parameters
     ----------

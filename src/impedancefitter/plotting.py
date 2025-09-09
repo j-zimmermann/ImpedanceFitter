@@ -77,6 +77,7 @@ def plot_complex_permittivity(
     eps_r, cond_fit = return_diel_properties(omega, Z, c0)
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
+
     if not len(labels) == 2:
         raise ValueError("You need to provide lables as a list containing 2 strings!")
     if Z_comp is not None:

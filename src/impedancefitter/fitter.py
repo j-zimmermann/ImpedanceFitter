@@ -616,7 +616,7 @@ class Fitter:
         if parameters is not None:
             logger.debug("Using provided parameter dictionary.")
             if not isinstance(parameters, dict):
-                raise ValueError("You need to provide an input dictionary!")
+                raise ValueError("You need to provide an input dictionary")
         self.parameters = deepcopy(parameters)
 
         self.model_parameters = self._initialize_parameters(
@@ -1122,6 +1122,7 @@ class Fitter:
             discovery in radial velocity data. Astrophysical Journal, 745(2).
             https://doi.org/10.1088/0004-637X/745/2/198
         """
+
         if not hasattr(self, "model_results"):
             raise ValueError("You need to have saved the LMFIT model results.")
         if not self.emcee_tag:
@@ -1275,6 +1276,7 @@ class Fitter:
             Choose sigma for confidence interval.
 
         """
+
         if not isinstance(sigma, int):
             raise ValueError("Sigma needs to be integer and range between 1 and 3.")
         if not 1 <= sigma <= 3:

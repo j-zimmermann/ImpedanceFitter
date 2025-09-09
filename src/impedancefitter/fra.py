@@ -76,7 +76,7 @@ def mag_phase_to_complex(Z_mag, phase):
 
 def open_short_compensation(Z_meas, Z_open, Z_short):
     """
-    compensates the measured impedance with open and short reference measurements.
+    Compensates the measured impedance with open and short reference measurements.
 
     please make sure the parameters stayed the same for all measurements
 
@@ -176,7 +176,7 @@ def bode_to_impedance(frequency, attenuation, phase, R_device=1e6):
 
 def wrap_phase(phase):
     """
-    wraps the phase to -90deg to 90deg
+    Wraps the phase to -90deg to 90deg
     TODO: maybe there is a python function for this.
     """
     while phase > 90:
@@ -188,7 +188,7 @@ def wrap_phase(phase):
 
 def read_bode_csv_dev(filename, devicesettings):
     """
-    special funtion to generate appr. format from provided device csv-files.
+    Special funtion to generate appr. format from provided device csv-files.
 
     Parameters
     ----------
