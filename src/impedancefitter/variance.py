@@ -35,9 +35,9 @@ def weighting_residual(params, omega, Zdata=None, model=None, model_kwargs={}):
     # convert from percent
     stdA = 1e-2 * params["stdA"]
     stdPhi = 1e-2 * params["stdPhi"]
-    assert omega.size == Zdata.size, (
-        "Frequency and impedance array must have same length"
-    )
+
+    if not omega.size == Zdata.size:
+        raise ValueError("Frequency and impedance array must have same length")
     # standard deviation of real and imaginary part
     stdR = np.abs(Zdata) * stdA
     stdI = np.abs(Zdata) * (stdA + stdPhi) * np.angle(Zdata)

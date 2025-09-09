@@ -77,9 +77,9 @@ def plot_complex_permittivity(
     eps_r, cond_fit = return_diel_properties(omega, Z, c0)
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
-    assert len(labels) == 2, (
-        "You need to provide lables as a list containing 2 strings!"
-    )
+
+    if not len(labels) == 2:
+        raise ValueError("You need to provide lables as a list containing 2 strings!")
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
     plt.figure()
@@ -160,9 +160,8 @@ def plot_dielectric_modulus(
     ReM, ImM = return_dielectric_modulus(omega, Z, c0)
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
-    assert len(labels) == 2, (
-        "You need to provide lables as a list containing 2 strings!"
-    )
+    if not len(labels) == 2:
+        raise ValueError("You need to provide lables as a list containing 2 strings!")
     if Z_comp is not None:
         ReM2, ImM2 = return_dielectric_modulus(omega, Z_comp, c0)
     plt.figure()
@@ -266,9 +265,8 @@ def plot_dielectric_properties(
 
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
-    assert len(labels) == 2, (
-        "You need to provide lables as a list containing 2 strings!"
-    )
+    if not len(labels) == 2:
+        raise ValueError("You need to provide lables as a list containing 2 strings!")
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
     plt.title("Relative permittivity")
@@ -518,9 +516,8 @@ def plot_cole_cole(
     epsc_fit = eps_r - 1j * cond_fit / (e0 * omega)
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
-    assert len(labels) == 2, (
-        "You need to provide lables as a list containing 2 strings!"
-    )
+    if not len(labels) == 2:
+        raise ValueError("You need to provide lables as a list containing 2 strings!")
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
         epsc_fit2 = eps_r2 - 1j * cond_fit2 / (e0 * omega)
@@ -1219,7 +1216,8 @@ def plot_compare_to_data(
             **plotkwargs,
         )
     if limits is not None:
-        assert len(limits) == 2, "You need to provide upper and lower limit!"
+        if not len(limits) == 2:
+            raise ValueError("You need to provide upper and lower limit!")
         plt.ylim(limits)
     if legend:
         plt.legend()
@@ -1626,9 +1624,8 @@ def plot_dielectric_dispersion(
 
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
-    assert len(labels) == 2, (
-        "You need to provide lables as a list containing 2 strings!"
-    )
+    if not len(labels) == 2:
+        raise ValueError("You need to provide lables as a list containing 2 strings!")
     if Z_comp is not None:
         eps_r2, cond_fit2 = return_diel_properties(omega, Z_comp, c0)
     ax1.set_ylabel(r"Relative permittivity")
@@ -1657,3 +1654,77 @@ def plot_dielectric_dispersion(
         plt.show()
     else:
         plt.close()
+
+
+def plot_time_domain_signals_with_impedance(
+    t,
+    frequencies,
+    voltage,
+    current,
+    impedance,
+    impedance_expected=None,
+    save_file="impedance_time_domain.pdf",
+    t_zoom_range=(0.05, 0.25),
+    current_scale=50,
+):
+    """Plot impedance with original time domain signals."""
+    # TODO more documentation
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
+
+    # Plot high-frequency input signals (zoomed to pulse region)
+    t_zoom = t[(t >= t_zoom_range[0]) & (t <= t_zoom_range[1])]
+    v_zoom = voltage[(t >= t_zoom_range[0]) & (t <= t_zoom_range[1])]
+    i_zoom = current[(t >= t_zoom_range[0]) & (t <= t_zoom_range[1])]
+
+    ax1.plot(t_zoom * 1000, v_zoom, "b-", label="Voltage", linewidth=2)
+    ax1.plot(
+        t_zoom * 1000,
+        i_zoom * current_scale,
+        "r-",
+        label=f"Current x{current_scale}",
+        linewidth=2,
+    )
+    ax1.set_xlabel("Time / ms")
+    ax1.set_ylabel("Amplitude")
+    ax1.legend()
+    ax1.grid(True)
+
+    # Plot full signal overview
+    ax2.plot(t, voltage, "b-", label="Voltage", alpha=0.7)
+    ax2.plot(
+        t, current * current_scale, "r-", label=f"Current x{current_scale}", alpha=0.7
+    )
+    ax2.set_xlabel("Time / s")
+    ax2.set_ylabel("Amplitude")
+    ax2.legend()
+    ax2.grid(True)
+
+    # Plot impedance magnitude
+    if impedance_expected is not None:
+        ax3.loglog(
+            frequencies, np.abs(impedance_expected), "blue", lw=3, label="Reconstructed"
+        )
+    ax3.loglog(frequencies, np.abs(impedance), "ro-", markersize=6, label="Fitted")
+    ax3.set_xlabel("Frequency / Hz")
+    ax3.set_ylabel(r"|Z| / $\Omega$")
+    ax3.grid(True)
+
+    # Plot impedance phase
+    if impedance_expected is not None:
+        ax4.semilogx(
+            frequencies,
+            np.angle(impedance_expected, deg=True),
+            "blue",
+            lw=3,
+            label="Expected",
+        )
+    ax4.semilogx(
+        frequencies, np.angle(impedance, deg=True), "ro-", markersize=6, label="Fitted"
+    )
+    ax4.set_xlabel("Frequency / Hz")
+    ax4.set_ylabel(r"Phase  / °")
+    ax4.grid(True)
+
+    plt.tight_layout()
+    plt.savefig(save_file)
+    plt.close()

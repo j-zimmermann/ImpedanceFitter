@@ -29,7 +29,6 @@ import pandas as pd
 import pyparsing as pp
 import schemdraw
 import schemdraw.elements as elm
-import yaml
 from lmfit import CompositeModel, Model
 from schemdraw.util import Point
 from scipy.constants import epsilon_0 as e0
@@ -284,11 +283,8 @@ def check_parameters(bufdict):
             continue
 
         if par in capacitancespF:
-            assert not np.isclose(
-                bufdict[p].value, 0.0, atol=1e-5
-            ), f"""{p} is used in pF, do you really want it to be that small?
-                   It will be ignored in the analysis"""
-
+            if np.isclose(bufdict[p].value, 0.0, atol=1e-5):
+                raise ValueError(f"{p} is used in pF, the value is too small.")
         if par in zerotoones:
             if not (0 <= bufdict[p].value <= 1.0):
                 raise ValueError(
@@ -312,16 +308,18 @@ def check_parameters(bufdict):
             continue
 
         if par in taus:
-            assert not np.isclose(bufdict[p].value, 0.0, atol=1e-7), (
-                "tau is used in ns, do you really want it to be that small?"
-            )
+            if np.isclose(bufdict[p].value, 0.0, atol=1e-7):
+                raise ValueError(
+                    "tau is used in ns, do you really want it to be that small?"
+                )
 
         # check permittivities
         if par in permittivities:
-            assert (
-                bufdict[p].value >= 1.0
-            ), f"""The permittivity {p} needs to be greater than
-                   or equal to 1. Change the initial value."""
+            if not bufdict[p].value >= 1.0:
+                raise ValueError(
+                    f"The permittivity {p} needs to be greater than "
+                    "or equal to 1. Change the initial value."
+                )
             if bufdict[p].vary:
                 if bufdict[p].min < 1.0:
                     logger.debug(
@@ -374,28 +372,26 @@ def set_parameters(model, parameterdict=None, emcee=False, weighting_model=False
     params: :py:class:`lmfit.parameter.Parameters`
         LMFIT Parameters object.
     """
-    if parameterdict is None:
-        try:
-            infile = open("input.yaml")
-            bufdict = yaml.safe_load(infile)
-        except OSError:
-            logger.error("Please provide a yaml-input file.")
-            raise
-    else:
-        try:
-            bufdict = parameterdict.copy()
-        except KeyError:
-            logger.error(
-                "Your parameterdict lacks an entry for the model."
-                f" Required are: {model.param_names}"
-            )
-            raise
+    try:
+        bufdict = parameterdict.copy()
+    except KeyError:
+        logger.error(
+            "Your parameterdict lacks an entry for the model."
+            f" Required are: {model.param_names}"
+        )
+        raise
 
-    bufdict = _clean_parameters(bufdict, model.param_names)
+    expr_strings = []
+    for key, value in bufdict.items():
+        if "expr" in value:
+            expr_strings.append(value["expr"])
+            logger.debug(f"Found variable with expressions: {key}")
+
+    bufdict = _clean_parameters(bufdict, model.param_names, expr_strings)
     logger.debug(f"Setting values for parameters {model.param_names}")
     logger.debug(f"Parameters: {bufdict}")
-    for key in model.param_names:
-        model.set_param_hint(key, **bufdict[key])
+    for key, value in bufdict.items():
+        model.set_param_hint(key, **value)
     parameters = model.make_params()
     parameters = check_parameters(parameters)
     if emcee and "__lnsigma" not in parameterdict:
@@ -442,7 +438,7 @@ def set_parameters(model, parameterdict=None, emcee=False, weighting_model=False
     return parameters
 
 
-def _clean_parameters(params, names):
+def _clean_parameters(params, names, expr_strings=[]):
     """
     Clean parameter dicts that are passed to the fitter.
     get rid of parameters that are not needed.
@@ -451,19 +447,24 @@ def _clean_parameters(params, names):
     ----------
     params: dict
         input dictionary
-    modelName: string
-        name of model corresponding to the ones listed
     names: list of strings
         names of model parameters
+    expr_strings: list of strings
+        expression constraints, used to identify parameters to be kept
     """
+    param_names = []
+    expr_string = " ".join(expr_strings)
     for p in list(params.keys()):
-        if p not in names:
+        if p not in names and p not in expr_string:
             del params[p]
+        else:
+            param_names.append(p)
 
-    assert Counter(names) == Counter(params.keys()), (
-        "You need to provide the following parameters (maybe with prefixes)"
-        + str(names)
-    )
+    if Counter(param_names) != Counter(params.keys()):
+        raise ValueError(
+            "You need to provide the following parameters (maybe with prefixes)"
+            + str(names)
+        )
     return params
 
 
@@ -743,7 +744,8 @@ def _process_parallel(model):
     :py:class:`lmfit.model.CompositeModel`
         The CompositeModel of the parallel circuit.
     """
-    assert len(model) == 3, "The model must be [model1, ',' , model2]"
+    if len(model) != 3:
+        raise ValueError("The model must be [model1, ',' , model2]")
     first_model = model[0]
     second_model = model[2]
     first = _process_element(first_model)
@@ -916,7 +918,8 @@ def get_equivalent_circuit_model(modelname, logscale=False, diel=False):
     Thus, keep the circuit simple.
     """
     circuit = []
-    assert isinstance(modelname, str), "Pass the model as a string"
+    if not isinstance(modelname, str):
+        raise ValueError("Pass the model as a string")
     str2parse = modelname.replace("parallel", "")
     circuit_elements = pp.Word(pp.srange("[a-zA-Z_0-9]"))
     plusop = pp.Literal("+")
@@ -1225,7 +1228,8 @@ def _add_series_drawing(circuit, d, endpts, step=3.0, depth=0):
 
 
 def _add_parallel_drawing(circuit, d, endpts, depth=0):
-    assert len(circuit) == 3, "The model must be [model1, ',' , model2]"
+    if len(circuit) != 3:
+        raise ValueError("The model must be [model1, ',' , model2]")
 
     first_element = circuit[0]
     second_element = circuit[2]
@@ -1247,7 +1251,8 @@ def _add_parallel_drawing(circuit, d, endpts, depth=0):
     anchory2 = deepcopy(endpts[1][1])
 
     distance = anchorx2 - anchorx1
-    assert distance > 0, "There is something wrong with your circuit."
+    if distance <= 0:
+        raise ValueError("There is something wrong with your circuit.")
     # find longest series in 2nd element
     longest = _determine_longest_length(second_element)
     if not np.less_equal(longest * 3.0, distance):
@@ -1374,7 +1379,8 @@ def save_impedance(omega, impedance, format="CSV", filename="impedance"):
         specify a filename (without ending!).
         The default is impedance.csv or impedance.xlsx
     """
-    assert isinstance(filename, str), "You need to provide a str as filename!"
+    if not isinstance(filename, str):
+        raise ValueError("You need to provide a str as filename!")
     outdict = {
         "freq": omega / (2.0 * np.pi),
         "real": impedance.real,

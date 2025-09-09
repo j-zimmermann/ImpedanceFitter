@@ -57,9 +57,8 @@ class PostProcess:
                 self.data = yaml.safe_load(fitfile)
         else:
             raise RuntimeError("Provide either yamlfile or fitresult.")
-        assert isinstance(self.data, dict), (
-            "The fit result to be analysed needs to be a dictionary."
-        )
+        if not isinstance(self.data, dict):
+            raise ValueError("The fit result to be analysed needs to be a dictionary.")
 
         random_key = next(iter(self.data))
         self.parameters = list(self.data[random_key].keys())
