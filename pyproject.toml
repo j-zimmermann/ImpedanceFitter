@@ -54,10 +54,6 @@ all = ["impedancefitter[test, dev, docs]"]
 homepage = "https://impedancefitter.readthedocs.io/en/latest/"
 repository = "https://github.com/j-zimmermann/impedancefitter"
 
-[tool.setuptools]
-
-packages = ["impedancefitter"]
-
 [tool.setuptools_scm]
 version_file = "src/impedancefitter/_version.py"
 
