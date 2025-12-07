@@ -102,4 +102,5 @@ ignore = [
     "tests/**/*",
     "introduction/*",
     "joss/*",
+    "src/impedancefitter/_version.py" # auto-generated, not in VCS
 ]

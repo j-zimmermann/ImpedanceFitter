@@ -1,12 +1,11 @@
-recursive-include docs *.bat
-recursive-include docs *.pdf
-recursive-include docs *.png
-recursive-include docs *.py
-recursive-include docs *.rst
-recursive-include docs Makefile
+recursive-exclude docs *.bat
+recursive-exclude docs *.pdf
+recursive-exclude docs *.png
+recursive-exclude docs *.py
+recursive-exclude docs *.rst
+recursive-exclude docs Makefile
 recursive-include src *.json
 recursive-include examples *.csv
 recursive-include examples *.py
 recursive-include examples *.zip
-include .readthedocs.yaml
-include src/impedancefitter/_version.py
+exclude .readthedocs.yaml
