@@ -7,7 +7,7 @@ name = "impedancefitter"
 dynamic = ["version"]
 description = "Library for fitting impedance data to equivalent circuit models."
 readme = "README.md"
-license = { text = "GPL-3.0-only" }
+license = { file = "LICENSE" }
 authors = [
     { name = "Leonard Thiele", email = "leonard.thiele@uni-rostock.de" },
     { name = "Julius Zimmermann", email = "julius.zimmermann@uni-rostock.de" }
@@ -54,6 +54,13 @@ all = ["impedancefitter[test, dev, docs]"]
 homepage = "https://impedancefitter.readthedocs.io/en/latest/"
 repository = "https://github.com/j-zimmermann/impedancefitter"
 
+[tool.setuptools]
+
+packages = ["impedancefitter"]
+
+[tool.setuptools_scm]
+version_file = "src/impedancefitter/_version.py"
+
 [tool.ruff]
 line-length = 88
 target-version = "py310"
@@ -77,6 +84,17 @@ lint.extend-ignore = [
     "D401", # First line should be in imperative mood
     "D413", # Missing blank line after last section
     "D416", # Section name should end with a colon
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "@overload",
+    "except ImportError",
+    "\\.\\.\\.",
+    "raise NotImplementedError()",
+    "except PackageNotFoundError:",
 ]
 
 # Files that should not be in the release
