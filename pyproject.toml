@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "impedancefitter"
-version = "2.0.11"
+dynamic = ["version"]
 description = "Library for fitting impedance data to equivalent circuit models."
 readme = "README.md"
 license = { text = "GPL-3.0-only" }
@@ -12,15 +12,15 @@ authors = [
     { name = "Leonard Thiele", email = "leonard.thiele@uni-rostock.de" },
     { name = "Julius Zimmermann", email = "julius.zimmermann@uni-rostock.de" }
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: OS Independent"
 ]
@@ -55,6 +55,8 @@ homepage = "https://impedancefitter.readthedocs.io/en/latest/"
 repository = "https://github.com/j-zimmermann/impedancefitter"
 
 [tool.ruff]
+line-length = 88
+target-version = "py310"
 lint.extend-select = ["E",  # style errors
  "W", # style warnings
  "F", # flakes
