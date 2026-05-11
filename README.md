@@ -1,8 +1,10 @@
 [![DOI](https://zenodo.org/badge/297969672.svg)](https://zenodo.org/badge/latestdoi/297969672)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/j-zimmermann/ImpedanceFitter/master.svg)](https://results.pre-commit.ci/latest/github/j-zimmermann/ImpedanceFitter/master)
+<p align="center">
+  <img src="logo/ifit_logo.jpeg" width="260">
+</p>
 
-ImpedanceFitter
-===============
+<h1 align="center">ImpedanceFitter</h1>
 
 Impedance spectroscopy (IS) is a great tool to analyse the behaviour of an electrical circuit,
 to characterise the response of a sample (e.g. biological tissue), to determine the dielectric 

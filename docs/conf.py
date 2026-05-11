@@ -52,6 +52,8 @@ napoleon_use_param = False
 napoleon_use_ivar = True
 
 autosummary_generate = True
+
+html_logo = "../logo/ifit_logo.jpeg"
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 

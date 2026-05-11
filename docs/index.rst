@@ -5,7 +5,10 @@
 
 Welcome to ImpedanceFitter's documentation!
 ===========================================
-
+.. image:: ../logo/ifit_logo.jpeg
+   :width: 300
+   :align: center
+   
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
