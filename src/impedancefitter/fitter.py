@@ -845,7 +845,7 @@ class Fitter:
                 kws={"Zdata": Z, "model": model, "model_kwargs": model_kwargs},
             )
             best_values = deepcopy(model_result.params.valuesdict())
-            setattr(model_result, "best_values", best_values)
+            model_result.best_values = best_values
         else:
             # this is also k=0 in reweighting
             model_result = model.fit(
@@ -1183,13 +1183,9 @@ class Fitter:
                 )
                 plt.legend()
                 plt.show()
-            setattr(res, "new_chain", np.take(chain, sorted_indices[:cut:], axis=0))
-            setattr(
-                res,
-                "new_flatchain",
-                pd.DataFrame(
-                    res.new_chain.reshape((-1, res.nvarys)), columns=res.var_names
-                ),
+            res.new_chain = np.take(chain, sorted_indices[:cut], axis=0)
+            res.new_flatchain = pd.DataFrame(
+                res.new_chain.reshape((-1, res.nvarys)), columns=res.var_names
             )
 
     def emcee_report(self):

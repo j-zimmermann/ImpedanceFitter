@@ -1296,8 +1296,7 @@ def _determine_longest_length(circuit):
                 side += 1
         elif isinstance(c, list):
             tmp = _determine_longest_length(circuit)
-            if tmp > longest_length:
-                longest_length = tmp
+            longest_length = max(longest_length, tmp)
 
     if max(counter) > longest_length:
         return max(counter)
