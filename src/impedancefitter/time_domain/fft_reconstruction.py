@@ -111,8 +111,7 @@ def fit_impedance_from_time_domain(
     fit_params = lmfit.create_params(**parameters)
     # parameter values need to be positive
     for param in fit_params:
-        if fit_params[param].min < 0:
-            fit_params[param].min = 0
+        fit_params[param].min = max(fit_params[param].min, 0)
     fit_params.add(name="offset", value=0.0)
 
     # get ecm and Is from function

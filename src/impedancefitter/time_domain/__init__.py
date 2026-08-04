@@ -12,6 +12,6 @@ __all__ = (
     "calculate_impedance_spectrum_using_cwt",
     "calculate_impedance_spectrum_using_fft",
     "fit_impedance_from_time_domain",
-    "rectangle",
     "predict_time_domain_signal",
+    "rectangle",
 )
