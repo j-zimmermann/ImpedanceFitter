@@ -69,54 +69,54 @@ def test_logscale():
 def test_wrong_circuit():
     """Test wrong circuit."""
     model1 = "R, L , C"
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         get_equivalent_circuit_model(model1)
 
 
 def test_wrong_circuit2():
     """Test wrong circuit."""
     model1 = "parallel(R + L + C)"
-    with pytest.raises(Exception):
+    with pytest.raises(RuntimeError):
         get_equivalent_circuit_model(model1)
 
 
 def test_wrong_circuit3():
     """Test wrong circuit."""
     model1 = "parallel(R, C"
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         get_equivalent_circuit_model(model1)
 
 
 def test_wrong_circuit4():
     """Test wrong circuit."""
     model1 = "parallel(R + L)"
-    with pytest.raises(Exception):
+    with pytest.raises(RuntimeError):
         get_equivalent_circuit_model(model1)
 
 
 def test_wrong_circuit5():
     """Test wrong circuit."""
     model1 = "parallel(R_f1 + parallel(R_f2, L))"
-    with pytest.raises(Exception):
+    with pytest.raises(RuntimeError):
         get_equivalent_circuit_model(model1)
 
 
 def test_wrong_circuit6():
     """Test wrong circuit."""
     model1 = "R_f1 + parallel(R_f2 + L)"
-    with pytest.raises(Exception):
+    with pytest.raises(RuntimeError):
         get_equivalent_circuit_model(model1)
 
 
 def test_wrong_circuit7():
     """Test wrong circuit."""
     model1 = "R + parallel(R_f2, L)"
-    with pytest.raises(Exception):
+    with pytest.raises(RuntimeError):
         get_equivalent_circuit_model(model1)
 
 
 def test_wrong_circuit8():
     """Test wrong circuit."""
     model1 = "R_f1 + parallel(R, L)"
-    with pytest.raises(Exception):
+    with pytest.raises(RuntimeError):
         get_equivalent_circuit_model(model1)

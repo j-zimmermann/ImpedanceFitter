@@ -58,7 +58,7 @@ class PostProcess:
         else:
             raise RuntimeError("Provide either yamlfile or fitresult.")
         if not isinstance(self.data, dict):
-            raise ValueError("The fit result to be analysed needs to be a dictionary.")
+            raise TypeError("The fit result to be analysed needs to be a dictionary.")
 
         random_key = next(iter(self.data))
         self.parameters = list(self.data[random_key].keys())
@@ -105,8 +105,8 @@ class PostProcess:
         else:
             ncols = 3
             nrows = int(len(self.parameters) / 3)
-            nrows += int(ceil((len(self.parameters) % 3) / 3))
-        fig, ax = plt.subplots(nrows=nrows, ncols=ncols)
+            nrows += ceil((len(self.parameters) % 3) / 3)
+        _fig, ax = plt.subplots(nrows=nrows, ncols=ncols)
         r = 0
         c = 0
         for key in self.sampledict:
@@ -115,12 +115,12 @@ class PostProcess:
             graph.setXTitle(self.labels[key])
             if nrows == 1:
                 View(graph, axes=[ax[c]], plot_kwargs={"label": "hist", "c": "black"})
-                ymin, ymax = ax[c].get_ylim()
+                _ymin, ymax = ax[c].get_ylim()
             else:
                 View(
                     graph, axes=[ax[r, c]], plot_kwargs={"label": "hist", "c": "black"}
                 )
-                ymin, ymax = ax[r, c].get_ylim()
+                _ymin, ymax = ax[r, c].get_ylim()
             kernel = ot.KernelSmoothing()
             graph_k = kernel.build(self.sampledict[key])
             graph_k = graph_k.drawPDF()

@@ -37,5 +37,5 @@ def test_scheme():
 def test_draw_exception():
     """Test that scheme cannot be drawn."""
     model = "parallel(R_f1, C + R)"
-    with pytest.raises(Exception):
+    with pytest.raises(RuntimeError):
         draw_scheme(model)

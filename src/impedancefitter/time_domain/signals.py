@@ -27,9 +27,9 @@ def rectangle(
             start_gap + pulse_width + interpulse_gap
             < time
             < start_gap + 2.0 * pulse_width + interpulse_gap
+            and biphasic
         ):
-            if biphasic:
-                signal[idx] = -amplitude
+            signal[idx] = -amplitude
     return signal
 
 
