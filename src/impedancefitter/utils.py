@@ -282,9 +282,8 @@ def check_parameters(bufdict):
         if par in exceptions:
             continue
 
-        if par in capacitancespF:
-            if np.isclose(bufdict[p].value, 0.0, atol=1e-5):
-                raise ValueError(f"{p} is used in pF, the value is too small.")
+        if par in capacitancespF and np.isclose(bufdict[p].value, 0.0, atol=1e-5):
+            raise ValueError(f"{p} is used in pF, the value is too small.")
         if par in zerotoones:
             if not (0 <= bufdict[p].value <= 1.0):
                 raise ValueError(
@@ -307,11 +306,10 @@ def check_parameters(bufdict):
                     bufdict[p].set(max=1.0)
             continue
 
-        if par in taus:
-            if np.isclose(bufdict[p].value, 0.0, atol=1e-7):
-                raise ValueError(
-                    "tau is used in ns, do you really want it to be that small?"
-                )
+        if par in taus and np.isclose(bufdict[p].value, 0.0, atol=1e-7):
+            raise ValueError(
+                "tau is used in ns, do you really want it to be that small?"
+            )
 
         # check permittivities
         if par in permittivities:
@@ -438,7 +436,7 @@ def set_parameters(model, parameterdict=None, emcee=False, weighting_model=False
     return parameters
 
 
-def _clean_parameters(params, names, expr_strings=[]):
+def _clean_parameters(params, names, expr_strings=None):
     """
     Clean parameter dicts that are passed to the fitter.
     get rid of parameters that are not needed.
@@ -452,6 +450,8 @@ def _clean_parameters(params, names, expr_strings=[]):
     expr_strings: list of strings
         expression constraints, used to identify parameters to be kept
     """
+    if expr_strings is None:
+        expr_strings = []
     param_names = []
     expr_string = " ".join(expr_strings)
     for p in list(params.keys()):
@@ -781,7 +781,7 @@ def _process_element(c):
     elif isinstance(c, list):
         return _process_circuit(c)
     else:
-        raise RuntimeError
+        raise TypeError("c must be a str or list")
 
 
 def _process_series(circuitstr):
@@ -828,7 +828,7 @@ def _process_circuit(circuit):
     if isinstance(circuit, str):
         circuit = [circuit]
     if not isinstance(circuit, list):
-        raise RuntimeError("You must have entered a wrong circuit!")
+        raise TypeError("You must have entered a wrong circuit!")
 
     # if there are elements in series or only one element
     if "+" in circuit or len(circuit) == 1:
@@ -919,7 +919,7 @@ def get_equivalent_circuit_model(modelname, logscale=False, diel=False):
     """
     circuit = []
     if not isinstance(modelname, str):
-        raise ValueError("Pass the model as a string")
+        raise TypeError("Pass the model as a string")
     str2parse = modelname.replace("parallel", "")
     circuit_elements = pp.Word(pp.srange("[a-zA-Z_0-9]"))
     plusop = pp.Literal("+")
@@ -929,8 +929,8 @@ def get_equivalent_circuit_model(modelname, logscale=False, diel=False):
     )
     try:
         circuitstr = expr.parseString(str2parse)
-    except pp.ParseException:
-        raise ("You must provide a correct string!")
+    except pp.ParseException as e:
+        raise ValueError("You must provide a correct string!") from e
     _check_circuit(circuitstr.asList()[0], startpar=modelname.startswith("parallel"))
     circuit = _process_circuit(circuitstr.asList()[0])
     if logscale:
@@ -1114,7 +1114,7 @@ def draw_scheme(modelname, show=True, save=False):
     """
     # read and check circuit
     if not isinstance(modelname, str):
-        raise ValueError("Pass the model as a string")
+        raise TypeError("Pass the model as a string")
     str2parse = modelname.replace("parallel", "")
     circuit_elements = pp.Word(pp.srange("[a-zA-Z_0-9]"))
     plusop = pp.Literal("+")
@@ -1124,8 +1124,8 @@ def draw_scheme(modelname, show=True, save=False):
     )
     try:
         circuitstr = expr.parseString(str2parse)
-    except pp.ParseException:
-        raise ("You must provide a correct string!")
+    except pp.ParseException as e:
+        raise ValueError("You must provide a correct string!") from e
     _check_circuit(circuitstr.asList()[0], startpar=modelname.startswith("parallel"))
 
     # start drawing
@@ -1192,7 +1192,7 @@ def _cycle_circuit(circuit, d, endpts, step=3.0, depth=0):
     if isinstance(circuit, str):
         circuit = [circuit]
     if not isinstance(circuit, list):
-        raise RuntimeError("You must have entered a wrong circuit!")
+        raise TypeError("You must have entered a wrong circuit!")
 
     # if there are elements in series or only one element
     if "+" in circuit or len(circuit) == 1:
@@ -1379,7 +1379,7 @@ def save_impedance(omega, impedance, format="CSV", filename="impedance"):
         The default is impedance.csv or impedance.xlsx
     """
     if not isinstance(filename, str):
-        raise ValueError("You need to provide a str as filename!")
+        raise TypeError("You need to provide a str as filename!")
     outdict = {
         "freq": omega / (2.0 * np.pi),
         "real": impedance.real,

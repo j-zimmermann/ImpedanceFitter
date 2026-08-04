@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def weighting_residual(params, omega, Zdata=None, model=None, model_kwargs={}):
+def weighting_residual(params, omega, Zdata=None, model=None, model_kwargs=None):
     """Weight data using a model for the error.
 
     Parameters
@@ -32,6 +32,8 @@ def weighting_residual(params, omega, Zdata=None, model=None, model_kwargs={}):
                  Electrochimica Acta, 87, 532–545.
                  https://doi.org/10.1016/j.electacta.2012.09.073
     """
+    if model_kwargs is None:
+        model_kwargs = {}
     # convert from percent
     stdA = 1e-2 * params["stdA"]
     stdPhi = 1e-2 * params["stdPhi"]

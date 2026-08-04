@@ -80,6 +80,8 @@ lint.extend-ignore = [
     "D401", # First line should be in imperative mood
     "D413", # Missing blank line after last section
     "D416", # Section name should end with a colon
+    "N999", # Invalid module name (RC etc. are deliberate domain names)
+    "EXE001", # Shebang present but file not executable (docs/conf.py)
 ]
 
 [tool.coverage.report]

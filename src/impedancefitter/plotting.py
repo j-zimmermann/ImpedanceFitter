@@ -211,7 +211,7 @@ def plot_dielectric_properties(
     logscale="permittivity",
     labels=None,
     append=False,
-    markers=[None, None],
+    markers=None,
     legend=True,
     limits=None,
     **plotkwargs,
@@ -263,6 +263,8 @@ def plot_dielectric_properties(
     else:
         plt.sca(axes[0])
 
+    if markers is None:
+        markers = [None, None]
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
     if not len(labels) == 2:
@@ -464,7 +466,7 @@ def plot_cole_cole(
     Z_comp=None,
     append=False,
     legend=True,
-    markers=[None, None],
+    markers=None,
     title="",
     show=True,
     save=False,
@@ -514,6 +516,8 @@ def plot_cole_cole(
 
     eps_r, cond_fit = return_diel_properties(omega, Z, c0)
     epsc_fit = eps_r - 1j * cond_fit / (e0 * omega)
+    if markers is None:
+        markers = [None, None]
     if labels is None:
         labels = [r"$Z_1$", r"$Z_2$"]
     if not len(labels) == 2:
@@ -554,10 +558,10 @@ def plot_bode(
     show=True,
     save=False,
     Z_comp=None,
-    labels=["Data", "Best fit", "Init fit"],
+    labels=None,
     append=False,
     legend=True,
-    markers=[None, "^", "v"],
+    markers=None,
 ):
     """Bode plot of impedance.
 
@@ -596,6 +600,10 @@ def plot_bode(
     markers: list
         Three entries to choose custom markers for each impedance curve
     """
+    if labels is None:
+        labels = ["Data", "Best fit", "Init fit"]
+    if markers is None:
+        markers = [None, "^", "v"]
     axes = []
     plt.figure("bodeimpedance")
     axes = plt.gcf().axes
@@ -668,7 +676,7 @@ def plot_resistance_capacitance(
     show=True,
     save=False,
     Z_comp=None,
-    labels=["Data", "Best fit", "Init fit"],
+    labels=None,
     append=False,
     legend=True,
 ):
@@ -708,6 +716,8 @@ def plot_resistance_capacitance(
         when using large datasets.
 
     """
+    if labels is None:
+        labels = ["Data", "Best fit", "Init fit"]
     axes = []
     plt.figure("rcimpedance")
     axes = plt.gcf().axes
@@ -730,7 +740,7 @@ def plot_resistance_capacitance(
         R_fit, C_fit = _return_resistance_capacitance(omega, Z_fit)
         plt.plot(omega / (2.0 * np.pi), R_fit, "^", label=labels[1])
     if Z_comp is not None:
-        R_comp, C_comp = _return_resistance_capacitance(omega, Z_comp)
+        _R_comp, C_comp = _return_resistance_capacitance(omega, Z_comp)
         plt.plot(omega / (2.0 * np.pi), C_comp, "v", label=labels[2])
     if legend:
         plt.legend()
@@ -770,7 +780,7 @@ def plot_impedance(
     show=True,
     save=False,
     Z_comp=None,
-    labels=["Data", "Best fit", "Init fit"],
+    labels=None,
     residual="parts",
     sign=False,
     Zlog=False,
@@ -846,6 +856,8 @@ def plot_impedance(
         omega_fit = omega
     if omega_comp is None:
         omega_comp = omega
+    if labels is None:
+        labels = ["Data", "Best fit", "Init fit"]
     axes = []
     plt.figure("impedance")
     axes = plt.gcf().axes
@@ -1337,7 +1349,7 @@ def plot_admittance(
     show=True,
     save=False,
     Z_comp=None,
-    labels=["Data", "Best fit", "Init fit"],
+    labels=None,
     residual="parts",
     sign=False,
     Zlog=False,
@@ -1407,6 +1419,8 @@ def plot_admittance(
         omega_fit = omega
     if omega_comp is None:
         omega_comp = omega
+    if labels is None:
+        labels = ["Data", "Best fit", "Init fit"]
     axes = []
     plt.figure("admittance")
     axes = plt.gcf().axes
@@ -1669,7 +1683,7 @@ def plot_time_domain_signals_with_impedance(
 ):
     """Plot impedance with original time domain signals."""
     # TODO more documentation
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
+    _fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
 
     # Plot high-frequency input signals (zoomed to pulse region)
     t_zoom = t[(t >= t_zoom_range[0]) & (t <= t_zoom_range[1])]

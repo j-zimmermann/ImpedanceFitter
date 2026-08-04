@@ -257,12 +257,14 @@ def readin_Data_from_csv_E4980AL(
                 # in current-driven mode we need to check if the device
                 # was able to deliver the current
                 # we assume 1% as the threshold
-                if current_threshold is not None:
-                    if not np.isclose(values[i][4], current_threshold, rtol=tolerance):
-                        continue
-                if voltage_threshold is not None:
-                    if not np.isclose(values[i][3], voltage_threshold, rtol=tolerance):
-                        continue
+                if current_threshold is not None and not np.isclose(
+                    values[i][4], current_threshold, rtol=tolerance
+                ):
+                    continue
+                if voltage_threshold is not None and not np.isclose(
+                    values[i][3], voltage_threshold, rtol=tolerance
+                ):
+                    continue
                 filteredvalues = np.append(filteredvalues, bufdict, axis=0)
             else:
                 break
@@ -291,12 +293,11 @@ def readin_Data_from_csv_E4980AL(
 def _get_max_rows(filepath, trace_b, skiprows_txt, skiprows_trace):
     """Determines the number of actual data rows in TXT files."""
     max_rows = -1
-    txt_file = open(filepath)
-    for num, line in enumerate(txt_file, 1):
-        if trace_b in line:
-            max_rows = num - skiprows_txt - skiprows_trace
-            break
-    txt_file.close()
+    with open(filepath) as txt_file:
+        for num, line in enumerate(txt_file, 1):
+            if trace_b in line:
+                max_rows = num - skiprows_txt - skiprows_trace
+                break
     if max_rows < 0:
         raise RuntimeError(
             "Could not process TXT file, second trace could not be found"
@@ -349,14 +350,14 @@ def readin_Data_from_TXT_file(
     max_rows = None  # numpy default
     if trace_b is not None:
         max_rows = _get_max_rows(filepath, trace_b, skiprows_txt, skiprows_trace)
-    txt_file = open(filepath)
-    try:
-        fileDataArray = np.loadtxt(
-            txt_file, delimiter=delimiter, skiprows=skiprows_txt, max_rows=max_rows
-        )
-    except ValueError as v:
-        logger.error(f"Error in file {filepath}.\n {v.args}")
-        raise
+    with open(filepath) as txt_file:
+        try:
+            fileDataArray = np.loadtxt(
+                txt_file, delimiter=delimiter, skiprows=skiprows_txt, max_rows=max_rows
+            )
+        except ValueError as v:
+            logger.error(f"Error in file {filepath}.\n {v.args}")
+            raise
     filteredvalues = np.empty((0, fileDataArray.shape[1]))
     if minimumFrequency is None:
         minimumFrequency = fileDataArray[0, 0].astype(np.float64)

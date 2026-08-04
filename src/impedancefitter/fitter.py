@@ -187,10 +187,9 @@ class Fitter:
         read_data_sets = 0
 
         for filename in self.fileList:
-            if self.data_sets:
-                if read_data_sets == self.data_sets:
-                    logger.debug("Reached maximum number of data sets.")
-                    break
+            if self.data_sets and read_data_sets == self.data_sets:
+                logger.debug("Reached maximum number of data sets.")
+                break
             filename = os.fsdecode(filename)
 
             if filename.endswith(self.excludeEnding):
@@ -477,8 +476,8 @@ class Fitter:
         modelname,
         solver=None,
         parameters=None,
-        model_kwargs={},
-        solver_kwargs={},
+        model_kwargs=None,
+        solver_kwargs=None,
         log=False,
         weighting=None,
         show=False,
@@ -540,6 +539,10 @@ class Fitter:
             Log-transform impedance for fitting
 
         """
+        if model_kwargs is None:
+            model_kwargs = {}
+        if solver_kwargs is None:
+            solver_kwargs = {}
         self.modelname = modelname
         self.log = log
         self.eps = eps
@@ -623,7 +626,8 @@ class Fitter:
             self.model, self.parameters, self.emcee_tag, self.weighting_model
         )
         if self.write_output is True:
-            open("outfile.yaml", "w")  # create output file
+            with open("outfile.yaml", "w"):  # create output file
+                pass
         # TODO:
         # implement WLS here
         for key in self.omega_dict:
@@ -653,8 +657,8 @@ class Fitter:
                 )
                 self._process_fitting_results(key + "_" + str(i))
         if self.write_output is True and hasattr(self, "fit_data"):
-            outfile = open("outfile.yaml", "w")
-            yaml.dump(self.fit_data, outfile)
+            with open("outfile.yaml", "w") as outfile:
+                yaml.dump(self.fit_data, outfile)
         elif not hasattr(self, "fit_data"):
             logger.info("There was no file to process")
 
@@ -777,7 +781,7 @@ class Fitter:
         log=True,
         eps=False,
         weighting_model=False,
-        model_kwargs={},
+        model_kwargs=None,
     ):
         """Fit data to model.
 
@@ -811,6 +815,8 @@ class Fitter:
         :class:`lmfit.model.ModelResult`
             Result of fit as LMFIT.ModelResult object.
         """
+        if model_kwargs is None:
+            model_kwargs = {}
         logger.debug("#################################")
         logger.debug(f"fit data to {model._name} model")
         logger.debug("#################################")
@@ -920,15 +926,15 @@ class Fitter:
 
         # return solver message (needed since lmfit handles messages
         # differently for the various solvers)
-        if hasattr(model_result, "message"):
-            if model_result.message is not None:
-                logger.debug("Solver message: " + model_result.message)
-        if hasattr(model_result, "lmdif_message"):
-            if model_result.lmdif_message is not None:
-                logger.debug("Solver message (leastsq): " + model_result.lmdif_message)
-        if hasattr(model_result, "ampgo_msg"):
-            if model_result.ampgo_msg is not None:
-                logger.debug("Solver message (ampgo): " + model_result.ampgo_msg)
+        if hasattr(model_result, "message") and model_result.message is not None:
+            logger.debug("Solver message: " + model_result.message)
+        if (
+            hasattr(model_result, "lmdif_message")
+            and model_result.lmdif_message is not None
+        ):
+            logger.debug("Solver message (leastsq): " + model_result.lmdif_message)
+        if hasattr(model_result, "ampgo_msg") and model_result.ampgo_msg is not None:
+            logger.debug("Solver message (ampgo): " + model_result.ampgo_msg)
         return model_result
 
     def get_resistance_capacitance(self):
@@ -977,7 +983,7 @@ class Fitter:
         residual="parts",
         limits_residual=None,
         weighting_model=False,
-        model_kwargs={},
+        model_kwargs=None,
     ):
         """Fit data from input file to model.
 
@@ -1011,6 +1017,8 @@ class Fitter:
             Result of fit as :class:`lmfit.model.ModelResult` object.
 
         """
+        if model_kwargs is None:
+            model_kwargs = {}
         logger.debug("Going to fit")
         weights = None
         if self.weighting == "proportional":
@@ -1245,7 +1253,7 @@ class Fitter:
         for fits in self.model_results:
             fittedValues = self.model_results[fits]
             ndim = len(fittedValues.var_names)
-            fig, axes = plt.subplots(ndim, figsize=(15, 10), sharex=True)
+            _fig, axes = plt.subplots(ndim, figsize=(15, 10), sharex=True)
             samples = fittedValues.chain
             labels = get_labels(fittedValues.var_names)
             for i in range(ndim):
@@ -1272,7 +1280,7 @@ class Fitter:
 
         """
         if not isinstance(sigma, int):
-            raise ValueError("Sigma needs to be integer and range between 1 and 3.")
+            raise TypeError("Sigma needs to be integer and range between 1 and 3.")
         if not 1 <= sigma <= 3:
             raise ValueError("Sigma needs to be integer and range between 1 and 3.")
         if not hasattr(self, "model_results"):
@@ -1368,14 +1376,14 @@ class Fitter:
     def prepare_emcee_run(
         self,
         leastsquaresresult,
-        lnsigma={"value": np.log(0.1), "min": np.log(0.001), "max": np.log(2)},
+        lnsigma=None,
         nwalkers=100,
         radius=1e-4,
         weighted=False,
         burn=500,
         steps=10e3,
         thin=10,
-        fix_parameters=[],
+        fix_parameters=None,
     ):
         """Prepare initial configuration based on previous least squares run.
 
@@ -1417,6 +1425,10 @@ class Fitter:
         dict
             dictionary, which can be passed to run method via `solver_kwargs` keyword.
         """
+        if lnsigma is None:
+            lnsigma = {"value": np.log(0.1), "min": np.log(0.001), "max": np.log(2)}
+        if fix_parameters is None:
+            fix_parameters = []
         # take results from least squares
         parameters_dict = {}
         for ls_param in leastsquaresresult.params:
@@ -1470,7 +1482,7 @@ class Fitter:
         c=0.85,
         maxM=100,
         show=True,
-        limits=[-2, 2],
+        limits=None,
         weighting="modulus",
     ):
         """Lin-KK test to check Kramers-Kronig validity.
@@ -1521,6 +1533,8 @@ class Fitter:
                              Electrochimica Acta, 131, 20–27.
                              https://doi.org/10.1016/j.electacta.2014.01.034
         """
+        if limits is None:
+            limits = [-2, 2]
         results = {}
         mus = {}
         residuals = {}
@@ -1756,7 +1770,7 @@ class Fitter:
             a = np.concatenate((real, imag))
             y = np.concatenate((Zweighted.real, Zweighted.imag))
             # note that rcond=-1 means that singular values are hardly reached
-            b, residualslstsq, rank, s = np.linalg.lstsq(a, y, rcond=-1)
+            b, residualslstsq, _rank, _s = np.linalg.lstsq(a, y, rcond=-1)
 
             rks = b[start:]
 
