@@ -46,6 +46,14 @@ ImpedanceFitter can be installed using pip
 pip install impedancefitter
 ```
 
+The statistical analysis of fit results (`PostProcess`) relies on
+[OpenTURNS](https://openturns.github.io/www/), which is an optional
+dependency. To install it as well, run
+
+```
+pip install impedancefitter[stats]
+```
+
 If you want to install the code from source,
 clone into a local directory.
 

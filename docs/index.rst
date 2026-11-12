@@ -74,6 +74,13 @@ or from source
  
    pip install . 
 
+To use the statistical analysis (:ref:`Statistical Analysis`),
+install the optional dependency OpenTurns, e.g. via
+
+.. code-block:: python
+
+   pip install impedancefitter[stats]
+
 Then continue with the :ref:`examples`. 
 
 Indices and tables
