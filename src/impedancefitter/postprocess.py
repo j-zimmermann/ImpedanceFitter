@@ -28,7 +28,7 @@ import yaml
 try:
     import openturns as ot
     from openturns.viewer import View
-except ImportError as e:  # pragma: no cover
+except ImportError as e:
     raise ImportError(
         "The postprocessing module requires the optional dependency "
         "'openturns'. Install it with `pip install impedancefitter[stats]` "
