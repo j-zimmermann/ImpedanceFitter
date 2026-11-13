@@ -23,9 +23,17 @@ from math import ceil
 
 import matplotlib.pyplot as plt
 import numpy as np
-import openturns as ot
 import yaml
-from openturns.viewer import View
+
+try:
+    import openturns as ot
+    from openturns.viewer import View
+except ImportError as e:
+    raise ImportError(
+        "The postprocessing module requires the optional dependency "
+        "'openturns'. Install it with `pip install impedancefitter[stats]` "
+        "or `pip install openturns`."
+    ) from e
 
 from .utils import get_labels
 

@@ -20,6 +20,7 @@
 """ImpedanceFitter is a package to fit impedance spectra."""
 
 import logging
+from importlib.util import find_spec
 
 from .fitter import Fitter, set_logger
 from .fra import (
@@ -44,7 +45,6 @@ from .plotting import (
     plot_time_domain_signals_with_impedance,
     plot_uncertainty,
 )
-from .postprocess import PostProcess
 from .utils import (
     KK_integral_transform,
     available_file_format,
@@ -57,10 +57,23 @@ from .utils import (
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
-__all__ = (
+
+def __getattr__(name):
+    """Lazily import optional components.
+
+    :class:`PostProcess` requires the optional dependency ``openturns``
+    and is therefore only imported on first access.
+    """
+    if name == "PostProcess":
+        from .postprocess import PostProcess
+
+        return PostProcess
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+__all__ = [
     "Fitter",
     "KK_integral_transform",
-    "PostProcess",
     "available_file_format",
     "available_models",
     "bode_csv_to_impedance",
@@ -85,4 +98,7 @@ __all__ = (
     "plot_uncertainty",
     "read_bode_csv",
     "set_logger",
-)
+]
+
+if find_spec("openturns") is not None:
+    __all__ += ["PostProcess"]
